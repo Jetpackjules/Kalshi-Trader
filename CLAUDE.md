@@ -6,17 +6,62 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This repository contains temperature monitoring and analysis tools for NYC weather data, specifically designed to support analysis related to Kalshi's temperature prediction markets (NHIGH contracts). The project focuses on tracking daily maximum temperatures at Central Park, NYC (KNYC station) as specified in the Kalshi trading rules.
 
-## Data Sources and Architecture
+## Common Development Commands
 
-The codebase implements multiple weather data collection strategies:
+### Testing APIs
+- `python3 simple_api_test.py` - Quick test of all three weather APIs for a single date
+- `python3 debug_api_test.py` - Comprehensive test across date ranges with detailed logging
+- `python3 test_asos_fix.py` - Specific test for ASOS timezone fix validation
 
-### Primary Data Sources
+### Analysis and Comparison  
+- `python3 kalshi_comparison.py` - Compare weather APIs against Kalshi settlement data
+- `python3 api_deviance_analysis.py` - Comprehensive API performance analysis with deviance calculations
+- `python3 kalshi_vs_actual_temps_simple.py` - Two-number comparison of Kalshi settlements vs weather APIs
+- `python3 kalshi_visual_analysis.py` - Generate comprehensive visualizations of market analysis
+
+### Kalshi Trading Integration
+- `python3 kalshi_historical_price_analysis.py` - Analyze historical market prices before expiration using candlestick data
+- `python3 test_kalshi_auth.py` - Test Kalshi API authentication and connectivity
+- `python3 check_active_markets.py` - Check for currently active temperature markets
+- `cd kalshi_monitor && python3 kalshi_temperature_monitor.py` - Real-time market monitoring (requires API credentials)
+
+### Environment Setup
+- Virtual environment located in `venv/` directory
+- Activate with `source venv/bin/activate` (if using virtual environment)
+- No requirements.txt present - dependencies installed manually
+
+## Code Architecture
+
+### Modular API Design
+The codebase uses a modular architecture with all weather APIs inheriting from `BaseWeatherAPI`:
+
+**Core Module Structure:**
+- `modules/base_api.py` - Abstract base class providing common functionality
+- `modules/nws_api.py` - NWS API implementation with aggressive data fetching
+- `modules/synoptic_api.py` - Synoptic API for high-frequency data
+- `modules/ncei_asos.py` - NCEI ASOS historical data with UTC timezone handling
+- `modules/kalshi_nws_source.py` - Official NWS source matching Kalshi settlement
+- `modules/kalshi_api.py` - Kalshi trading API integration
+
+**Key Design Patterns:**
+- All APIs implement `get_daily_max_temperature(target_date)` method
+- Common climate day logic handled in base class
+- Timezone-aware datetime handling throughout
+- Robust error handling with fallback strategies
+
+### Data Sources and Architecture
+
+#### Primary Data Sources
 - **NWS API**: Official National Weather Service observations API (`api.weather.gov`)
-- **Synoptic API**: High-frequency weather data service with 5-minute granularity
+- **Synoptic API**: High-frequency weather data service with 5-minute granularity  
 - **NCEI ASOS**: Historical 5-minute ASOS data files from NOAA's archive
+- **Kalshi NWS Source**: Official settlement data source for trading validation
 
-### Core Concept: Climate Days
+#### Core Concept: Climate Days
 All scripts implement "climate day" logic where a meteorological day runs from 00:00 LST to the next 00:00 LST. During Daylight Saving Time, this means the climate day ends at 01:00 local clock time to maintain 24-hour periods.
+
+#### Critical Timezone Handling
+**NCEI ASOS**: Data timestamps are in UTC format, requiring UTC day bounds (00:00 UTC to 24:00 UTC) rather than local climate day conversion. This was a major bug fix - previous attempts to convert local climate windows to UTC bounds failed.
 
 ### Station Coverage
 - **KNYC**: Central Park (primary settlement station for Kalshi)
@@ -25,63 +70,92 @@ All scripts implement "climate day" logic where a meteorological day runs from 0
 - **KEWR**: Newark Airport
 - **KTEB**: Teterboro Airport
 
-## Key Scripts and Functionality
+## Legacy Scripts (Deprecated)
 
-### Temperature Data Collection
-- `nws_api_climate_daily_peaks.py`: Fetches daily temperature peaks from NWS API for multiple NYC stations over the last 7 climate days
-- `synoptic_5min_7day_climate_plots.py`: Creates individual daily plots and overlay analysis using Synoptic's 5-minute data
-- `nws_api_7day_temperature_plots.py`: Generates temperature plots from 7 days of NWS API data
-
-### Data Processing
-- `ncei_asos_5min_data_parser.py`: Parses raw NCEI ASOS 5-minute data files with complex regex-based record extraction
-- `ncei_asos_daily_temperature_plots.py`: Creates daily temperature visualizations from parsed NCEI data
-- `data_dl.py`: Downloads ASOS data files from NCEI servers
+The `legacy_scripts/` directory contains standalone scripts that have been superseded by the modular API architecture:
+- `nws_api_climate_daily_peaks.py` - Replaced by `modules/nws_api.py`
+- `synoptic_5min_7day_climate_plots.py` - Replaced by `modules/synoptic_api.py`
+- `ncei_asos_5min_data_parser.py` - Replaced by `modules/ncei_asos.py`
 
 ## API Credentials and Configuration
 
 ### Synoptic API
-- Token required: `SYNOPTIC_TOKEN` (currently hardcoded in synoptic_5min_7day_climate_plots.py)
+- Token required: `SYNOPTIC_TOKEN` (currently hardcoded in modules/synoptic_api.py)
 - Base URL: `https://api.synopticdata.com/v2/stations/timeseries`
 
 ### NWS API
 - No authentication required
 - Uses User-Agent: `"nyc-temp-check (you@example.com)"`
 - Rate limiting: Built-in pagination handling
+- Aggressive data fetching with extended time windows and fallback strategies
+
+### NCEI ASOS
+- No authentication required
+- Downloads 5-minute data files from NCEI servers
+- Files cached locally in `asos_5min_data/` directory
+- Automatic file completeness validation and re-download
+
+### Kalshi API
+- **Base URL**: `https://api.elections.kalshi.com/trade-api/v2`
+- **Authentication**: RSA private key signing required
+- **Credentials**: Set `KALSHI_API_KEY` and `KALSHI_PRIVATE_KEY_FILE` environment variables
+- **Key Endpoints**:
+  - `/events` - Get all active markets and events
+  - `/series/{series}/markets/{ticker}/candlesticks` - Historical OHLC price data
+- **Rate Limiting**: Built-in handling with authentication headers regeneration
+- **Candlestick Data**: Supports 1-minute, 1-hour, and 1-day intervals
 
 ## Temperature Analysis Patterns
 
 ### Peak Detection
-Scripts calculate daily temperature peaks and include:
+All APIs use consistent peak detection via `BaseWeatherAPI.find_daily_peak()`:
 - Exact peak temperature and timestamp
 - Rounded temperature (for betting strike prices)
-- Delta to next 0.5°F increment (trading edge analysis)
+- Observation count for data quality assessment
+- Source tracking for comparative analysis
 
-### Data Quality
+### Data Quality and Validation
 - Temperature bounds: -80°F to 130°F (sanity filtering)
-- Quality control flags: Only accepts "V" (valid) or "C" (corrected) data from NWS
-- Missing data handling: Scripts gracefully handle API failures and missing observations
+- Quality control flags: NWS APIs only accept "V" (valid) or "C" (corrected) data
+- Missing data handling: Graceful error handling with detailed logging
+- Aggressive retry logic for incomplete or missing data
 
-## Timezone Handling
-
-All scripts use `zoneinfo.ZoneInfo("America/New_York")` for proper DST handling. Temperature timestamps are consistently converted to local NYC time for analysis and display.
-
-## File Naming Convention
-
-Scripts follow the pattern: `[datasource]_[frequency]_[purpose].py`
-- Data source: `nws_api`, `synoptic`, `ncei_asos`  
-- Frequency: `5min`, `7day`, `daily`
-- Purpose: `plots`, `parser`, `peaks`, `climate`
+### Timezone Handling
+All scripts use `zoneinfo.ZoneInfo("America/New_York")` for proper DST handling. **Critical**: NCEI ASOS data requires special UTC handling - timestamps are in UTC and must use UTC day bounds rather than converted local climate day windows.
 
 ## Kalshi Trading Context
 
-Reference `KALSHI_RULES.txt` for official contract specifications. Key points:
-- Settlement based on NWS Daily Climate Report for Central Park
+Reference `analysis/KALSHI_RULES.txt` for official contract specifications. Key points:
+- Settlement based on NWS Daily Climate Report for Central Park (KNYC)
 - Temperature reported in Fahrenheit with 1-degree increments
-- Data revisions after expiration are not considered
+- Data revisions after expiration are not considered  
 - Contract expiration typically 7-8 AM ET following data release
+- Settlement data accessible at: https://www.weather.gov/wrh/climate?wfo=okx
 
-## Output Files
+### Trading Analysis Components
+- `modules/kalshi_nws_source.py` - Official settlement data source
+- `kalshi_comparison.py` - API vs settlement comparison
+- `api_deviance_analysis.py` - API performance ranking with deviance calculations
+- `kalshi_historical_price_analysis.py` - Pre-expiration market price analysis using candlestick data
+- `kalshi_monitor/` - Real-time market monitoring system with authentication
 
-- `nyc_synoptic_5min_backtest.csv`: Historical backtest data
-- `nyc_synoptic_5min_peaks_wide.csv`: Wide-format comparison data
-- `asos_5min_data/`: Directory for downloaded NCEI files
+## Data Storage and Output
+
+### Generated Files
+- `debug_api_results.csv` - API test results across date ranges
+- `weather_apis_comparison.csv` - Cross-API temperature comparisons
+- `kalshi_vs_weather_comparison.csv` - Settlement vs weather API analysis
+- `kalshi_temperature_markets.csv` - Market data extracts
+- `api_performance_summary.csv` - API ranking by accuracy and deviance metrics
+- `api_deviance_detailed_results.csv` - Detailed per-day API performance analysis
+- `kalshi_historical_prices_YYYYMMDD_HHMM.csv` - Historical market price snapshots
+- `kalshi_monitor/data/kalshi_temp_markets_YYYYMMDD.csv` - Real-time market monitoring data
+
+### Data Directories  
+- `asos_5min_data/` - Downloaded NCEI ASOS files (cached)
+- `kalshi_monitor/data/` - Real-time market monitoring data and logs
+- `legacy_scripts/` - Deprecated standalone scripts (superseded by modular architecture)
+
+### Log Files
+- `kalshi_monitor/data/monitor.log` - Real-time market monitoring logs
+- Various PNG files - Generated visualizations (market analysis, API performance charts)

@@ -1,8 +1,10 @@
 """
-Kalshi API Module - For fetching betting market data
+Kalshi API Module - For fetching NWS CLI temperature data
+Based on legacy_scripts/test.py - fetches NWS Climate products
 """
 
-import kalshi_python
+import requests
+import re
 import pandas as pd
 from datetime import datetime, date, timedelta
 from typing import Dict, List, Optional
@@ -11,192 +13,153 @@ from .base_api import BaseWeatherAPI
 
 
 class KalshiAPI(BaseWeatherAPI):
-    """Kalshi API for betting market data"""
+    """Kalshi API for fetching NWS CLI temperature data"""
     
-    def __init__(self, station: str = "KNYC", api_key_id: str = None, private_key: str = None):
+    def __init__(self, station: str = "KNYC", issued_by: str = "NYC"):
         super().__init__("Kalshi_API", station)
-        self.api_key_id = api_key_id
-        self.private_key = private_key
-        self.market_api = None
-        self.exchange_api = None
-        self._initialize_client()
+        self.issued_by = issued_by
+        self.user_agent = {"User-Agent": "kalshi-wsl (weather-data@example.com)"}
+        self.logger.info("Kalshi API client initialized (NWS CLI fetcher)")
         
-    def _initialize_client(self):
-        """Initialize the Kalshi API client"""
+    def _parse_time(self, tok: str) -> str:
+        """Parse time string like '207 AM' to '02:07'"""
+        if not tok:
+            return ""
+        m = re.fullmatch(r"\s*(\d{1,4})\s*([AP]M)\s*", tok.upper())
+        if not m:
+            return ""
+        n, ampm = m.groups()
+        n = n.zfill(4)  # 207 -> 0207, 57 -> 0057
+        hh, mm = int(n[:2]), int(n[2:])
+        if ampm == "AM":
+            hh = 0 if hh == 12 else hh
+        else:
+            hh = 12 if hh == 12 else hh + 12
+        return f"{hh:02d}:{mm:02d}"
+        
+    def _extract_cli_data(self, text: str) -> Dict:
+        """Extract temperature data from NWS CLI text"""
+        # Date line like: "...SUMMARY FOR AUGUST 2 2025..."
+        dm = re.search(r"SUMMARY FOR ([A-Z]+ \d{1,2} \d{4})", text)
+        d_cli = dm.group(1).title() if dm else ""
+        d_iso = ""
         try:
-            # Create configuration
-            configuration = kalshi_python.Configuration()
-            configuration.host = "https://api.elections.kalshi.com/trade-api/v2"
-            
-            # Create API client
-            api_client = kalshi_python.ApiClient(configuration)
-            
-            # Create API instances
-            self.exchange_api = kalshi_python.ExchangeApi(api_client)
-            self.market_api = kalshi_python.MarketApi(api_client)
-            
-            self.logger.info("Kalshi API client initialized")
-            
-        except Exception as e:
-            self.logger.error(f"Failed to initialize Kalshi client: {e}")
-            self.market_api = None
-            self.exchange_api = None
-    
-    def search_nhigh_markets(self) -> Dict:
-        """Search for NHIGH (NYC High temperature) markets"""
-        if not self.exchange_api:
-            return {"events": [], "markets": []}
+            d_iso = datetime.strptime(d_cli, "%B %d %Y").date().isoformat()
+        except:
+            pass
+
+        # MAX/MIN with optional times
+        mmax = re.search(r"(?m)^\s*MAXIMUM(?: TEMPERATURE \(F\))?\s+(\d{1,3})(?:\s+(\d{1,4}\s+[AP]M))?", text)
+        mmin = re.search(r"(?m)^\s*MINIMUM(?: TEMPERATURE \(F\))?\s+(\d{1,3})(?:\s+(\d{1,4}\s+[AP]M))?", text)
         
-        try:
-            self.logger.info("Searching for NHIGH markets...")
-            
-            # Get events for NHIGH series
-            events_response = self.exchange_api.get_events(series_ticker="NHIGH")
-            events = events_response.events if hasattr(events_response, 'events') else []
-            
-            if not events:
-                self.logger.warning("No NHIGH events found")
-                return {"events": [], "markets": []}
-            
-            self.logger.info(f"Found {len(events)} NHIGH events")
-            
-            # Get markets for each event
-            all_markets = []
-            for event in events:
-                try:
-                    event_ticker = event.get('event_ticker') if hasattr(event, 'get') else event.event_ticker
-                    markets_response = self.exchange_api.get_markets(event_ticker=event_ticker)
-                    markets = markets_response.markets if hasattr(markets_response, 'markets') else []
-                    
-                    for market in markets:
-                        market_dict = market.to_dict() if hasattr(market, 'to_dict') else market
-                        market_dict['parent_event'] = event.to_dict() if hasattr(event, 'to_dict') else event
-                        all_markets.append(market_dict)
-                        
-                except Exception as e:
-                    self.logger.error(f"Error getting markets for {event_ticker}: {e}")
-            
-            return {"events": events, "markets": all_markets}
-            
-        except Exception as e:
-            self.logger.error(f"Error searching for NHIGH markets: {e}")
-            return {"events": [], "markets": []}
-    
-    def get_settled_markets(self, markets: List[Dict]) -> pd.DataFrame:
-        """Get settled/closed markets with results"""
-        if not markets:
-            return pd.DataFrame()
-        
-        results = []
-        for market in markets:
-            result_data = {
-                'market_ticker': market.get('ticker', ''),
-                'subtitle': market.get('subtitle', ''),
-                'status': market.get('status', ''),
-                'result': market.get('result', ''),
-                'last_price': market.get('last_price'),
-                'volume': market.get('volume', 0),
-                'close_time': market.get('close_time', ''),
-                'event_ticker': market.get('parent_event', {}).get('event_ticker', ''),
-                'event_title': market.get('parent_event', {}).get('title', ''),
-                'category': market.get('parent_event', {}).get('category', '')
-            }
-            results.append(result_data)
-        
-        df = pd.DataFrame(results)
-        
-        # Filter for settled markets
-        if not df.empty:
-            settled_df = df[df['status'].isin(['settled', 'closed', 'finalized'])]
-            return settled_df
-        
-        return df
-    
-    def extract_temperature_from_market(self, market: Dict) -> Optional[float]:
-        """Extract temperature value from market subtitle/result"""
-        subtitle = market.get('subtitle', '').lower()
-        result = market.get('result', '').lower()
-        
-        # Look for temperature patterns like "> 85°F", "85°F", "85 degrees"
-        import re
-        
-        # Try to find temperature in subtitle or result
-        text_to_search = f"{subtitle} {result}"
-        
-        # Pattern for temperatures like "85°F", "85 F", "85 degrees"
-        temp_patterns = [
-            r'(\d+(?:\.\d+)?)\s*°?[Ff]',  # 85°F, 85F
-            r'(\d+(?:\.\d+)?)\s*degrees?\s*[Ff]',  # 85 degrees F
-            r'(\d+(?:\.\d+)?)\s*[Ff]',  # 85 F
-        ]
-        
-        for pattern in temp_patterns:
-            match = re.search(pattern, text_to_search)
-            if match:
-                try:
-                    temp = float(match.group(1))
-                    return temp
-                except ValueError:
-                    continue
-        
-        return None
-    
-    def get_daily_max_temperature(self, target_date: date) -> Dict:
-        """Get daily maximum temperature from Kalshi betting results"""
-        self.logger.info(f"Getting Kalshi betting data for {target_date}")
-        
-        # Search for NHIGH markets
-        nhigh_data = self.search_nhigh_markets()
-        
-        if not nhigh_data["markets"]:
-            return {
-                'max_temp': None,
-                'max_time': None,
-                'count': 0,
-                'source': self.name,
-                'station': self.station,
-                'error': 'No NHIGH markets found'
-            }
-        
-        # Get settled markets
-        settled_df = self.get_settled_markets(nhigh_data["markets"])
-        
-        if settled_df.empty:
-            return {
-                'max_temp': None,
-                'max_time': None,
-                'count': 0,
-                'source': self.name,
-                'station': self.station,
-                'error': 'No settled NHIGH markets found'
-            }
-        
-        # Extract temperatures from market results
-        temperatures = []
-        for _, market in settled_df.iterrows():
-            temp = self.extract_temperature_from_market(market.to_dict())
-            if temp is not None:
-                temperatures.append(temp)
-        
-        if not temperatures:
-            return {
-                'max_temp': None,
-                'max_time': None,
-                'count': 0,
-                'source': self.name,
-                'station': self.station,
-                'error': 'No temperature data found in settled markets'
-            }
-        
-        # Find the maximum temperature
-        max_temp = max(temperatures)
+        tmax = int(mmax.group(1)) if mmax else None
+        tmin = int(mmin.group(1)) if mmin else None
+        tmax_t = self._parse_time(mmax.group(2)) if (mmax and mmax.group(2)) else ""
+        tmin_t = self._parse_time(mmin.group(2)) if (mmin and mmin.group(2)) else ""
         
         return {
-            'max_temp': max_temp,
-            'max_time': None,  # Kalshi doesn't provide exact timestamps
-            'count': len(temperatures),
-            'source': self.name,
-            'station': self.station,
-            'granularity': 'settled_market',
-            'markets_analyzed': len(settled_df)
-        } 
+            'date': d_iso or d_cli,
+            'max_temp': tmax,
+            'max_time': tmax_t,
+            'min_temp': tmin,
+            'min_time': tmin_t
+        }
+        
+    def _fetch_cli(self, version: int) -> str:
+        """Fetch NWS CLI product by version number"""
+        url = (f"https://forecast.weather.gov/product.php?"
+               f"site=NWS&issuedby={self.issued_by}&product=CLI&format=TXT&version={version}&glossary=0")
+        r = requests.get(url, headers=self.user_agent, timeout=10)
+        r.raise_for_status()
+        return r.text
+    
+    def fetch_cli_data(self, days_back: int = 30) -> List[Dict]:
+        """Fetch NWS CLI data for the past N days"""
+        rows, seen = [], set()
+        
+        self.logger.info(f"Fetching NWS CLI data for past {days_back} days...")
+        
+        # Crawl back through versions to get enough unique days
+        for v in range(0, min(120, days_back * 4)):  # More efficient: limit versions
+            try:
+                text = self._fetch_cli(v)
+                data = self._extract_cli_data(text)
+                
+                if not data['date'] or data['date'] in seen:
+                    continue
+                    
+                seen.add(data['date'])
+                rows.append(data)
+                
+                if len(rows) >= days_back:
+                    break
+                    
+            except requests.HTTPError:
+                continue  # skip holes
+            except Exception as e:
+                self.logger.warning(f"Error fetching version {v}: {e}")
+                continue
+        
+        # Sort chronologically if possible
+        try:
+            def sort_key(x):
+                date_str = x['date']
+                if isinstance(date_str, str) and '-' in date_str:
+                    try:
+                        return datetime.strptime(date_str, '%Y-%m-%d')
+                    except:
+                        return date_str
+                return date_str
+            rows.sort(key=sort_key)
+        except:
+            pass
+            
+        self.logger.info(f"Fetched {len(rows)} days of CLI data")
+        return rows
+    
+    def get_daily_max_temperature(self, target_date: date) -> Dict:
+        """Get daily max temperature for a specific date from NWS CLI data"""
+        self.logger.info(f"Getting NWS CLI data for {target_date}")
+        
+        try:
+            # Fetch CLI data for past 30 days to ensure we get the target date
+            cli_data = self.fetch_cli_data(days_back=30)
+            
+            # Find the record for the target date
+            target_date_str = target_date.isoformat()
+            matching_record = None
+            
+            for record in cli_data:
+                if record['date'] == target_date_str:
+                    matching_record = record
+                    break
+            
+            if matching_record and matching_record['max_temp'] is not None:
+                max_temp = matching_record['max_temp']
+                max_time = matching_record['max_time']
+                
+                return {
+                    'max_temp': max_temp,
+                    'max_time': max_time,
+                    'count': 1,
+                    'error': None,
+                    'markets_analyzed': [matching_record]
+                }
+            else:
+                return {
+                    'max_temp': None,
+                    'max_time': None,
+                    'count': 0,
+                    'error': f"No CLI data found for {target_date}",
+                    'markets_analyzed': None
+                }
+                
+        except Exception as e:
+            self.logger.error(f"Error getting CLI data for {target_date}: {e}")
+            return {
+                'max_temp': None,
+                'max_time': None,
+                'count': 0,
+                'error': str(e),
+                'markets_analyzed': None
+            } 
