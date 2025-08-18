@@ -909,7 +909,7 @@
                 console.log(`Processed ${totalLines} lines, found ${matchingLines} matching ${marketDate}`);
                 
                 // Extract unique tickers and organize data
-                const markets = Object.keys(marketData).map(ticker => {
+                let markets = Object.keys(marketData).map(ticker => {
                     const data = marketData[ticker].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
                     
                     if (data.length === 0) {
@@ -946,7 +946,42 @@
                     };
                 }).filter(market => market !== null); // Remove null entries
                 
-                console.log(`Successfully loaded ${markets.length} markets:`, markets.map(m => `${m.ticker} (${m.strike}°F)`));
+                // Include markets that had no trades by checking the full market list
+                try {
+                    const historyResponse = await fetch('/data/markets.jsonl');
+                    const historyText = await historyResponse.text();
+                    const existing = new Set(markets.map(m => m.ticker));
+                    historyText.trim().split('\n').forEach(line => {
+                        if (!line.trim()) return;
+                        try {
+                            const marketInfo = JSON.parse(line);
+                            if (marketInfo.ticker && marketInfo.ticker.includes(marketDate) && !existing.has(marketInfo.ticker)) {
+                                const strikeMatch = marketInfo.ticker.match(/-([TB])(\d+(?:\.\d+)?)/);
+                                const strike = strikeMatch ? parseFloat(strikeMatch[2]) : 0;
+                                markets.push({
+                                    ticker: marketInfo.ticker,
+                                    strike: strike,
+                                    data: [],
+                                    lastPrice: marketInfo.last_price || 0,
+                                    status: marketInfo.status,
+                                    apis: {
+                                        // Dummy API data placeholders
+                                        synoptic: strike + (Math.random() - 0.5) * 2,
+                                        asos: strike + (Math.random() - 0.5) * 1.5,
+                                        nws: strike + (Math.random() - 0.5) * 1.0
+                                    }
+                                });
+                                existing.add(marketInfo.ticker);
+                            }
+                        } catch (e) {
+                            console.warn('Failed to parse market info line:', e);
+                        }
+                    });
+                } catch (e) {
+                    console.warn('Error loading markets.jsonl:', e);
+                }
+
+                console.log(`Successfully loaded ${markets.length} markets (including inactive):`, markets.map(m => `${m.ticker} (${m.strike}°F)`));
                 return markets;
                 
             } catch (error) {
@@ -1301,61 +1336,42 @@
                         let timestamps = [];
                         let prices = [];
                         let finalPrice = 0;
-                        
-                        // Handle different data sources (API vs CSV)
-                        let hasRealData = false;
-                        
-                        if (market.data && market.data.length > 0) {
+                        const hasRealData = market.data && market.data.length > 0;
+                        let marketLabel = market.ticker ? market.ticker.split('-').pop() : market.strike + '°F';
+
+                        if (hasRealData) {
                             // CSV data or API candlestick data
                             const realData = market.data.map(d => ({
                                 timestamp: d.timestamp,
                                 price: (d.close || d.price || 0) / 100
                             }));
-                            
                             // Add grey line from earliest market time to first real data point
-                            // Combine grey start + real data
                             timestamps = [earliestTimestamp.toISOString(), ...realData.map(d => d.timestamp)];
                             prices = [0, ...realData.map(d => d.price)];
                             finalPrice = prices[prices.length - 1] || 0;
-                            hasRealData = true;
-                            
-                        } else if (market.lastPrice !== undefined) {
-                            // API market data with single price point
-                            const now = new Date();
-                            
-                            timestamps = [earliestTimestamp.toISOString(), now.toISOString()];
-                            prices = [0, market.lastPrice / 100]; // Grey start, then real price
-                            finalPrice = prices[1];
-                            hasRealData = true;
-                            
                         } else {
-                            // Market exists but no trading data yet - create flat grey line across full day
+                            // Market exists but no trading data yet - show flat line at last known price
                             const endOfDay = new Date(selectedDate + 'T23:59:59');
-                            
-                            // Create several points for a smooth flat line
                             const timeSpan = endOfDay.getTime() - earliestTimestamp.getTime();
                             const numPoints = 10;
-                            timestamps = [];
-                            prices = [];
-                            
                             for (let i = 0; i <= numPoints; i++) {
                                 const timePoint = new Date(earliestTimestamp.getTime() + (timeSpan * i / numPoints));
                                 timestamps.push(timePoint.toISOString());
-                                prices.push(0); // Flat at $0
+                                prices.push((market.lastPrice || 0) / 100);
                             }
-                            
-                            finalPrice = 0;
-                            marketLabel += ' (No trades yet)';
+                            finalPrice = (market.lastPrice || 0) / 100;
+                            if (!market.lastPrice) {
+                                marketLabel += ' (No trades yet)';
+                            }
                         }
-                        
+
                         // Determine market color and styling
                         let lineColor = '#6c757d'; // Default gray
                         let lineWidth = 2;
                         let lineOpacity = 1.0;
-                        let marketLabel = market.ticker ? market.ticker.split('-').pop() : market.strike + '°F';
-                        
+
                         // Check if this is a placeholder market (no trades yet)
-                        const isPlaceholder = marketLabel.includes('(No trades yet)');
+                        const isPlaceholder = !hasRealData;
                         
                         if (isPlaceholder) {
                             // Placeholder market - grey transparent line
