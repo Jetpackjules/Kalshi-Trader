@@ -1,0 +1,9 @@
+127.0.0.1 - - [18/Aug/2025 10:44:58] "GET /markets?date=2025-08-12 HTTP/1.1" 200 -
+127.0.0.1 - - [18/Aug/2025 10:46:13] "GET /markets?date=2025-08-12 HTTP/1.1" 200 -
+127.0.0.1 - - [18/Aug/2025 11:12:09] "GET /markets?date=2025-08-12&series_ticker=KXHIGHNY HTTP/1.1" 200 -
+127.0.0.1 - - [18/Aug/2025 11:12:18] "GET /markets?date=2025-08-12&series_ticker=KXHIGHNY HTTP/1.1" 200 -
+127.0.0.1 - - [18/Aug/2025 11:14:53] "GET /markets?date=2025-08-12&series_ticker=KXHIGHNY HTTP/1.1" 200 -
+127.0.0.1 - - [18/Aug/2025 11:28:49] "GET /markets?date=2025-08-11&series_ticker=KXHIGHNY HTTP/1.1" 200 -
+127.0.0.1 - - [18/Aug/2025 11:28:49] code 404, message Endpoint not found
+127.0.0.1 - - [18/Aug/2025 11:28:49] "GET /favicon.ico HTTP/1.1" 404 -
+127.0.0.1 - - [18/Aug/2025 11:40:07] "GET /markets?date=2025-08-09&series_ticker=KXHIGHNY HTTP/1.1" 200 -

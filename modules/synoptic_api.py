@@ -4,7 +4,7 @@ Synoptic API Module - High-frequency weather data (5-minute granularity)
 
 import requests
 import pandas as pd
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from typing import Dict
 from .base_api import BaseWeatherAPI
 

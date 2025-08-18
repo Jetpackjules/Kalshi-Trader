@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Market Data Loading</title>
+</head>
+<body>
+    <h1>Debug Real Market Data Loading</h1>
+    <button onclick="testLoad()">Test Load August 12, 2025</button>
+    <div id="results" style="margin-top: 20px; white-space: pre-wrap; font-family: monospace;"></div>
+
+    <script>
+        function log(message) {
+            const results = document.getElementById('results');
+            results.textContent += new Date().toLocaleTimeString() + ': ' + message + '\n';
+            console.log(message);
+        }
+
+        async function testLoad() {
+            const selectedDate = '2025-08-12';
+            log(`Starting test load for ${selectedDate}`);
+            
+            try {
+                log('Fetching CSV file...');
+                const response = await fetch('/data/candles/KXHIGHNY_candles_5m.csv');
+                log(`Response status: ${response.status} ${response.statusText}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const csvText = await response.text();
+                log(`CSV length: ${csvText.length} characters`);
+                
+                const lines = csvText.split('\n').filter(line => line.trim());
+                log(`Total lines after filtering: ${lines.length}`);
+                log(`Header: ${lines[0]}`);
+                log(`Sample line: ${lines[1]}`);
+                
+                // Convert date
+                const dateObj = new Date(selectedDate);
+                const month = dateObj.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
+                const day = String(dateObj.getDate()).padStart(2, '0');
+                const year = String(dateObj.getFullYear()).slice(-2);
+                const marketDate = `${year}${month}${day}`;
+                log(`Converted date: ${selectedDate} -> ${marketDate}`);
+                
+                // Filter data
+                const marketData = {};
+                let matchingLines = 0;
+                
+                lines.slice(1).forEach(line => {
+                    const columns = line.split(',');
+                    if (columns.length >= 7) {
+                        const ticker = columns[1];
+                        if (ticker && ticker.includes(marketDate)) {
+                            matchingLines++;
+                            if (!marketData[ticker]) {
+                                marketData[ticker] = [];
+                            }
+                            marketData[ticker].push({
+                                timestamp: columns[2],
+                                open: parseFloat(columns[3]),
+                                high: parseFloat(columns[4]),
+                                low: parseFloat(columns[5]),
+                                close: parseFloat(columns[6]),
+                                count: parseInt(columns[7])
+                            });
+                        }
+                    }
+                });
+                
+                log(`Found ${matchingLines} matching lines`);
+                log(`Unique tickers: ${Object.keys(marketData).length}`);
+                
+                // Process markets
+                const markets = Object.keys(marketData).map(ticker => {
+                    const data = marketData[ticker];
+                    const strikeMatch = ticker.match(/-([TB])(\d+(?:\.\d+)?)/);
+                    const strike = strikeMatch ? parseFloat(strikeMatch[2]) : 0;
+                    
+                    return {
+                        ticker: ticker,
+                        strike: strike,
+                        data: data,
+                        dataPoints: data.length
+                    };
+                });
+                
+                log(`Processed ${markets.length} markets:`);
+                markets.forEach(m => {
+                    log(`  ${m.ticker}: ${m.strike}°F, ${m.dataPoints} points`);
+                });
+                
+                log('SUCCESS: Data loaded without errors!');
+                
+            } catch (error) {
+                log(`ERROR: ${error.message}`);
+                log(`Stack: ${error.stack}`);
+            }
+        }
+    </script>
+</body>
+</html>

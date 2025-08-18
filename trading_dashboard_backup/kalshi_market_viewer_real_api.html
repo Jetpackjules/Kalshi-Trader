@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kalshi Trading Dashboard - Real API Data v3</title>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+        
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            min-height: 800px;
+            gap: 20px;
+        }
+        
+        .sidebar {
+            background: #f8fafc;
+            border-left: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 20px 20px 0;
+            height: fit-content;
+            max-height: calc(100vh - 200px);
+            overflow-y: auto;
+        }
+        
+        .date-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 16px;
+            margin-bottom: 20px;
+            transition: border-color 0.3s;
+        }
+        
+        .date-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .load-btn {
+            width: 100%;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 20px;
+        }
+        
+        .load-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+        
+        .load-btn:disabled {
+            background: #cbd5e0;
+            transform: none;
+            box-shadow: none;
+            cursor: not-allowed;
+        }
+        
+        .status {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+        
+        .status.success {
+            background: #c6f6d5;
+            color: #22543d;
+            border: 1px solid #9ae6b4;
+        }
+        
+        .status.error {
+            background: #fed7d7;
+            color: #742a2a;
+            border: 1px solid #fc8181;
+        }
+        
+        .status.loading {
+            background: #bee3f8;
+            color: #2c5282;
+            border: 1px solid #63b3ed;
+        }
+        
+        .markets-info {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .markets-info h3 {
+            color: #2d3748;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+        
+        .market-item {
+            background: #f7fafc;
+            border: 1px solid #edf2f7;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 8px;
+        }
+        
+        .market-item.won {
+            background: #c6f6d5;
+            border-color: #9ae6b4;
+        }
+        
+        .market-item.lost {
+            background: #fed7d7;
+            border-color: #fc8181;
+        }
+        
+        .market-ticker {
+            font-weight: 600;
+            color: #2d3748;
+            font-size: 0.9em;
+        }
+        
+        .market-title {
+            font-size: 0.8em;
+            color: #4a5568;
+            margin-top: 4px;
+        }
+        
+        .market-result {
+            font-size: 0.8em;
+            margin-top: 4px;
+            font-weight: 500;
+        }
+        
+        .market-result.yes {
+            color: #22543d;
+        }
+        
+        .market-result.no {
+            color: #742a2a;
+        }
+        
+        .chart-container {
+            padding: 20px 20px 30px 30px;
+            background: white;
+            margin: 20px 0 20px 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        
+        .chart-title {
+            text-align: center;
+            font-size: 1.8em;
+            color: #2d3748;
+            margin-bottom: 20px;
+            font-weight: 300;
+        }
+        
+        .chart-subtitle {
+            text-align: center;
+            color: #4a5568;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+        
+        #marketChart {
+            width: 100%;
+            height: 600px;
+            margin-top: 10px;
+        }
+        
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 200px;
+            color: #4a5568;
+            font-size: 1.2em;
+        }
+        
+        .empty-state {
+            text-align: center;
+            color: #4a5568;
+            padding: 50px;
+            font-size: 1.1em;
+        }
+        
+        .api-status {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .api-status h4 {
+            color: #2d3748;
+            margin-bottom: 8px;
+        }
+        
+        .api-endpoint {
+            font-family: monospace;
+            background: #f7fafc;
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌡️ Kalshi Temperature Markets</h1>
+            <p>Real-time NYC temperature prediction markets with settlement data</p>
+        </div>
+        
+        <div class="main-content">
+            <div class="chart-container">
+                <div class="chart-title">Temperature Market Settlement Results</div>
+                <div class="chart-subtitle" id="chartSubtitle">Select a date to view market results</div>
+                <div id="marketChart">
+                    <div class="empty-state">
+                        📊 Choose a date and click "Load Markets" to view Kalshi temperature prediction settlement results
+                    </div>
+                </div>
+            </div>
+            
+            <div class="sidebar">
+                <input type="date" id="dateInput" class="date-input" value="2025-08-12">
+                <button onclick="loadMarkets()" class="load-btn" id="loadBtn">Load Markets</button>
+                
+                <div id="status" class="status" style="display: none;"></div>
+                
+                <div class="api-status">
+                    <h4>API Status</h4>
+                    <div class="api-endpoint" id="apiEndpoint">Ready to fetch</div>
+                </div>
+                
+                <div id="marketsInfo" class="markets-info" style="display: none;">
+                    <h3>Market Results</h3>
+                    <div id="marketsList"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class RealKalshiAPI {
+            constructor() {
+                this.baseUrl = 'http://localhost:8083';  // CORS proxy for REAL API calls
+                this.fallbackUrl = 'https://api.elections.kalshi.com/v1';
+                this.timeout = 15000;
+            }
+            
+            async fetchWithFallback(url) {
+                try {
+                    const response = await fetch(url, { timeout: this.timeout });
+                    if (response.ok) return response.json();
+                    
+                    // Try fallback URL if primary fails
+                    if (url.includes(this.baseUrl)) {
+                        const fallbackUrl = url.replace(this.baseUrl, this.fallbackUrl);
+                        const fallbackResponse = await fetch(fallbackUrl, { timeout: this.timeout });
+                        if (fallbackResponse.ok) return fallbackResponse.json();
+                    }
+                    
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                } catch (error) {
+                    console.error('API error:', error);
+                    throw error;
+                }
+            }
+            
+            async getMarketsForDate(selectedDate, series = 'KXHIGHNY') {
+                try {
+                    console.log(`Fetching Kalshi markets for ${selectedDate}...`);
+                    
+                    // Update API status
+                    const apiEndpoint = document.getElementById('apiEndpoint');
+                    const marketsUrl = `${this.baseUrl}/markets?date=${selectedDate}&series_ticker=${series}`;
+                    apiEndpoint.textContent = marketsUrl;
+                    
+                    // Get markets from proxy (already filtered by date)
+                    const marketsJson = await this.fetchWithFallback(marketsUrl);
+                    
+                    // Extract markets array from response
+                    let dateMarkets = [];
+                    if (marketsJson && marketsJson.markets) {
+                        dateMarkets = marketsJson.markets;
+                    } else if (Array.isArray(marketsJson)) {
+                        dateMarkets = marketsJson;
+                    }
+                    
+                    console.log(`Found ${dateMarkets.length} markets for ${selectedDate} from proxy`);
+                    
+                    // Process the markets data
+                    const enrichedMarkets = dateMarkets.map(market => {
+                        // Extract strike price and market type from ticker
+                        const ticker = market.ticker;
+                        const strikeMatch = ticker.match(/-([TB])(\d+(?:\.\d+)?)/);
+                        const strike = strikeMatch ? parseFloat(strikeMatch[2]) : 0;
+                        const marketType = strikeMatch ? strikeMatch[1] : '';
+                        
+                        return {
+                            ticker: ticker,
+                            marketId: market.id,
+                            strike: strike,
+                            marketType: marketType,
+                            title: market.title || ticker,
+                            status: market.status,
+                            resolved: market.status === 'finalized' || market.status === 'resolved' || market.status === 'closed',
+                            result: market.result,
+                            lastPrice: market.last_price,
+                            settlement: market.settlement_value || (market.result === 'yes' ? 100 : 0),
+                            expirationValue: market.expiration_value
+                        };
+                    });
+                    
+                    return enrichedMarkets;
+                    
+                } catch (error) {
+                    console.error('Error fetching Kalshi markets:', error);
+                    throw error;
+                }
+            }
+        }
+        
+        const kalshiAPI = new RealKalshiAPI();
+        let currentMarkets = [];
+        
+        async function loadMarkets() {
+            const dateInput = document.getElementById('dateInput');
+            const loadBtn = document.getElementById('loadBtn');
+            const status = document.getElementById('status');
+            const marketsInfo = document.getElementById('marketsInfo');
+            const marketsList = document.getElementById('marketsList');
+            const chartSubtitle = document.getElementById('chartSubtitle');
+            
+            const selectedDate = dateInput.value;
+            if (!selectedDate) {
+                showStatus('Please select a date', 'error');
+                return;
+            }
+            
+            // Disable button and show loading
+            loadBtn.disabled = true;
+            loadBtn.textContent = 'Loading...';
+            showStatus('Fetching markets from Kalshi API...', 'loading');
+            marketsInfo.style.display = 'none';
+            
+            try {
+                // Fetch markets
+                currentMarkets = await kalshiAPI.getMarketsForDate(selectedDate);
+                
+                if (currentMarkets.length === 0) {
+                    showStatus('No markets found for this date', 'error');
+                    clearChart();
+                    return;
+                }
+                
+                // Update status
+                showStatus(`Found ${currentMarkets.length} markets for ${selectedDate}`, 'success');
+                
+                // Update markets list
+                updateMarketsList(currentMarkets);
+                marketsInfo.style.display = 'block';
+                
+                // Update chart
+                chartSubtitle.textContent = `Market settlement results for ${selectedDate}`;
+                updateChart(currentMarkets);
+                
+            } catch (error) {
+                console.error('Error loading markets:', error);
+                showStatus(`Error: ${error.message}`, 'error');
+                clearChart();
+            } finally {
+                // Re-enable button
+                loadBtn.disabled = false;
+                loadBtn.textContent = 'Load Markets';
+            }
+        }
+        
+        function showStatus(message, type) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = `status ${type}`;
+            status.style.display = 'block';
+        }
+        
+        function updateMarketsList(markets) {
+            const marketsList = document.getElementById('marketsList');
+            marketsList.innerHTML = '';
+            
+            // Sort markets by strike price
+            const sortedMarkets = markets.sort((a, b) => a.strike - b.strike);
+            
+            sortedMarkets.forEach(market => {
+                const item = document.createElement('div');
+                const isWinner = market.result === 'yes' || market.settlement === 100;
+                item.className = `market-item ${isWinner ? 'won' : 'lost'}`;
+                
+                item.innerHTML = `
+                    <div class="market-ticker">${market.ticker}</div>
+                    <div class="market-title">${market.title}</div>
+                    <div class="market-result ${market.result || 'unknown'}">${market.result ? market.result.toUpperCase() : 'N/A'} (Settlement: ${market.settlement || 0})</div>
+                `;
+                
+                marketsList.appendChild(item);
+            });
+        }
+        
+        function updateChart(markets) {
+            // Sort markets by strike price
+            const sortedMarkets = markets.sort((a, b) => a.strike - b.strike);
+            
+            // Prepare data for bar chart
+            const tickers = sortedMarkets.map(m => m.ticker.split('-').pop()); // Just the end part
+            const settlements = sortedMarkets.map(m => m.settlement || 0);
+            const colors = sortedMarkets.map(m => {
+                const settlement = m.settlement || 0;
+                return settlement === 100 ? '#22543d' : '#742a2a'; // Green for winners, red for losers
+            });
+            
+            const trace = {
+                x: tickers,
+                y: settlements,
+                type: 'bar',
+                marker: {
+                    color: colors,
+                    line: {
+                        color: 'rgba(0,0,0,0.1)',
+                        width: 1
+                    }
+                },
+                hovertemplate: '<b>%{x}</b><br>Settlement: %{y}<extra></extra>',
+                name: 'Settlement Value'
+            };
+            
+            const layout = {
+                title: {
+                    text: 'Market Settlement Results',
+                    font: { size: 16 }
+                },
+                xaxis: {
+                    title: 'Market Ticker',
+                    tickangle: -45
+                },
+                yaxis: {
+                    title: 'Settlement Value (0-100)',
+                    range: [0, 105]
+                },
+                margin: { l: 60, r: 40, t: 60, b: 120 },
+                plot_bgcolor: 'rgba(248, 250, 252, 0.8)',
+                paper_bgcolor: 'white',
+                showlegend: false
+            };
+            
+            Plotly.newPlot('marketChart', [trace], layout, {
+                displayModeBar: false,
+                responsive: true
+            });
+        }
+        
+        function clearChart() {
+            document.getElementById('marketChart').innerHTML = `
+                <div class="empty-state">
+                    📊 No market data to display
+                </div>
+            `;
+        }
+        
+        // Auto-load on page load if date is set
+        window.addEventListener('load', () => {
+            const dateInput = document.getElementById('dateInput');
+            if (dateInput.value) {
+                loadMarkets();
+            }
+        });
+    </script>
+</body>
+</html>

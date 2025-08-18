@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kalshi Market Trendlines Viewer</title>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+        
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .controls {
+            padding: 25px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .control-group label {
+            font-weight: 600;
+            color: #495057;
+            font-size: 0.9em;
+        }
+        
+        .control-group select, 
+        .control-group input {
+            padding: 10px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s ease;
+        }
+        
+        .control-group select:focus,
+        .control-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .load-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            margin-top: 20px;
+        }
+        
+        .load-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .load-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .chart-container {
+            padding: 25px;
+            min-height: 600px;
+        }
+        
+        .status {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+            font-size: 1.1em;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .market-info {
+            background: #e3f2fd;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+            border-left: 4px solid #2196f3;
+        }
+        
+        .market-info h3 {
+            color: #1976d2;
+            margin-bottom: 8px;
+        }
+        
+        .market-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            font-size: 0.9em;
+            color: #37474f;
+        }
+        
+        .responsive-controls {
+            display: flex;
+            gap: 15px;
+            align-items: end;
+            flex-wrap: wrap;
+        }
+        
+        .api-toggles {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 5px;
+        }
+        
+        .api-toggle {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 10px;
+            background: #f8f9fa;
+            border: 2px solid #dee2e6;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9em;
+        }
+        
+        .api-toggle.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
+        .api-toggle:hover {
+            border-color: #667eea;
+        }
+        
+        .api-toggle input[type="checkbox"] {
+            margin: 0;
+        }
+        
+        .api-status {
+            font-size: 0.8em;
+            opacity: 0.8;
+            margin-left: 5px;
+        }
+        
+        .temp-overlay-line {
+            stroke-width: 3px;
+            stroke-dasharray: 5,5;
+        }
+        
+        @media (max-width: 768px) {
+            .responsive-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .controls {
+                padding: 15px;
+            }
+            
+            .api-toggles {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌡️ Kalshi Market Trendlines</h1>
+            <p>Interactive visualization of NYC temperature prediction markets by day</p>
+        </div>
+        
+        <div class="controls">
+            <div class="responsive-controls">
+                <div class="control-group">
+                    <label for="dateSelect">Select Date:</label>
+                    <select id="dateSelect">
+                        <option value="">Choose a date...</option>
+                    </select>
+                </div>
+                
+                <div class="control-group">
+                    <label for="intervalSelect">Chart Interval:</label>
+                    <select id="intervalSelect">
+                        <option value="5m">5 Minutes</option>
+                        <option value="15m">15 Minutes</option>
+                        <option value="1h">1 Hour</option>
+                    </select>
+                </div>
+                
+                <div class="control-group">
+                    <label>Temperature APIs:</label>
+                    <div id="apiToggles" class="api-toggles">
+                        <div class="loading">Loading APIs...</div>
+                    </div>
+                </div>
+                
+                <button class="load-btn" id="loadBtn" onclick="loadMarketData()">
+                    Load Market Data + Temps
+                </button>
+            </div>
+        </div>
+        
+        <div class="chart-container">
+            <div class="status" id="status">
+                Select a date and click "Load Market Data" to view trendlines
+            </div>
+            <div id="chartDiv"></div>
+        </div>
+    </div>
+
+    <script>
+        let marketData = {};
+        let availableDates = [];
+        let availableAPIs = [];
+        let temperatureData = {};
+        
+        // Initialize the application
+        async function init() {
+            await loadAvailableAPIs();
+            await loadAvailableDates();
+            populateDateSelector();
+        }
+        
+        async function loadAvailableAPIs() {
+            try {
+                const response = await fetch('http://localhost:8081/api/available_apis');
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success) {
+                        availableAPIs = data.apis;
+                        populateAPIToggles();
+                    } else {
+                        throw new Error(data.error || 'Failed to load APIs');
+                    }
+                } else {
+                    throw new Error(`Server responded with ${response.status}`);
+                }
+            } catch (error) {
+                console.error('Error loading APIs:', error);
+                document.getElementById('apiToggles').innerHTML = 
+                    '<div style="color: #dc3545; font-size: 0.9em;">⚠️ Temperature APIs unavailable</div>';
+            }
+        }
+        
+        function populateAPIToggles() {
+            const container = document.getElementById('apiToggles');
+            container.innerHTML = '';
+            
+            if (availableAPIs.length === 0) {
+                container.innerHTML = '<div style="color: #6c757d;">No real-time APIs available</div>';
+                return;
+            }
+            
+            availableAPIs.forEach(api => {
+                const toggle = document.createElement('div');
+                toggle.className = 'api-toggle';
+                toggle.onclick = () => toggleAPI(api.id, toggle);
+                
+                const delayText = api.delay_minutes < 60 ? 
+                    `${api.delay_minutes}min delay` : 
+                    `${Math.round(api.delay_minutes/60)}hr delay`;
+                
+                toggle.innerHTML = `
+                    <input type="checkbox" id="api_${api.id}" checked>
+                    <label for="api_${api.id}">${api.name}</label>
+                    <span class="api-status">(${delayText})</span>
+                `;
+                
+                toggle.classList.add('active');
+                container.appendChild(toggle);
+            });
+        }
+        
+        function toggleAPI(apiId, toggleElement) {
+            const checkbox = toggleElement.querySelector('input[type="checkbox"]');
+            checkbox.checked = !checkbox.checked;
+            
+            if (checkbox.checked) {
+                toggleElement.classList.add('active');
+            } else {
+                toggleElement.classList.remove('active');
+            }
+        }
+        
+        function getSelectedAPIs() {
+            return availableAPIs.filter(api => {
+                const checkbox = document.getElementById(`api_${api.id}`);
+                return checkbox && checkbox.checked;
+            });
+        }
+        
+        async function loadAvailableDates() {
+            try {
+                setStatus('<div class="loading"></div>Loading available dates...');
+                
+                // Load the candlestick data CSV file
+                try {
+                    const response = await fetch('./data/candles/KXHIGHNY_candles_5m.csv');
+                    if (response.ok) {
+                        const csvText = await response.text();
+                        parseCandlestickData(csvText);
+                    } else {
+                        throw new Error('Candlestick data not found');
+                    }
+                } catch (error) {
+                    console.log('Could not load candlestick data, trying fallback files:', error);
+                    // Fallback to existing CSV files
+                    const csvFiles = [
+                        'kxhighny_markets_history.csv',
+                        'kalshi_temperature_markets.csv'
+                    ];
+                    
+                    for (const file of csvFiles) {
+                        try {
+                            const fileResponse = await fetch(`./${file}`);
+                            if (fileResponse.ok) {
+                                const csvText = await fileResponse.text();
+                                parseFallbackCsvData(csvText, file);
+                            }
+                        } catch (e) {
+                            console.log(`Could not load ${file}:`, e);
+                        }
+                    }
+                }
+                
+                // Extract unique dates from loaded data
+                const dates = new Set();
+                Object.keys(marketData).forEach(marketId => {
+                    const market = marketData[marketId];
+                    if (market.date) {
+                        dates.add(market.date);
+                    }
+                });
+                
+                availableDates = Array.from(dates).sort().reverse(); // Most recent first
+                
+                if (availableDates.length === 0) {
+                    setStatus('No market data found. Please ensure CSV files are in the directory.');
+                } else {
+                    setStatus(`Found ${availableDates.length} dates with market data`);
+                }
+                
+            } catch (error) {
+                console.error('Error loading dates:', error);
+                setStatus('Error loading market data. Check console for details.');
+            }
+        }
+        
+        function parseCandlestickData(csvText) {
+            const lines = csvText.split('\n');
+            const headers = lines[0].split(',').map(h => h.trim());
+            
+            for (let i = 1; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
+                
+                const values = line.split(',');
+                const row = {};
+                
+                headers.forEach((header, index) => {
+                    row[header] = values[index] ? values[index].trim() : '';
+                });
+                
+                if (row.ticker && row.start) {
+                    const marketId = row.ticker;
+                    if (!marketData[marketId]) {
+                        marketData[marketId] = {
+                            ticker: marketId,
+                            data: [],
+                            date: extractDateFromTicker(marketId)
+                        };
+                    }
+                    
+                    // Add OHLC price point
+                    marketData[marketId].data.push({
+                        timestamp: row.start,
+                        open: parseFloat(row.open) || 0,
+                        high: parseFloat(row.high) || 0,
+                        low: parseFloat(row.low) || 0,
+                        close: parseFloat(row.close) || 0,
+                        price: parseFloat(row.close) || 0, // Use close as primary price
+                        count: parseInt(row.count) || 0
+                    });
+                }
+            }
+        }
+        
+        function parseFallbackCsvData(csvText, filename) {
+            const lines = csvText.split('\n');
+            const headers = lines[0].split(',').map(h => h.trim());
+            
+            for (let i = 1; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
+                
+                const values = line.split(',');
+                const row = {};
+                
+                headers.forEach((header, index) => {
+                    row[header] = values[index] ? values[index].trim() : '';
+                });
+                
+                const ticker = row.market_ticker || row.ticker;
+                if (ticker) {
+                    const marketId = ticker;
+                    if (!marketData[marketId]) {
+                        marketData[marketId] = {
+                            ticker: marketId,
+                            data: [],
+                            date: extractDateFromTicker(marketId)
+                        };
+                    }
+                    
+                    // Create a single data point from last price
+                    const price = parseFloat(row.last_price) || 0;
+                    const volume = parseFloat(row.volume) || 0;
+                    const timestamp = row.close_time || new Date().toISOString();
+                    
+                    marketData[marketId].data.push({
+                        timestamp: timestamp,
+                        price: price,
+                        volume: volume,
+                        open: price,
+                        high: price,
+                        low: price,
+                        close: price,
+                        count: 1
+                    });
+                }
+            }
+        }
+        
+        function extractDateFromTicker(ticker) {
+            // Extract date from ticker like KXHIGHNY-24APR30-B77
+            const match = ticker.match(/-(\d{2}[A-Z]{3}\d{2})-/);
+            if (match) {
+                const dateStr = match[1];
+                // Convert format like 24APR30 to 2024-04-30
+                const year = '20' + dateStr.substring(0, 2);
+                const monthMap = {
+                    'JAN': '01', 'FEB': '02', 'MAR': '03', 'APR': '04',
+                    'MAY': '05', 'JUN': '06', 'JUL': '07', 'AUG': '08',
+                    'SEP': '09', 'OCT': '10', 'NOV': '11', 'DEC': '12'
+                };
+                const month = monthMap[dateStr.substring(2, 5)];
+                const day = dateStr.substring(5, 7);
+                return `${year}-${month}-${day}`;
+            }
+            return null;
+        }
+        
+        function populateDateSelector() {
+            const select = document.getElementById('dateSelect');
+            select.innerHTML = '<option value="">Choose a date...</option>';
+            
+            availableDates.forEach(date => {
+                const option = document.createElement('option');
+                option.value = date;
+                option.textContent = new Date(date + 'T00:00:00').toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+                select.appendChild(option);
+            });
+        }
+        
+        async function loadMarketData() {
+            const selectedDate = document.getElementById('dateSelect').value;
+            const interval = document.getElementById('intervalSelect').value;
+            
+            if (!selectedDate) {
+                alert('Please select a date first');
+                return;
+            }
+            
+            setStatus('<div class="loading"></div>Loading market data and temperatures...');
+            
+            try {
+                // Filter markets for the selected date
+                const marketsForDate = Object.values(marketData).filter(market => 
+                    market.date === selectedDate && market.data.length > 0
+                );
+                
+                if (marketsForDate.length === 0) {
+                    setStatus('No market data found for the selected date');
+                    return;
+                }
+                
+                // Load temperature data for selected APIs
+                await loadTemperatureData(selectedDate);
+                
+                // Create the chart with temperature overlays
+                createChart(marketsForDate, selectedDate, interval);
+                
+            } catch (error) {
+                console.error('Error loading market data:', error);
+                setStatus('Error loading market data. Check console for details.');
+            }
+        }
+        
+        async function loadTemperatureData(date) {
+            const selectedAPIs = getSelectedAPIs();
+            temperatureData[date] = {};
+            
+            const promises = selectedAPIs.map(async api => {
+                try {
+                    const response = await fetch(`http://localhost:8081/api/temperature?date=${date}&api=${api.id}`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.success) {
+                            temperatureData[date][api.id] = data;
+                        }
+                    }
+                } catch (error) {
+                    console.error(`Failed to load ${api.name} data:`, error);
+                }
+            });
+            
+            await Promise.all(promises);
+        }
+        
+        function createChart(markets, date, interval) {
+            const traces = [];
+            const colors = [
+                '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
+                '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf',
+                '#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#ffeaa7',
+                '#dda0dd', '#98d8c8', '#f7dc6f', '#bb8fce', '#85c1e9'
+            ];
+            
+            markets.forEach((market, index) => {
+                const color = colors[index % colors.length];
+                
+                // Sort data by timestamp
+                const sortedData = market.data.sort((a, b) => 
+                    new Date(a.timestamp) - new Date(b.timestamp)
+                );
+                
+                if (sortedData.length === 0) return;
+                
+                const timestamps = sortedData.map(d => d.timestamp);
+                const prices = sortedData.map(d => d.price / 100); // Convert cents to dollars
+                
+                // Extract strike price and type from ticker
+                let strikeInfo = 'Unknown';
+                let marketType = '';
+                
+                const betweenMatch = market.ticker.match(/-B(\d+(?:\.\d+)?)$/);
+                const aboveMatch = market.ticker.match(/-T(\d+)$/);
+                
+                if (betweenMatch) {
+                    const strike = parseFloat(betweenMatch[1]);
+                    strikeInfo = `${strike}° to ${strike + 1}°F`;
+                    marketType = 'Between';
+                } else if (aboveMatch) {
+                    const strike = parseInt(aboveMatch[1]);
+                    strikeInfo = `${strike + 1}°F or above`;
+                    marketType = 'Above';
+                } else {
+                    const belowMatch = market.ticker.match(/-B(\d+(?:\.\d+)?)$/);
+                    if (belowMatch) {
+                        strikeInfo = `Below ${belowMatch[1]}°F`;
+                        marketType = 'Below';
+                    }
+                }
+                
+                traces.push({
+                    x: timestamps,
+                    y: prices,
+                    mode: 'lines+markers',
+                    name: `${strikeInfo} (${marketType})`,
+                    line: { 
+                        color: color,
+                        width: 2
+                    },
+                    marker: {
+                        color: color,
+                        size: 3
+                    },
+                    hovertemplate: `<b>%{fullData.name}</b><br>` +
+                                 `Time: %{x|%H:%M:%S}<br>` +
+                                 `Price: $%{y:.3f}<br>` +
+                                 `Ticker: ${market.ticker}<br>` +
+                                 `<extra></extra>`
+                });
+            });
+            
+            const layout = {
+                title: {
+                    text: `🌡️ Kalshi NYC Temperature Markets - ${new Date(date + 'T00:00:00').toLocaleDateString('en-US', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    })}`,
+                    font: { size: 20, color: '#2c3e50' }
+                },
+                xaxis: {
+                    title: 'Time (UTC)',
+                    type: 'date',
+                    gridcolor: '#ecf0f1',
+                    tickformat: '%H:%M'
+                },
+                yaxis: {
+                    title: 'Market Price ($)',
+                    range: [0, 1],
+                    gridcolor: '#ecf0f1',
+                    tickformat: '$.2f'
+                },
+                plot_bgcolor: '#fafafa',
+                paper_bgcolor: 'white',
+                legend: {
+                    orientation: 'v',
+                    y: 1,
+                    x: 1.02,
+                    xanchor: 'left',
+                    bgcolor: 'rgba(255,255,255,0.8)',
+                    bordercolor: '#bdc3c7',
+                    borderwidth: 1,
+                    font: { size: 11 }
+                },
+                margin: { t: 100, b: 80, l: 80, r: 200 },
+                hovermode: 'x unified',
+                showlegend: true
+            };
+            
+            const config = {
+                responsive: true,
+                displayModeBar: true,
+                modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d'],
+                toImageButtonOptions: {
+                    format: 'png',
+                    filename: `kalshi_markets_${date}`,
+                    height: 700,
+                    width: 1200,
+                    scale: 2
+                }
+            };
+            
+            // Add temperature overlay traces
+            addTemperatureOverlays(traces, date, layout);
+            
+            Plotly.newPlot('chartDiv', traces, layout, config);
+            
+            // Show market info
+            showMarketInfo(markets, date);
+            
+            setStatus('');
+        }
+        
+        function addTemperatureOverlays(traces, date, layout) {
+            const tempData = temperatureData[date];
+            if (!tempData) return;
+            
+            const tempColors = {
+                'nws': '#e74c3c',      // Red
+                'synoptic': '#f39c12', // Orange  
+                'asos': '#3498db'      // Blue
+            };
+            
+            Object.keys(tempData).forEach(apiId => {
+                const data = tempData[apiId];
+                if (!data.success || !data.max_temperature) return;
+                
+                const api = availableAPIs.find(a => a.id === apiId);
+                if (!api) return;
+                
+                // Get chart time range from market data
+                const allTimestamps = [];
+                traces.forEach(trace => {
+                    if (trace.x) allTimestamps.push(...trace.x);
+                });
+                
+                if (allTimestamps.length === 0) return;
+                
+                const minTime = new Date(Math.min(...allTimestamps.map(t => new Date(t))));
+                const maxTime = new Date(Math.max(...allTimestamps.map(t => new Date(t))));
+                
+                // Create horizontal line at max temperature
+                const tempInFahrenheit = data.max_temperature;
+                const normalizedTemp = tempInFahrenheit / 100; // Scale to 0-1 for right axis
+                
+                traces.push({
+                    x: [minTime, maxTime],
+                    y: [normalizedTemp, normalizedTemp],
+                    mode: 'lines',
+                    name: `🌡️ ${api.name}: ${tempInFahrenheit}°F`,
+                    line: {
+                        color: tempColors[apiId] || '#95a5a6',
+                        width: 3,
+                        dash: 'dash'
+                    },
+                    yaxis: 'y2',
+                    hovertemplate: `<b>%{fullData.name}</b><br>` +
+                                 `Max Temp: ${tempInFahrenheit}°F<br>` +
+                                 `Time: ${data.max_time || 'Unknown'}<br>` +
+                                 `<extra></extra>`,
+                    showlegend: true
+                });
+            });
+            
+            // Add secondary y-axis for temperature
+            if (Object.keys(tempData).length > 0) {
+                layout.yaxis2 = {
+                    title: 'Temperature (°F)',
+                    overlaying: 'y',
+                    side: 'right',
+                    range: [60, 100], // Typical NYC temperature range
+                    gridcolor: 'rgba(231, 76, 60, 0.1)'
+                };
+                
+                layout.margin.r = 250; // More space for temperature axis
+            }
+        }
+        
+        function showMarketInfo(markets, date) {
+            const infoDiv = document.createElement('div');
+            infoDiv.className = 'market-info';
+            
+            const totalDataPoints = markets.reduce((sum, m) => sum + m.data.length, 0);
+            const strikeRange = getStrikeRange(markets);
+            const timeRange = getTimeRange(markets);
+            
+            infoDiv.innerHTML = `
+                <h3>📊 Market Information for ${new Date(date + 'T00:00:00').toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                })}</h3>
+                <div class="market-stats">
+                    <div><strong>🎯 Total Markets:</strong> ${markets.length}</div>
+                    <div><strong>📈 Data Points:</strong> ${totalDataPoints.toLocaleString()}</div>
+                    <div><strong>🌡️ Strike Range:</strong> ${strikeRange}</div>
+                    <div><strong>⏰ Time Range:</strong> ${timeRange}</div>
+                </div>
+                <div style="margin-top: 10px; padding: 10px; background: rgba(52, 152, 219, 0.1); border-radius: 5px; font-size: 0.9em; color: #34495e;">
+                    <strong>💡 Tip:</strong> Each line represents a different temperature prediction market. Higher prices indicate higher probability of that temperature range occurring.
+                </div>
+            `;
+            
+            const chartContainer = document.querySelector('.chart-container');
+            const existingInfo = chartContainer.querySelector('.market-info');
+            if (existingInfo) {
+                existingInfo.remove();
+            }
+            chartContainer.insertBefore(infoDiv, chartContainer.firstChild);
+        }
+        
+        function getStrikeRange(markets) {
+            const strikes = [];
+            
+            markets.forEach(m => {
+                const betweenMatch = m.ticker.match(/-B(\d+(?:\.\d+)?)$/);
+                const aboveMatch = m.ticker.match(/-T(\d+)$/);
+                
+                if (betweenMatch) {
+                    strikes.push(parseFloat(betweenMatch[1]));
+                } else if (aboveMatch) {
+                    strikes.push(parseInt(aboveMatch[1]));
+                }
+            });
+            
+            if (strikes.length === 0) return 'Unknown';
+            
+            const min = Math.min(...strikes);
+            const max = Math.max(...strikes);
+            return min === max ? `${min}°F` : `${min}°F - ${max}°F`;
+        }
+        
+        function getTimeRange(markets) {
+            const allTimestamps = [];
+            
+            markets.forEach(m => {
+                m.data.forEach(d => {
+                    allTimestamps.push(new Date(d.timestamp));
+                });
+            });
+            
+            if (allTimestamps.length === 0) return 'Unknown';
+            
+            const minTime = new Date(Math.min(...allTimestamps));
+            const maxTime = new Date(Math.max(...allTimestamps));
+            
+            const formatTime = (date) => date.toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit',
+                timeZoneName: 'short'
+            });
+            
+            return `${formatTime(minTime)} - ${formatTime(maxTime)}`;
+        }
+        
+        function setStatus(message) {
+            document.getElementById('status').innerHTML = message;
+        }
+        
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

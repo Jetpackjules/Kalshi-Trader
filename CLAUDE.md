@@ -25,10 +25,20 @@ This repository contains temperature monitoring and analysis tools for NYC weath
 - `python3 check_active_markets.py` - Check for currently active temperature markets
 - `cd kalshi_monitor && python3 kalshi_temperature_monitor.py` - Real-time market monitoring (requires API credentials)
 
+### Candlestick Data Generation
+- `python3 BACKLOG!/kalshi_temp_backtest.py --outdir ./data --days 30 --interval 5m` - Generate comprehensive candlestick data for visualization
+- Outputs to `data/candles/KXHIGHNY_candles_5m.csv` with OHLC market data
+
+### Web Visualization
+- `python3 -m http.server 8080` - Start local web server for market visualization
+- Access via `http://localhost:8080/kalshi_market_viewer_with_timelines.html`
+- Static versions available: `kalshi_market_viewer_static.html` for offline use
+- `python3 test_website.py` - Test website functionality and data loading
+
 ### Environment Setup
 - Virtual environment located in `venv/` directory
 - Activate with `source venv/bin/activate` (if using virtual environment)
-- No requirements.txt present - dependencies installed manually
+- Key dependencies: pandas, requests, plotly.js (CDN), modules in `modules/` directory
 
 ## Code Architecture
 
@@ -36,12 +46,12 @@ This repository contains temperature monitoring and analysis tools for NYC weath
 The codebase uses a modular architecture with all weather APIs inheriting from `BaseWeatherAPI`:
 
 **Core Module Structure:**
-- `modules/base_api.py` - Abstract base class providing common functionality
-- `modules/nws_api.py` - NWS API implementation with aggressive data fetching
-- `modules/synoptic_api.py` - Synoptic API for high-frequency data
-- `modules/ncei_asos.py` - NCEI ASOS historical data with UTC timezone handling
-- `modules/kalshi_nws_source.py` - Official NWS source matching Kalshi settlement
-- `modules/kalshi_api.py` - Kalshi trading API integration
+- `modules/base_api.py` - Abstract base class (`BaseWeatherAPI`) providing common functionality
+- `modules/nws_api.py` - NWS API implementation (`NWSAPI` class) with aggressive data fetching
+- `modules/synoptic_api.py` - Synoptic API (`SynopticAPI` class) for high-frequency data
+- `modules/ncei_asos.py` - NCEI ASOS (`NCEIASOS` class) historical data with UTC timezone handling
+- `modules/kalshi_nws_source.py` - Official NWS source (`KalshiNWSSource` class) matching Kalshi settlement
+- `modules/kalshi_api.py` - Kalshi trading API integration (`KalshiAPI` class)
 
 **Key Design Patterns:**
 - All APIs implement `get_daily_max_temperature(target_date)` method
@@ -153,8 +163,31 @@ Reference `analysis/KALSHI_RULES.txt` for official contract specifications. Key 
 
 ### Data Directories  
 - `asos_5min_data/` - Downloaded NCEI ASOS files (cached)
+- `data/candles/` - Generated candlestick data for market visualization
+- `data/raw/` - Raw candlestick JSON files per market ticker
 - `kalshi_monitor/data/` - Real-time market monitoring data and logs
 - `legacy_scripts/` - Deprecated standalone scripts (superseded by modular architecture)
+- `BACKLOG!/` - Contains backtest utilities and requirements
+
+### Interactive Visualization System
+The project includes a comprehensive web-based visualization system:
+
+**Core Visualization Files:**
+- `kalshi_market_viewer_with_timelines.html` - **Primary visualization** with full temperature curves and market trendlines
+- `kalshi_market_viewer_static.html` - Static version with embedded temperature data (no API dependencies)
+- `kalshi_market_viewer.html` - Original version with basic temperature overlays
+
+**Visualization Architecture:**
+- **Market Data**: Loaded from `data/candles/KXHIGHNY_candles_5m.csv` containing OHLC candlestick data
+- **Temperature Integration**: Dual y-axis charts showing market prices ($0-1) vs temperature curves (60-105°F)
+- **Real-time Toggles**: Interactive controls for Synoptic API (orange) and ASOS (blue) temperature overlays
+- **Timeline Analysis**: Full 24-hour temperature curves showing morning lows, afternoon peaks, and evening cooling
+
+**Data Flow for Visualization:**
+1. Generate candlestick data: `python3 BACKLOG!/kalshi_temp_backtest.py --outdir ./data --days 30 --interval 5m`
+2. Start web server: `python3 -m http.server 8080`
+3. Access visualization: `http://localhost:8080/kalshi_market_viewer_with_timelines.html`
+4. Select date → Load market data → View market efficiency vs actual temperature curves
 
 ### Log Files
 - `kalshi_monitor/data/monitor.log` - Real-time market monitoring logs

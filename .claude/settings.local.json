@@ -19,7 +19,14 @@
       "Bash(KALSHI_API_KEY=\"8adbb05c-01ca-42cf-af00-f05e551f0c25\" KALSHI_PRIVATE_KEY_FILE=\"/home/jetpackjules/kalshi-wsl/kalshi_private_key.pem\" python3 kalshi_historical_price_analysis.py)",
       "Bash(cat:*)",
       "Bash(pkill:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(git add:*)",
+      "Bash(git push:*)",
+      "Bash(node:*)",
+      "Bash(PYTHONPATH=/home/jetpackjules/kalshi-wsl python3 simple_kalshi_nws_comparison.py)",
+      "Bash(kill:*)",
+      "Bash(touch:*)",
+      "Bash(cp:*)"
     ],
     "deny": []
   }

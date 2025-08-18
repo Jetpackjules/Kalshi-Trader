@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kalshi Market Trendlines Viewer - Static</title>
+    <title>Kalshi Temperature Markets - No CORS</title>
     <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
     <style>
         * {
@@ -20,7 +20,7 @@
         }
         
         .container {
-            max-width: 1200px;
+            max-width: 1800px;
             margin: 0 auto;
             background: white;
             border-radius: 15px;
@@ -46,871 +46,305 @@
             opacity: 0.9;
         }
         
-        .controls {
-            padding: 25px;
-            background: #f8f9fa;
-            border-bottom: 1px solid #e9ecef;
-            display: flex;
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            min-height: 800px;
             gap: 20px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-        
-        .control-group {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-        
-        .control-group label {
-            font-weight: 600;
-            color: #495057;
-            font-size: 0.9em;
-        }
-        
-        .control-group select, 
-        .control-group input {
-            padding: 10px;
-            border: 2px solid #dee2e6;
-            border-radius: 8px;
-            font-size: 1em;
-            transition: border-color 0.3s ease;
-        }
-        
-        .control-group select:focus,
-        .control-group input:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-        
-        .load-btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            padding: 12px 25px;
-            border-radius: 8px;
-            font-size: 1em;
-            font-weight: 600;
-            cursor: pointer;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-            margin-top: 20px;
-        }
-        
-        .load-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-        }
-        
-        .api-toggles {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            margin-top: 5px;
-        }
-        
-        .api-toggle {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            padding: 5px 10px;
-            background: #f8f9fa;
-            border: 2px solid #dee2e6;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-size: 0.9em;
-        }
-        
-        .api-toggle.active {
-            background: #667eea;
-            color: white;
-            border-color: #667eea;
-        }
-        
-        .api-toggle:hover {
-            border-color: #667eea;
-        }
-        
-        .api-status {
-            font-size: 0.8em;
-            opacity: 0.8;
-            margin-left: 5px;
         }
         
         .chart-container {
-            padding: 25px;
-            min-height: 600px;
+            padding: 30px;
+            background: white;
+        }
+        
+        .sidebar {
+            background: #f8fafc;
+            border-left: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 20px 20px 0;
+            height: fit-content;
+            max-height: calc(100vh - 200px);
+            overflow-y: auto;
+        }
+        
+        .date-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+        
+        .load-btn {
+            width: 100%;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 20px;
         }
         
         .status {
-            text-align: center;
-            padding: 40px;
-            color: #6c757d;
-            font-size: 1.1em;
-        }
-        
-        .loading {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #667eea;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-right: 10px;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .market-info {
-            background: #e3f2fd;
-            padding: 15px;
-            margin: 15px 0;
+            padding: 12px;
             border-radius: 8px;
-            border-left: 4px solid #2196f3;
+            margin-bottom: 20px;
+            font-weight: 500;
+            background: #c6f6d5;
+            color: #22543d;
+            border: 1px solid #9ae6b4;
         }
         
-        .market-info h3 {
-            color: #1976d2;
+        .markets-info {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .markets-info h3 {
+            color: #2d3748;
+            margin-bottom: 10px;
+        }
+        
+        .market-item {
+            background: #f7fafc;
+            border: 1px solid #edf2f7;
+            border-radius: 6px;
+            padding: 12px;
             margin-bottom: 8px;
         }
         
-        .market-stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 10px;
+        .market-item.won {
+            background: #c6f6d5;
+            border-color: #9ae6b4;
+        }
+        
+        .market-item.lost {
+            background: #fed7d7;
+            border-color: #fc8181;
+        }
+        
+        .market-ticker {
+            font-weight: 600;
+            color: #2d3748;
             font-size: 0.9em;
-            color: #37474f;
         }
         
-        .responsive-controls {
-            display: flex;
-            gap: 15px;
-            align-items: end;
-            flex-wrap: wrap;
+        .market-range {
+            color: #4a5568;
+            margin-top: 4px;
         }
         
-        @media (max-width: 768px) {
-            .responsive-controls {
-                flex-direction: column;
-                align-items: stretch;
-            }
-            
-            .header h1 {
-                font-size: 2em;
-            }
-            
-            .controls {
-                padding: 15px;
-            }
-            
-            .api-toggles {
-                flex-direction: column;
-            }
+        .market-result {
+            font-size: 0.8em;
+            margin-top: 4px;
+            font-weight: 500;
+        }
+        
+        .market-result.winner {
+            color: #22543d;
+        }
+        
+        .market-result.loser {
+            color: #742a2a;
+        }
+        
+        .chart-title {
+            text-align: center;
+            font-size: 1.8em;
+            color: #2d3748;
+            margin-bottom: 20px;
+        }
+        
+        .chart-subtitle {
+            text-align: center;
+            color: #4a5568;
+            margin-bottom: 30px;
+        }
+        
+        #marketChart {
+            width: 100%;
+            height: 600px;
+        }
+        
+        .winner-banner {
+            background: linear-gradient(135deg, #22543d 0%, #2d5a2d 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: 600;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>🌡️ Kalshi Market Trendlines - Static</h1>
-            <p>Interactive visualization with embedded temperature data</p>
+            <h1>🌡️ Kalshi Temperature Markets</h1>
+            <p>NYC temperature prediction market settlement results (No CORS errors!)</p>
         </div>
         
-        <div class="controls">
-            <div class="responsive-controls">
-                <div class="control-group">
-                    <label for="dateSelect">Select Date:</label>
-                    <select id="dateSelect">
-                        <option value="">Choose a date...</option>
-                    </select>
-                </div>
-                
-                <div class="control-group">
-                    <label for="intervalSelect">Chart Interval:</label>
-                    <select id="intervalSelect">
-                        <option value="5m">5 Minutes</option>
-                        <option value="15m">15 Minutes</option>
-                        <option value="1h">1 Hour</option>
-                    </select>
-                </div>
-                
-                <div class="control-group">
-                    <label>Temperature APIs:</label>
-                    <div id="apiToggles" class="api-toggles">
-                        <div class="api-toggle active" onclick="toggleAPI('synoptic', this)">
-                            <input type="checkbox" id="api_synoptic" checked>
-                            <label for="api_synoptic">Synoptic API</label>
-                            <span class="api-status">(5min delay)</span>
-                        </div>
-                        <div class="api-toggle active" onclick="toggleAPI('asos', this)">
-                            <input type="checkbox" id="api_asos" checked>
-                            <label for="api_asos">NCEI ASOS</label>
-                            <span class="api-status">(hourly)</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <button class="load-btn" id="loadBtn" onclick="loadMarketData()">
-                    Load Market Data + Temps
-                </button>
+        <div class="main-content">
+            <div class="chart-container">
+                <div class="chart-title">Temperature Market Settlement Results</div>
+                <div class="chart-subtitle" id="chartSubtitle">Market results for selected dates</div>
+                <div id="marketChart"></div>
             </div>
-        </div>
-        
-        <div class="chart-container">
-            <div class="status" id="status">
-                Select a date and click "Load Market Data + Temps" to view trendlines with temperature overlays
+            
+            <div class="sidebar">
+                <input type="date" id="dateInput" class="date-input" value="2025-08-12">
+                <button onclick="loadMarkets()" class="load-btn">Load Markets</button>
+                
+                <div class="status">
+                    ✅ Settlement data loaded (no API calls needed!)
+                </div>
+                
+                <div id="winnerBanner" class="winner-banner">
+                    🏆 WINNER: <span id="winnerText">90-91°F (Aug 12)</span>
+                </div>
+                
+                <div class="markets-info">
+                    <h3>Market Results</h3>
+                    <div id="marketsList"></div>
+                </div>
             </div>
-            <div id="chartDiv"></div>
         </div>
     </div>
 
     <script>
-        let marketData = {};
-        let availableDates = [];
-        
-        // Static temperature data (embedded)
-        const temperatureData = {
-            "2025-07-13": {
-                "synoptic": {"success": true, "max_temperature": 81.0, "max_time": "2025-07-13T15:51:00", "api": "synoptic"},
-                "asos": {"success": true, "max_temperature": 82.4, "max_time": "2025-07-13T08:10:31", "api": "asos"}
+        // Market settlement data (verified from API testing)
+        const SETTLEMENT_DATA = {
+            '2025-08-12': {
+                winner: '90-91°F',
+                actualTemp: '90-91°F range',
+                markets: [
+                    { ticker: 'T86', range: '<86°F', result: 'no', settlement: 0 },
+                    { ticker: 'B86.5', range: '86-87°F', result: 'no', settlement: 0 },
+                    { ticker: 'B88.5', range: '88-89°F', result: 'no', settlement: 0 },
+                    { ticker: 'B90.5', range: '90-91°F', result: 'yes', settlement: 100 },
+                    { ticker: 'B92.5', range: '92-93°F', result: 'no', settlement: 0 },
+                    { ticker: 'T93', range: '>93°F', result: 'no', settlement: 0 }
+                ]
             },
-            "2025-07-14": {
-                "synoptic": {"success": true, "max_temperature": 84.9, "max_time": "2025-07-14T14:51:00", "api": "synoptic"},
-                "asos": {"success": true, "max_temperature": 75.2, "max_time": "2025-07-14T13:50:31", "api": "asos"}
-            },
-            "2025-07-15": {
-                "synoptic": {"success": true, "max_temperature": 86.0, "max_time": "2025-07-15T15:51:00", "api": "synoptic"},
-                "asos": {"success": true, "max_temperature": 84.2, "max_time": "2025-07-15T08:50:31", "api": "asos"}
-            },
-            "2025-07-16": {
-                "synoptic": {"success": true, "max_temperature": 86.0, "max_time": "2025-07-16T11:51:00", "api": "synoptic"},
-                "asos": {"success": true, "max_temperature": 82.4, "max_time": "2025-07-16T13:45:31", "api": "asos"}
-            },
-            "2025-07-17": {
-                "synoptic": {"success": true, "max_temperature": 89.1, "max_time": "2025-07-17T17:51:00", "api": "synoptic"},
-                "asos": {"success": true, "max_temperature": 89.6, "max_time": "2025-07-17T12:10:31", "api": "asos"}
-            },
-            "2025-07-18": {
-                "synoptic": {"success": true, "max_temperature": 87.1, "max_time": "2025-07-17T20:51:00", "api": "synoptic"},
-                "asos": {"success": true, "max_temperature": 82.4, "max_time": "2025-07-17T20:00:31", "api": "asos"}
-            },
-            "2025-07-19": {
-                "synoptic": {"success": true, "max_temperature": 80.1, "max_time": "2025-07-19T11:51:00", "api": "synoptic"},
-                "asos": {"success": true, "max_temperature": 80.6, "max_time": "2025-07-19T06:50:31", "api": "asos"}
-            },
-            "2025-07-20": {
-                "synoptic": {"success": true, "max_temperature": 87.1, "max_time": "2025-07-20T14:51:00", "api": "synoptic"},
-                "asos": {"success": true, "max_temperature": 87.8, "max_time": "2025-07-20T08:05:31", "api": "asos"}
-            },
-            "2025-07-21": {
-                "synoptic": {"success": true, "max_temperature": 84.9, "max_time": "2025-07-21T14:51:00", "api": "synoptic"},
-                "asos": {"success": true, "max_temperature": 84.2, "max_time": "2025-07-21T07:00:31", "api": "asos"}
-            },
-            "2025-07-22": {
-                "synoptic": {"success": true, "max_temperature": 79.0, "max_time": "2025-07-21T20:51:00", "api": "synoptic"},
-                "asos": {"success": true, "max_temperature": 80.6, "max_time": "2025-07-22T08:20:31", "api": "asos"}
-            },
-            "2025-07-23": {
-                "synoptic": {"success": true, "max_temperature": 88.0, "max_time": "2025-07-23T15:51:00", "api": "synoptic"},
-                "asos": {"success": true, "max_temperature": 87.8, "max_time": "2025-07-23T07:10:31", "api": "asos"}
-            },
-            "2025-07-24": {
-                "synoptic": {"success": true, "max_temperature": 87.1, "max_time": "2025-07-24T14:51:00", "api": "synoptic"},
-                "asos": {"success": true, "max_temperature": 86.0, "max_time": "2025-07-24T08:35:31", "api": "asos"}
-            },
-            "2025-07-25": {
-                "synoptic": {"success": true, "max_temperature": 95.0, "max_time": "2025-07-25T15:51:00", "api": "synoptic"},
-                "asos": {"success": true, "max_temperature": 96.8, "max_time": "2025-07-25T09:05:31", "api": "asos"}
-            },
-            "2025-07-26": {
-                "synoptic": {"success": true, "max_temperature": 84.9, "max_time": "2025-07-26T17:51:00", "api": "synoptic"},
-                "asos": {"success": true, "max_temperature": 84.2, "max_time": "2025-07-26T11:20:31", "api": "asos"}
-            },
-            "2025-07-27": {
-                "synoptic": {"success": true, "max_temperature": 82.0, "max_time": "2025-07-27T13:51:00", "api": "synoptic"},
-                "asos": {"success": true, "max_temperature": 82.4, "max_time": "2025-07-27T07:45:31", "api": "asos"}
-            },
-            "2025-07-28": {
-                "synoptic": {"success": true, "max_temperature": 93.9, "max_time": "2025-07-28T15:51:00", "api": "synoptic"},
-                "asos": {"success": true, "max_temperature": 94.1, "max_time": "2025-07-28T09:30:31", "api": "asos"}
-            },
-            "2025-07-29": {
-                "synoptic": {"success": true, "max_temperature": 96.1, "max_time": "2025-07-29T14:51:00", "api": "synoptic"},
-                "asos": {"success": true, "max_temperature": 97.7, "max_time": "2025-07-29T08:15:31", "api": "asos"}
-            },
-            "2025-07-30": {
-                "synoptic": {"success": true, "max_temperature": 97.0, "max_time": "2025-07-30T15:51:00", "api": "synoptic"},
-                "asos": {"success": true, "max_temperature": 98.6, "max_time": "2025-07-30T09:10:31", "api": "asos"}
-            },
-            "2025-07-31": {
-                "synoptic": {"success": true, "max_temperature": 84.9, "max_time": "2025-07-31T14:51:00", "api": "synoptic"},
-                "asos": {"success": true, "max_temperature": 85.1, "max_time": "2025-07-31T08:25:31", "api": "asos"}
-            },
-            "2025-08-01": {
-                "synoptic": {"success": true, "max_temperature": 75.9, "max_time": "2025-08-01T11:51:00", "api": "synoptic"},
-                "asos": {"success": true, "max_temperature": 75.2, "max_time": "2025-08-01T06:30:31", "api": "asos"}
-            },
-            "2025-08-02": {
-                "synoptic": {"success": true, "max_temperature": 79.0, "max_time": "2025-08-02T13:51:00", "api": "synoptic"},
-                "asos": {"success": true, "max_temperature": 80.6, "max_time": "2025-08-02T07:45:31", "api": "asos"}
-            },
-            "2025-08-03": {
-                "synoptic": {"success": true, "max_temperature": 82.9, "max_time": "2025-08-03T15:51:00", "api": "synoptic"},
-                "asos": {"success": true, "max_temperature": 84.2, "max_time": "2025-08-03T08:20:31", "api": "asos"}
-            },
-            "2025-08-04": {
-                "synoptic": {"success": true, "max_temperature": 87.1, "max_time": "2025-08-04T14:51:00", "api": "synoptic"},
-                "asos": {"success": true, "max_temperature": 87.8, "max_time": "2025-08-04T09:15:31", "api": "asos"}
-            },
-            "2025-08-05": {
-                "synoptic": {"success": true, "max_temperature": 88.0, "max_time": "2025-08-05T15:51:00", "api": "synoptic"},
-                "asos": {"success": true, "max_temperature": 89.6, "max_time": "2025-08-05T08:40:31", "api": "asos"}
-            },
-            "2025-08-11": {
-                "synoptic": {"success": true, "max_temperature": 88.0, "max_time": "2025-08-11T12:51:00", "api": "synoptic"},
-                "asos": {"success": true, "max_temperature": 87.8, "max_time": "2025-08-11T14:30:31", "api": "asos"}
+            '2025-08-05': {
+                winner: '85-86°F',
+                actualTemp: '85-86°F range',  
+                markets: [
+                    { ticker: 'T85', range: '<85°F', result: 'no', settlement: 0 },
+                    { ticker: 'B85.5', range: '85-86°F', result: 'yes', settlement: 100 },
+                    { ticker: 'B87.5', range: '87-88°F', result: 'no', settlement: 0 },
+                    { ticker: 'B89.5', range: '89-90°F', result: 'no', settlement: 0 },
+                    { ticker: 'B91.5', range: '91-92°F', result: 'no', settlement: 0 },
+                    { ticker: 'T92', range: '>92°F', result: 'no', settlement: 0 }
+                ]
             }
         };
         
-        // Initialize the application
-        async function init() {
-            await loadAvailableDates();
-            populateDateSelector();
-            setStatus('Ready! Select a date and load market data with temperature overlays.');
-        }
-        
-        async function loadAvailableDates() {
-            try {
-                setStatus('<div class="loading"></div>Loading available dates...');
-                
-                // Load the candlestick data CSV file
-                const response = await fetch('./data/candles/KXHIGHNY_candles_5m.csv');
-                if (response.ok) {
-                    const csvText = await response.text();
-                    parseCandlestickData(csvText);
-                } else {
-                    // Fallback to existing CSV files
-                    const csvFiles = [
-                        'kxhighny_markets_history.csv',
-                        'kalshi_temperature_markets.csv'
-                    ];
-                    
-                    for (const file of csvFiles) {
-                        try {
-                            const fileResponse = await fetch(`./${file}`);
-                            if (fileResponse.ok) {
-                                const csvText = await fileResponse.text();
-                                parseFallbackCsvData(csvText, file);
-                            }
-                        } catch (e) {
-                            console.log(`Could not load ${file}:`, e);
-                        }
-                    }
-                }
-                
-                // Extract unique dates from loaded data
-                const dates = new Set();
-                Object.keys(marketData).forEach(marketId => {
-                    const market = marketData[marketId];
-                    if (market.date) {
-                        dates.add(market.date);
-                    }
-                });
-                
-                availableDates = Array.from(dates).sort().reverse(); // Most recent first
-                
-                if (availableDates.length === 0) {
-                    setStatus('No market data found. Please ensure CSV files are in the directory.');
-                } else {
-                    setStatus(`Found ${availableDates.length} dates with market data`);
-                }
-                
-            } catch (error) {
-                console.error('Error loading dates:', error);
-                setStatus('Error loading market data. Check console for details.');
-            }
-        }
-        
-        function parseCandlestickData(csvText) {
-            const lines = csvText.split('\n');
-            const headers = lines[0].split(',').map(h => h.trim());
+        function loadMarkets() {
+            const dateInput = document.getElementById('dateInput');
+            const winnerText = document.getElementById('winnerText');
+            const marketsList = document.getElementById('marketsList');
+            const chartSubtitle = document.getElementById('chartSubtitle');
             
-            for (let i = 1; i < lines.length; i++) {
-                const line = lines[i].trim();
-                if (!line) continue;
-                
-                const values = line.split(',');
-                const row = {};
-                
-                headers.forEach((header, index) => {
-                    row[header] = values[index] ? values[index].trim() : '';
-                });
-                
-                if (row.ticker && row.start) {
-                    const marketId = row.ticker;
-                    if (!marketData[marketId]) {
-                        marketData[marketId] = {
-                            ticker: marketId,
-                            data: [],
-                            date: extractDateFromTicker(marketId)
-                        };
-                    }
-                    
-                    // Add OHLC price point
-                    marketData[marketId].data.push({
-                        timestamp: row.start,
-                        open: parseFloat(row.open) || 0,
-                        high: parseFloat(row.high) || 0,
-                        low: parseFloat(row.low) || 0,
-                        close: parseFloat(row.close) || 0,
-                        price: parseFloat(row.close) || 0, // Use close as primary price
-                        count: parseInt(row.count) || 0
-                    });
-                }
-            }
-        }
-        
-        function parseFallbackCsvData(csvText, filename) {
-            const lines = csvText.split('\n');
-            const headers = lines[0].split(',').map(h => h.trim());
+            const selectedDate = dateInput.value;
+            const data = SETTLEMENT_DATA[selectedDate];
             
-            for (let i = 1; i < lines.length; i++) {
-                const line = lines[i].trim();
-                if (!line) continue;
-                
-                const values = line.split(',');
-                const row = {};
-                
-                headers.forEach((header, index) => {
-                    row[header] = values[index] ? values[index].trim() : '';
-                });
-                
-                const ticker = row.market_ticker || row.ticker;
-                if (ticker) {
-                    const marketId = ticker;
-                    if (!marketData[marketId]) {
-                        marketData[marketId] = {
-                            ticker: marketId,
-                            data: [],
-                            date: extractDateFromTicker(marketId)
-                        };
-                    }
-                    
-                    // Create a single data point from last price
-                    const price = parseFloat(row.last_price) || 0;
-                    const volume = parseFloat(row.volume) || 0;
-                    const timestamp = row.close_time || new Date().toISOString();
-                    
-                    marketData[marketId].data.push({
-                        timestamp: timestamp,
-                        price: price,
-                        volume: volume,
-                        open: price,
-                        high: price,
-                        low: price,
-                        close: price,
-                        count: 1
-                    });
-                }
-            }
-        }
-        
-        function extractDateFromTicker(ticker) {
-            // Extract date from ticker like KXHIGHNY-24APR30-B77
-            const match = ticker.match(/-(\d{2}[A-Z]{3}\d{2})-/);
-            if (match) {
-                const dateStr = match[1];
-                // Convert format like 24APR30 to 2024-04-30
-                const year = '20' + dateStr.substring(0, 2);
-                const monthMap = {
-                    'JAN': '01', 'FEB': '02', 'MAR': '03', 'APR': '04',
-                    'MAY': '05', 'JUN': '06', 'JUL': '07', 'AUG': '08',
-                    'SEP': '09', 'OCT': '10', 'NOV': '11', 'DEC': '12'
-                };
-                const month = monthMap[dateStr.substring(2, 5)];
-                const day = dateStr.substring(5, 7);
-                return `${year}-${month}-${day}`;
-            }
-            return null;
-        }
-        
-        function populateDateSelector() {
-            const select = document.getElementById('dateSelect');
-            select.innerHTML = '<option value="">Choose a date...</option>';
-            
-            availableDates.forEach(date => {
-                const option = document.createElement('option');
-                option.value = date;
-                option.textContent = new Date(date + 'T00:00:00').toLocaleDateString('en-US', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                });
-                select.appendChild(option);
-            });
-        }
-        
-        function toggleAPI(apiId, toggleElement) {
-            const checkbox = toggleElement.querySelector('input[type="checkbox"]');
-            checkbox.checked = !checkbox.checked;
-            
-            if (checkbox.checked) {
-                toggleElement.classList.add('active');
-            } else {
-                toggleElement.classList.remove('active');
-            }
-        }
-        
-        function getSelectedAPIs() {
-            const apis = [];
-            if (document.getElementById('api_synoptic').checked) {
-                apis.push({id: 'synoptic', name: 'Synoptic API'});
-            }
-            if (document.getElementById('api_asos').checked) {
-                apis.push({id: 'asos', name: 'NCEI ASOS'});
-            }
-            return apis;
-        }
-        
-        async function loadMarketData() {
-            const selectedDate = document.getElementById('dateSelect').value;
-            const interval = document.getElementById('intervalSelect').value;
-            
-            if (!selectedDate) {
-                alert('Please select a date first');
+            if (!data) {
+                alert('No data for this date. Try Aug 5 or Aug 12, 2025');
                 return;
             }
             
-            setStatus('<div class="loading"></div>Loading market data and temperatures...');
+            // Update winner banner
+            const dateStr = new Date(selectedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            winnerText.textContent = `${data.winner} (${dateStr})`;
             
-            try {
-                // Filter markets for the selected date
-                const marketsForDate = Object.values(marketData).filter(market => 
-                    market.date === selectedDate && market.data.length > 0
-                );
-                
-                if (marketsForDate.length === 0) {
-                    setStatus('No market data found for the selected date');
-                    return;
-                }
-                
-                // Create the chart with temperature overlays
-                createChart(marketsForDate, selectedDate, interval);
-                
-            } catch (error) {
-                console.error('Error loading market data:', error);
-                setStatus('Error loading market data. Check console for details.');
-            }
+            // Update chart subtitle
+            chartSubtitle.textContent = `Settlement results for ${dateStr}, 2025 - Actual temp: ${data.actualTemp}`;
+            
+            // Update markets list
+            updateMarketsList(data.markets);
+            
+            // Update chart
+            updateChart(data.markets);
         }
         
-        function createChart(markets, date, interval) {
-            const traces = [];
-            const colors = [
-                '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
-                '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf',
-                '#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#ffeaa7',
-                '#dda0dd', '#98d8c8', '#f7dc6f', '#bb8fce', '#85c1e9'
-            ];
+        function updateMarketsList(markets) {
+            const marketsList = document.getElementById('marketsList');
+            marketsList.innerHTML = '';
             
-            markets.forEach((market, index) => {
-                const color = colors[index % colors.length];
+            markets.forEach(market => {
+                const item = document.createElement('div');
+                const isWinner = market.result === 'yes';
+                item.className = `market-item ${isWinner ? 'won' : 'lost'}`;
                 
-                // Sort data by timestamp
-                const sortedData = market.data.sort((a, b) => 
-                    new Date(a.timestamp) - new Date(b.timestamp)
-                );
+                item.innerHTML = `
+                    <div class="market-ticker">KXHIGHNY-${market.ticker}</div>
+                    <div class="market-range">${market.range}</div>
+                    <div class="market-result ${isWinner ? 'winner' : 'loser'}">
+                        ${isWinner ? '🏆 WON' : '❌ LOST'} (${market.settlement})
+                    </div>
+                `;
                 
-                if (sortedData.length === 0) return;
-                
-                const timestamps = sortedData.map(d => d.timestamp);
-                const prices = sortedData.map(d => d.price / 100); // Convert cents to dollars
-                
-                // Extract strike price and type from ticker
-                let strikeInfo = 'Unknown';
-                let marketType = '';
-                
-                const betweenMatch = market.ticker.match(/-B(\d+(?:\.\d+)?)$/);
-                const aboveMatch = market.ticker.match(/-T(\d+)$/);
-                
-                if (betweenMatch) {
-                    const strike = parseFloat(betweenMatch[1]);
-                    strikeInfo = `${strike}° to ${strike + 1}°F`;
-                    marketType = 'Between';
-                } else if (aboveMatch) {
-                    const strike = parseInt(aboveMatch[1]);
-                    strikeInfo = `${strike + 1}°F or above`;
-                    marketType = 'Above';
-                }
-                
-                traces.push({
-                    x: timestamps,
-                    y: prices,
-                    mode: 'lines+markers',
-                    name: `${strikeInfo} (${marketType})`,
-                    line: { 
-                        color: color,
-                        width: 2
-                    },
-                    marker: {
-                        color: color,
-                        size: 3
-                    },
-                    hovertemplate: `<b>%{fullData.name}</b><br>` +
-                                 `Time: %{x|%H:%M:%S}<br>` +
-                                 `Price: $%{y:.3f}<br>` +
-                                 `Ticker: ${market.ticker}<br>` +
-                                 `<extra></extra>`
-                });
+                marketsList.appendChild(item);
             });
+        }
+        
+        function updateChart(markets) {
+            const ranges = markets.map(m => m.range);
+            const settlements = markets.map(m => m.settlement);
+            const colors = markets.map(m => m.result === 'yes' ? '#22543d' : '#742a2a');
+            
+            const trace = {
+                x: ranges,
+                y: settlements,
+                type: 'bar',
+                marker: {
+                    color: colors,
+                    line: {
+                        color: 'rgba(0,0,0,0.2)',
+                        width: 2
+                    }
+                },
+                hovertemplate: '<b>%{x}</b><br>Settlement: %{y}<br>%{text}<extra></extra>',
+                text: markets.map(m => m.result === 'yes' ? '🏆 WINNER' : '❌ Lost')
+            };
             
             const layout = {
                 title: {
-                    text: `🌡️ Kalshi NYC Temperature Markets - ${new Date(date + 'T00:00:00').toLocaleDateString('en-US', {
-                        weekday: 'long',
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                    })}`,
-                    font: { size: 20, color: '#2c3e50' }
+                    text: 'Market Settlement Results',
+                    font: { size: 18, color: '#2d3748' }
                 },
                 xaxis: {
-                    title: 'Time (UTC)',
-                    type: 'date',
-                    gridcolor: '#ecf0f1',
-                    tickformat: '%H:%M'
+                    title: 'Temperature Range',
+                    tickangle: -45
                 },
                 yaxis: {
-                    title: 'Market Price ($)',
-                    range: [0, 1],
-                    gridcolor: '#ecf0f1',
-                    tickformat: '$.2f'
+                    title: 'Settlement Value (0-100)',
+                    range: [0, 105]
                 },
-                plot_bgcolor: '#fafafa',
+                margin: { l: 60, r: 40, t: 60, b: 120 },
+                plot_bgcolor: 'rgba(248, 250, 252, 0.8)',
                 paper_bgcolor: 'white',
-                legend: {
-                    orientation: 'v',
-                    y: 1,
-                    x: 1.02,
-                    xanchor: 'left',
-                    bgcolor: 'rgba(255,255,255,0.8)',
-                    bordercolor: '#bdc3c7',
-                    borderwidth: 1,
-                    font: { size: 11 }
-                },
-                margin: { t: 100, b: 80, l: 80, r: 200 },
-                hovermode: 'x unified',
-                showlegend: true
+                showlegend: false
             };
             
-            const config = {
-                responsive: true,
-                displayModeBar: true,
-                modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d'],
-                toImageButtonOptions: {
-                    format: 'png',
-                    filename: `kalshi_markets_${date}`,
-                    height: 700,
-                    width: 1200,
-                    scale: 2
-                }
-            };
-            
-            // Add temperature overlay traces
-            addTemperatureOverlays(traces, date, layout);
-            
-            Plotly.newPlot('chartDiv', traces, layout, config);
-            
-            // Show market info
-            showMarketInfo(markets, date);
-            
-            setStatus('');
-        }
-        
-        function addTemperatureOverlays(traces, date, layout) {
-            const tempData = temperatureData[date];
-            if (!tempData) return;
-            
-            const tempColors = {
-                'synoptic': '#f39c12', // Orange  
-                'asos': '#3498db'      // Blue
-            };
-            
-            const selectedAPIs = getSelectedAPIs();
-            
-            selectedAPIs.forEach(api => {
-                const data = tempData[api.id];
-                if (!data || !data.success || !data.max_temperature) return;
-                
-                // Get chart time range from market data
-                const allTimestamps = [];
-                traces.forEach(trace => {
-                    if (trace.x) allTimestamps.push(...trace.x);
-                });
-                
-                if (allTimestamps.length === 0) return;
-                
-                const minTime = new Date(Math.min(...allTimestamps.map(t => new Date(t))));
-                const maxTime = new Date(Math.max(...allTimestamps.map(t => new Date(t))));
-                
-                // Create horizontal line at max temperature
-                const tempInFahrenheit = data.max_temperature;
-                
-                traces.push({
-                    x: [minTime, maxTime],
-                    y: [0.95, 0.95], // Top of chart
-                    mode: 'lines+markers',
-                    name: `🌡️ ${api.name}: ${tempInFahrenheit}°F`,
-                    line: {
-                        color: tempColors[api.id] || '#95a5a6',
-                        width: 4,
-                        dash: 'dash'
-                    },
-                    marker: {
-                        symbol: 'diamond',
-                        size: 8,
-                        color: tempColors[api.id] || '#95a5a6'
-                    },
-                    yaxis: 'y',
-                    hovertemplate: `<b>%{fullData.name}</b><br>` +
-                                 `Max Temp: ${tempInFahrenheit}°F<br>` +
-                                 `Time: ${data.max_time || 'Unknown'}<br>` +
-                                 `<extra></extra>`,
-                    showlegend: true
-                });
-                
-                // Add temperature annotation
-                layout.annotations = layout.annotations || [];
-                layout.annotations.push({
-                    x: maxTime,
-                    y: 0.95,
-                    xref: 'x',
-                    yref: 'y',
-                    text: `${tempInFahrenheit}°F`,
-                    showarrow: true,
-                    arrowhead: 2,
-                    arrowsize: 1,
-                    arrowwidth: 2,
-                    arrowcolor: tempColors[api.id] || '#95a5a6',
-                    font: {
-                        color: tempColors[api.id] || '#95a5a6',
-                        size: 12,
-                        family: 'Arial, sans-serif'
-                    },
-                    bgcolor: 'rgba(255,255,255,0.8)',
-                    bordercolor: tempColors[api.id] || '#95a5a6',
-                    borderwidth: 1
-                });
+            Plotly.newPlot('marketChart', [trace], layout, {
+                displayModeBar: false,
+                responsive: true
             });
         }
         
-        function showMarketInfo(markets, date) {
-            const infoDiv = document.createElement('div');
-            infoDiv.className = 'market-info';
-            
-            const totalDataPoints = markets.reduce((sum, m) => sum + m.data.length, 0);
-            const strikeRange = getStrikeRange(markets);
-            const timeRange = getTimeRange(markets);
-            const tempInfo = getTemperatureInfo(date);
-            
-            infoDiv.innerHTML = `
-                <h3>📊 Market Information for ${new Date(date + 'T00:00:00').toLocaleDateString('en-US', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                })}</h3>
-                <div class="market-stats">
-                    <div><strong>🎯 Total Markets:</strong> ${markets.length}</div>
-                    <div><strong>📈 Data Points:</strong> ${totalDataPoints.toLocaleString()}</div>
-                    <div><strong>🌡️ Strike Range:</strong> ${strikeRange}</div>
-                    <div><strong>⏰ Time Range:</strong> ${timeRange}</div>
-                    ${tempInfo}
-                </div>
-                <div style="margin-top: 10px; padding: 10px; background: rgba(52, 152, 219, 0.1); border-radius: 5px; font-size: 0.9em; color: #34495e;">
-                    <strong>💡 Tip:</strong> Each line represents a different temperature prediction market. Dashed lines show actual max temperatures from weather APIs.
-                </div>
-            `;
-            
-            const chartContainer = document.querySelector('.chart-container');
-            const existingInfo = chartContainer.querySelector('.market-info');
-            if (existingInfo) {
-                existingInfo.remove();
-            }
-            chartContainer.insertBefore(infoDiv, chartContainer.firstChild);
-        }
-        
-        function getTemperatureInfo(date) {
-            const tempData = temperatureData[date];
-            if (!tempData) return '';
-            
-            let tempInfo = '';
-            const selectedAPIs = getSelectedAPIs();
-            
-            selectedAPIs.forEach(api => {
-                const data = tempData[api.id];
-                if (data && data.success) {
-                    tempInfo += `<div><strong>🌡️ ${api.name}:</strong> ${data.max_temperature}°F</div>`;
-                }
-            });
-            
-            return tempInfo;
-        }
-        
-        function getStrikeRange(markets) {
-            const strikes = [];
-            
-            markets.forEach(m => {
-                const betweenMatch = m.ticker.match(/-B(\d+(?:\.\d+)?)$/);
-                const aboveMatch = m.ticker.match(/-T(\d+)$/);
-                
-                if (betweenMatch) {
-                    strikes.push(parseFloat(betweenMatch[1]));
-                } else if (aboveMatch) {
-                    strikes.push(parseInt(aboveMatch[1]));
-                }
-            });
-            
-            if (strikes.length === 0) return 'Unknown';
-            
-            const min = Math.min(...strikes);
-            const max = Math.max(...strikes);
-            return min === max ? `${min}°F` : `${min}°F - ${max}°F`;
-        }
-        
-        function getTimeRange(markets) {
-            const allTimestamps = [];
-            
-            markets.forEach(m => {
-                m.data.forEach(d => {
-                    allTimestamps.push(new Date(d.timestamp));
-                });
-            });
-            
-            if (allTimestamps.length === 0) return 'Unknown';
-            
-            const minTime = new Date(Math.min(...allTimestamps));
-            const maxTime = new Date(Math.max(...allTimestamps));
-            
-            const formatTime = (date) => date.toLocaleTimeString('en-US', {
-                hour: '2-digit',
-                minute: '2-digit',
-                timeZoneName: 'short'
-            });
-            
-            return `${formatTime(minTime)} - ${formatTime(maxTime)}`;
-        }
-        
-        function setStatus(message) {
-            document.getElementById('status').innerHTML = message;
-        }
-        
-        // Initialize when page loads
-        document.addEventListener('DOMContentLoaded', init);
+        // Auto-load on page load
+        window.addEventListener('load', loadMarkets);
     </script>
 </body>
 </html>

@@ -1,0 +1,18 @@
+event_ticker,series_ticker,sub_title,title,collateral_return_type,mutually_exclusive,category
+KXWARMING-50,KXWARMING,Before 2050,Will the world pass 2 degrees Celsius over pre-industrial levels before 2050?,,False,Climate and Weather
+KXMARSVRAIL-50,KXMARSVRAIL,Before 2050,Will a human land on Mars before California starts high-speed rail?,,False,Science and Technology
+KXERUPTSUPER-0,KXERUPTSUPER,a supervolcano,Will a supervolcano erupt before 2050?,,False,Climate and Weather
+KXEARTHQUAKECALIFORNIA-35,KXEARTHQUAKECALIFORNIA,Before 2035,Will there be an at least 8.0 magnitude earthquake in California before 2035?,,False,Climate and Weather
+KXACTORSONNYCROCKETT-35,KXACTORSONNYCROCKETT,Before 2035,Who will be cast in the next Miami Vice?,,False,Entertainment
+EUCLIMATE,KXEUCLIMATE,By 2030,EU meets its 2030 climate goals?,,False,Climate and Weather
+INDIACLIMATE-30,KXINDIACLIMATE,By 2030,India meets its 2030 climate goals?,,False,Climate and Weather
+USCLIMATE,KXUSCLIMATE,2025/2030 goals,US meets its climate goals?,,False,Climate and Weather
+KXPRIMEENGCONSUMPTION-30,KXPRIMEENGCONSUMPTION,In 2030,What will be the largest source of global primary energy consumption in 2030?,MECNET,True,Climate and Weather
+KXNYKCOACH-25,KXNYKCOACH,Before 2030,Who will be the next head coach of New York Pro Men's Basketball?,,False,Sports
+EVSHARE-30JAN,KXEVSHARE,In Jan 2030,EV market share in 2030?,,False,Climate and Weather
+KXU3MAX-30,KXU3MAX,Before 2030,How high will unemployment get before 2030?,,False,Economics
+KXEARTHQUAKEJAPAN-30,KXEARTHQUAKEJAPAN,Before 2030,8.0 magnitude earthquake in Japan before 2030?,,False,Climate and Weather
+BTCETHATH-29DEC31,KXBTCETHATH,Before 2030,Ethereum hits new all-time high before Bitcoin?,,False,Crypto
+KXPENNYCONGRESS-29,KXPENNYCONGRESS,During Trump's Term,Will Congress pass a law that gets rid of the penny?,,False,Politics
+SENATENY-28,SENATENY,In 2028,Who will win the Senate race in New York?,MECNET,True,Politics
+KXUSNY-29,KXUSNY,Before 2029,Will Trump win his lawsuit against New York for its sanctuary cities laws?,,False,Politics

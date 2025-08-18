@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kalshi Market Viewer - CSV Data v2</title>
+    <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+        
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .controls {
+            padding: 30px;
+            background: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .control-group label {
+            font-weight: 600;
+            color: #4a5568;
+        }
+        
+        .control-group select, .control-group input {
+            padding: 10px 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            background: white;
+        }
+        
+        .load-btn {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .load-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .main-content {
+            display: flex;
+            height: calc(100vh - 200px);
+        }
+        
+        .sidebar {
+            width: 350px;
+            background: #f8fafc;
+            border-right: 1px solid #e2e8f0;
+            padding: 30px;
+            overflow-y: auto;
+        }
+        
+        .chart-area {
+            flex: 1;
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .market-chart, .temp-chart {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            overflow: hidden;
+        }
+        
+        .market-chart {
+            flex: 2;
+        }
+        
+        .temp-chart {
+            flex: 1;
+        }
+        
+        .chart-header {
+            padding: 20px;
+            background: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+            font-weight: 600;
+            color: #2d3748;
+        }
+        
+        .market-list {
+            margin-top: 20px;
+        }
+        
+        .market-item {
+            padding: 15px;
+            margin-bottom: 10px;
+            background: white;
+            border-radius: 8px;
+            border: 2px solid #e2e8f0;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .market-item:hover {
+            border-color: #667eea;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .market-item.selected {
+            border-color: #667eea;
+            background: #edf2f7;
+        }
+        
+        .market-name {
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 5px;
+        }
+        
+        .market-range {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+        
+        .market-price {
+            font-size: 16px;
+            font-weight: 600;
+        }
+        
+        .price-up { color: #22543d; }
+        .price-down { color: #742a2a; }
+        .price-neutral { color: #4a5568; }
+        
+        .algo-recommendation {
+            background: linear-gradient(135deg, #38b2ac 0%, #319795 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .algo-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        
+        .algo-action {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        
+        .algo-confidence {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+        
+        .status.error {
+            background: #fed7d7;
+            color: #742a2a;
+            border: 1px solid #fc8181;
+        }
+        
+        .status.success {
+            background: #c6f6d5;
+            color: #22543d;
+            border: 1px solid #9ae6b4;
+        }
+        
+        .status.info {
+            background: #bee3f8;
+            color: #2c5282;
+            border: 1px solid #63b3ed;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Kalshi Temperature Markets</h1>
+            <p>CSV-based market visualization and trading recommendations</p>
+        </div>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label for="dateSelect">Date:</label>
+                <input type="date" id="dateSelect" value="2025-08-12">
+            </div>
+            
+            <div class="control-group">
+                <label for="dataDir">Data Directory:</label>
+                <input type="text" id="dataDir" value="./data" placeholder="./data">
+            </div>
+            
+            <button class="load-btn" onclick="loadMarketData()">🔄 Load Market Data</button>
+            
+            <div id="status" class="status" style="display: none;"></div>
+        </div>
+        
+        <div class="main-content">
+            <div class="sidebar">
+                <div class="algo-recommendation" id="algoRec" style="display: none;">
+                    <div class="algo-title">🤖 AI Trading Recommendation</div>
+                    <div class="algo-action" id="algoAction">HOLD</div>
+                    <div class="algo-confidence" id="algoConfidence">Analyzing market conditions...</div>
+                </div>
+                
+                <h3>📈 Active Markets</h3>
+                <div class="market-list" id="marketList">
+                    <div class="status info">
+                        Click "Load Market Data" to see available markets for the selected date.
+                    </div>
+                </div>
+            </div>
+            
+            <div class="chart-area">
+                <div class="market-chart">
+                    <div class="chart-header">
+                        📊 Market Price Trendlines
+                    </div>
+                    <div id="marketChart" style="height: 100%;"></div>
+                </div>
+                
+                <div class="temp-chart">
+                    <div class="chart-header">
+                        🌡️ Temperature Timeline
+                    </div>
+                    <div id="tempChart" style="height: 100%;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allMarketData = {};
+        let selectedMarkets = new Set();
+        let temperatureData = null;
+        
+        function showStatus(message, type) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = `status ${type}`;
+            status.style.display = 'block';
+        }
+        
+        function hideStatus() {
+            document.getElementById('status').style.display = 'none';
+        }
+        
+        async function loadMarketData() {
+            const dateSelect = document.getElementById('dateSelect').value;
+            const dataDir = document.getElementById('dataDir').value;
+            
+            if (!dateSelect) {
+                showStatus('Please select a date', 'error');
+                return;
+            }
+            
+            showStatus('Loading market data...', 'info');
+            
+            try {
+                // Look for CSV files in the data/candles directory
+                const candlesDir = `${dataDir}/candles`;
+                
+                // We'll try to load all KXHIGHNY files and filter by date
+                const marketFiles = await findMarketFiles(candlesDir, dateSelect);
+                
+                if (marketFiles.length === 0) {
+                    showStatus(`No market data found for ${dateSelect}. Try generating data first.`, 'error');
+                    return;
+                }
+                
+                showStatus(`Found ${marketFiles.length} market files for ${dateSelect}`, 'success');
+                
+                // Load market data
+                allMarketData = {};
+                for (const file of marketFiles) {
+                    try {
+                        const marketGroups = await loadCSVData(`${candlesDir}/${file}`);
+                        // marketGroups is now an object with ticker -> data array
+                        allMarketData = marketGroups;
+                    } catch (error) {
+                        console.warn(`Failed to load ${file}:`, error);
+                    }
+                }
+                
+                // Update UI
+                updateMarketList();
+                generateTradingRecommendation();
+                
+                const marketCount = Object.keys(allMarketData).length;
+                showStatus(`Loaded ${marketCount} markets from ${dateSelect}`, 'success');
+                setTimeout(hideStatus, 3000);
+                
+            } catch (error) {
+                console.error('Error loading market data:', error);
+                showStatus(`Error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function findMarketFiles(candlesDir, targetDate) {
+            // We have one main CSV file with all market data
+            const mainFile = 'KXHIGHNY_candles_5m.csv';
+            
+            console.log(`Looking for CSV file: ${candlesDir}/${mainFile}`);
+            
+            try {
+                const response = await fetch(`${candlesDir}/${mainFile}`);
+                console.log(`CSV fetch response status: ${response.status}`);
+                if (response.ok) {
+                    return [mainFile];
+                }
+            } catch (error) {
+                console.warn(`Failed to find ${mainFile}:`, error);
+            }
+            
+            return [];
+        }
+        
+        async function loadCSVData(filePath) {
+            console.log(`Loading CSV data from: ${filePath}`);
+            const response = await fetch(filePath);
+            if (!response.ok) {
+                throw new Error(`Failed to load ${filePath}`);
+            }
+            
+            const csvText = await response.text();
+            const lines = csvText.trim().split('\n');
+            console.log(`CSV loaded: ${lines.length} lines`);
+            
+            if (lines.length < 2) {
+                throw new Error('CSV file is empty or invalid');
+            }
+            
+            // Parse the header to understand format: market_id,ticker,start,open,high,low,close,count
+            const header = lines[0].split(',');
+            const marketGroups = {};
+            
+            for (let i = 1; i < lines.length; i++) {
+                const values = lines[i].split(',');
+                if (values.length >= 7) {
+                    try {
+                        const marketId = values[0]; // e.g., "KXHIGHNY-25AUG19-T82"
+                        const ticker = values[1];
+                        const timestamp = values[2]; // ISO timestamp
+                        const open = parseFloat(values[3]);
+                        const high = parseFloat(values[4]);
+                        const low = parseFloat(values[5]);
+                        const close = parseFloat(values[6]);
+                        const count = parseInt(values[7]) || 0;
+                        
+                        if (!marketGroups[ticker]) {
+                            marketGroups[ticker] = [];
+                        }
+                        
+                        marketGroups[ticker].push({
+                            timestamp: timestamp,
+                            open: open,
+                            high: high,
+                            low: low,
+                            close: close,
+                            volume: count
+                        });
+                    } catch (error) {
+                        // Skip invalid rows
+                        console.warn('Skipping invalid row:', values, error);
+                    }
+                }
+            }
+            
+            // Sort each market's data by timestamp
+            Object.keys(marketGroups).forEach(ticker => {
+                marketGroups[ticker].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+            });
+            
+            console.log(`Parsed ${Object.keys(marketGroups).length} markets:`, Object.keys(marketGroups));
+            return marketGroups;
+        }
+        
+        function updateMarketList() {
+            const marketList = document.getElementById('marketList');
+            
+            if (Object.keys(allMarketData).length === 0) {
+                marketList.innerHTML = '<div class="status info">No market data loaded</div>';
+                return;
+            }
+            
+            let html = '';
+            
+            Object.keys(allMarketData).forEach(ticker => {
+                const data = allMarketData[ticker];
+                if (!data || data.length === 0) return;
+                
+                const latestPrice = data[data.length - 1];
+                const firstPrice = data[0];
+                const priceChange = latestPrice.close - firstPrice.open;
+                const priceChangePercent = ((priceChange / firstPrice.open) * 100).toFixed(1);
+                
+                let priceClass = 'price-neutral';
+                if (priceChange > 0) priceClass = 'price-up';
+                else if (priceChange < 0) priceClass = 'price-down';
+                
+                // Parse ticker to extract info: KXHIGHNY-25AUG19-T82 or KXHIGHNY-25AUG19-B81.5
+                const tickerParts = ticker.split('-');
+                let displayName = ticker;
+                let tempRange = 'Unknown Range';
+                
+                if (tickerParts.length >= 3) {
+                    const date = tickerParts[1]; // 25AUG19
+                    const tempPart = tickerParts[2]; // T82 or B81.5
+                    
+                    if (tempPart.startsWith('T')) {
+                        // Above temperature
+                        const temp = tempPart.slice(1);
+                        tempRange = `Above ${temp}°F`;
+                        displayName = `${date} > ${temp}°F`;
+                    } else if (tempPart.startsWith('B')) {
+                        // Below temperature  
+                        const temp = tempPart.slice(1);
+                        tempRange = `Below ${temp}°F`;
+                        displayName = `${date} < ${temp}°F`;
+                    }
+                }
+                
+                const isSelected = selectedMarkets.has(ticker);
+                
+                html += `
+                    <div class="market-item ${isSelected ? 'selected' : ''}" onclick="toggleMarket('${ticker}')">
+                        <div class="market-name">${displayName}</div>
+                        <div class="market-range">${tempRange}</div>
+                        <div class="market-price ${priceClass}">
+                            $${(latestPrice.close/100).toFixed(2)} 
+                            (${priceChange >= 0 ? '+' : ''}${priceChangePercent}%)
+                        </div>
+                    </div>
+                `;
+            });
+            
+            marketList.innerHTML = html;
+        }
+        
+        function toggleMarket(ticker) {
+            if (selectedMarkets.has(ticker)) {
+                selectedMarkets.delete(ticker);
+            } else {
+                selectedMarkets.add(ticker);
+            }
+            
+            updateMarketList();
+            updateMarketChart();
+        }
+        
+        function updateMarketChart() {
+            const chartDiv = document.getElementById('marketChart');
+            
+            if (selectedMarkets.size === 0) {
+                chartDiv.innerHTML = '<div style="padding: 50px; text-align: center; color: #666;">Select markets from the sidebar to view price trends</div>';
+                return;
+            }
+            
+            const traces = [];
+            
+            selectedMarkets.forEach(ticker => {
+                const data = allMarketData[ticker];
+                if (!data || data.length === 0) return;
+                
+                // Parse ticker for display name
+                const tickerParts = ticker.split('-');
+                let displayName = ticker;
+                if (tickerParts.length >= 3) {
+                    const date = tickerParts[1];
+                    const tempPart = tickerParts[2];
+                    if (tempPart.startsWith('T')) {
+                        displayName = `${date} > ${tempPart.slice(1)}°F`;
+                    } else if (tempPart.startsWith('B')) {
+                        displayName = `${date} < ${tempPart.slice(1)}°F`;
+                    }
+                }
+                
+                // Create line chart for market prices (convert to cents)
+                traces.push({
+                    x: data.map(d => d.timestamp),
+                    y: data.map(d => d.close / 100), // Convert to dollars
+                    type: 'scatter',
+                    mode: 'lines',
+                    name: displayName,
+                    line: {
+                        width: 3
+                    }
+                });
+            });
+            
+            const layout = {
+                title: {
+                    text: 'Market Price Trends',
+                    font: { size: 18, color: '#2d3748' }
+                },
+                xaxis: {
+                    title: 'Time',
+                    type: 'date'
+                },
+                yaxis: {
+                    title: 'Price ($)',
+                    range: [0, 1]
+                },
+                margin: { l: 60, r: 40, t: 60, b: 60 },
+                plot_bgcolor: 'rgba(248, 250, 252, 0.8)',
+                paper_bgcolor: 'white',
+                showlegend: true,
+                legend: {
+                    x: 1,
+                    y: 1,
+                    xanchor: 'left',
+                    bgcolor: 'rgba(255, 255, 255, 0.8)'
+                }
+            };
+            
+            Plotly.newPlot(chartDiv, traces, layout, {
+                displayModeBar: false,
+                responsive: true
+            });
+        }
+        
+        function generateTradingRecommendation() {
+            const algoRec = document.getElementById('algoRec');
+            const algoAction = document.getElementById('algoAction');
+            const algoConfidence = document.getElementById('algoConfidence');
+            
+            if (Object.keys(allMarketData).length === 0) {
+                algoRec.style.display = 'none';
+                return;
+            }
+            
+            // Simple algorithm: look for markets with significant price movements
+            let recommendations = [];
+            
+            Object.keys(allMarketData).forEach(ticker => {
+                const data = allMarketData[ticker];
+                if (!data || data.length < 5) return; // Need enough data
+                
+                const recent = data.slice(-5); // Use last 5 data points
+                const avgPrice = recent.reduce((sum, d) => sum + d.close, 0) / recent.length;
+                const latestPrice = data[data.length - 1].close;
+                
+                // Check for momentum
+                const momentum = (latestPrice - avgPrice) / avgPrice;
+                
+                if (Math.abs(momentum) > 0.05) { // 5% movement threshold
+                    // Parse ticker for display
+                    const tickerParts = ticker.split('-');
+                    let displayName = ticker;
+                    if (tickerParts.length >= 3) {
+                        const date = tickerParts[1];
+                        const tempPart = tickerParts[2];
+                        if (tempPart.startsWith('T')) {
+                            displayName = `${date} > ${tempPart.slice(1)}°F`;
+                        } else if (tempPart.startsWith('B')) {
+                            displayName = `${date} < ${tempPart.slice(1)}°F`;
+                        }
+                    }
+                    
+                    recommendations.push({
+                        market: displayName,
+                        ticker: ticker,
+                        action: momentum > 0 ? 'BUY' : 'SELL',
+                        confidence: Math.min(Math.abs(momentum) * 200, 95), // Scale up confidence
+                        price: latestPrice / 100 // Convert to dollars
+                    });
+                }
+            });
+            
+            if (recommendations.length === 0) {
+                algoAction.textContent = 'HOLD';
+                algoConfidence.textContent = 'No strong signals detected. Markets appear stable.';
+            } else {
+                // Show best recommendation
+                const best = recommendations.sort((a, b) => b.confidence - a.confidence)[0];
+                algoAction.textContent = `${best.action} ${best.market.replace('KXHIGHNY-', '').replace('_candles_5m', '')}`;
+                algoConfidence.textContent = `Confidence: ${best.confidence.toFixed(1)}% | Price: $${best.price.toFixed(2)}`;
+                
+                // Color code the action
+                if (best.action === 'BUY') {
+                    algoAction.style.color = '#22543d';
+                } else {
+                    algoAction.style.color = '#742a2a';
+                }
+            }
+            
+            algoRec.style.display = 'block';
+        }
+        
+        function updateTemperatureChart() {
+            const chartDiv = document.getElementById('tempChart');
+            
+            // For now, show a placeholder temperature curve
+            // In a real implementation, this would load temperature data
+            const hours = [];
+            const temps = [];
+            
+            // Generate sample temperature curve for a typical summer day
+            for (let hour = 0; hour < 24; hour++) {
+                hours.push(`2025-08-12 ${hour.toString().padStart(2, '0')}:00`);
+                
+                // Typical temperature curve: cool morning, hot afternoon, cooling evening
+                let temp;
+                if (hour < 6) {
+                    temp = 68 + Math.sin(hour * Math.PI / 12) * 3; // Cool night
+                } else if (hour < 14) {
+                    temp = 68 + (hour - 6) * 3; // Rising temperature
+                } else if (hour < 18) {
+                    temp = 92 - (hour - 14) * 1; // Peak afternoon
+                } else {
+                    temp = 88 - (hour - 18) * 3; // Evening cooling
+                }
+                
+                temps.push(temp + Math.random() * 2 - 1); // Add some noise
+            }
+            
+            const trace = {
+                x: hours,
+                y: temps,
+                type: 'scatter',
+                mode: 'lines',
+                fill: 'tonexty',
+                fillcolor: 'rgba(255, 165, 0, 0.3)',
+                line: {
+                    color: 'orange',
+                    width: 3
+                },
+                name: 'Temperature'
+            };
+            
+            const layout = {
+                title: {
+                    text: 'Temperature Timeline (Sample Data)',
+                    font: { size: 16, color: '#2d3748' }
+                },
+                xaxis: {
+                    title: 'Time',
+                    type: 'date'
+                },
+                yaxis: {
+                    title: 'Temperature (°F)',
+                    range: [60, 100]
+                },
+                margin: { l: 60, r: 40, t: 60, b: 60 },
+                plot_bgcolor: 'rgba(248, 250, 252, 0.8)',
+                paper_bgcolor: 'white',
+                showlegend: false
+            };
+            
+            Plotly.newPlot(chartDiv, [trace], layout, {
+                displayModeBar: false,
+                responsive: true
+            });
+        }
+        
+        // Initialize  
+        updateTemperatureChart();
+        
+        // Auto-load data on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Page loaded - auto-loading market data');
+            loadMarketData();
+        });
+    </script>
+</body>
+</html>
