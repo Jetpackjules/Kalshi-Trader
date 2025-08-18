@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kalshi Trading Dashboard with AI Recommendations v2</title>
+    <title>Kalshi Trading Dashboard - CSV Data with AI Recommendations</title>
     <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
     <style>
         * {
@@ -665,33 +665,135 @@
             return timeline;
         }
 
-        // Kalshi API Client for real-time data fetching
+        // Kalshi Data Client - loads from JSONL files
         class KalshiAPIClient {
             constructor() {
-                // Use real API calls through CORS proxy for ALL dates!
-                this.baseUrl = 'http://localhost:8083';
-                this.timeout = 15000;
+                // Load from existing JSONL data files
+                this.dataPath = '/data/raw/';
+                this.allMarketData = null;
+            }
+
+            async loadMarketData() {
+                if (this.allMarketData) return this.allMarketData;
+                
+                try {
+                    console.log('Loading real market data from JSONL files...');
+                    
+                    // Get list of available market files
+                    const marketFiles = await this.getAvailableMarkets();
+                    const marketGroups = {};
+                    
+                    for (const fileName of marketFiles) {
+                        try {
+                            const response = await fetch(`${this.dataPath}${fileName}`);
+                            if (response.ok) {
+                                const jsonlText = await response.text();
+                                const lines = jsonlText.trim().split('\n').filter(line => line.trim());
+                                
+                                const marketData = [];
+                                for (const line of lines) {
+                                    try {
+                                        const data = JSON.parse(line);
+                                        marketData.push({
+                                            timestamp: data.ts,
+                                            close: data.last_price,
+                                            open: data.last_price,
+                                            high: data.last_price,
+                                            low: data.last_price,
+                                            volume: 1
+                                        });
+                                    } catch (parseError) {
+                                        // Skip invalid JSON lines
+                                    }
+                                }
+                                
+                                // Sort by timestamp
+                                marketData.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+                                
+                                const ticker = fileName.replace('.jsonl', '');
+                                marketGroups[ticker] = marketData;
+                                
+                            }
+                        } catch (error) {
+                            console.warn(`Failed to load ${fileName}:`, error);
+                        }
+                    }
+                    
+                    this.allMarketData = marketGroups;
+                    console.log(`Loaded ${Object.keys(marketGroups).length} markets from JSONL files`);
+                    return marketGroups;
+                    
+                } catch (error) {
+                    console.error('Error loading market data:', error);
+                    throw error;
+                }
+            }
+
+            async getAvailableMarkets() {
+                // Hardcoded list of actual files that exist (from the LS command)
+                const existingFiles = [
+                    'KXHIGHNY-25AUG01-B69.5.jsonl', 'KXHIGHNY-25AUG01-B71.5.jsonl', 'KXHIGHNY-25AUG01-B73.5.jsonl', 'KXHIGHNY-25AUG01-B75.5.jsonl', 'KXHIGHNY-25AUG01-T69.jsonl', 'KXHIGHNY-25AUG01-T76.jsonl',
+                    'KXHIGHNY-25AUG02-B77.5.jsonl', 'KXHIGHNY-25AUG02-B79.5.jsonl', 'KXHIGHNY-25AUG02-B81.5.jsonl', 'KXHIGHNY-25AUG02-B83.5.jsonl', 'KXHIGHNY-25AUG02-T77.jsonl', 'KXHIGHNY-25AUG02-T84.jsonl',
+                    'KXHIGHNY-25AUG03-B82.5.jsonl', 'KXHIGHNY-25AUG03-B84.5.jsonl', 'KXHIGHNY-25AUG03-B86.5.jsonl', 'KXHIGHNY-25AUG03-B88.5.jsonl', 'KXHIGHNY-25AUG03-T82.jsonl', 'KXHIGHNY-25AUG03-T89.jsonl',
+                    'KXHIGHNY-25AUG04-B86.5.jsonl', 'KXHIGHNY-25AUG04-B88.5.jsonl', 'KXHIGHNY-25AUG04-B90.5.jsonl', 'KXHIGHNY-25AUG04-B92.5.jsonl', 'KXHIGHNY-25AUG04-T86.jsonl', 'KXHIGHNY-25AUG04-T93.jsonl',
+                    'KXHIGHNY-25AUG05-B85.5.jsonl', 'KXHIGHNY-25AUG05-B87.5.jsonl', 'KXHIGHNY-25AUG05-B89.5.jsonl', 'KXHIGHNY-25AUG05-B91.5.jsonl', 'KXHIGHNY-25AUG05-T85.jsonl', 'KXHIGHNY-25AUG05-T92.jsonl',
+                    'KXHIGHNY-25AUG06-B79.5.jsonl', 'KXHIGHNY-25AUG06-B81.5.jsonl', 'KXHIGHNY-25AUG06-B83.5.jsonl', 'KXHIGHNY-25AUG06-B85.5.jsonl', 'KXHIGHNY-25AUG06-T79.jsonl', 'KXHIGHNY-25AUG06-T86.jsonl',
+                    'KXHIGHNY-25AUG07-B78.5.jsonl', 'KXHIGHNY-25AUG07-B80.5.jsonl', 'KXHIGHNY-25AUG07-B82.5.jsonl', 'KXHIGHNY-25AUG07-B84.5.jsonl', 'KXHIGHNY-25AUG07-T78.jsonl', 'KXHIGHNY-25AUG07-T85.jsonl',
+                    'KXHIGHNY-25AUG08-B79.5.jsonl', 'KXHIGHNY-25AUG08-B81.5.jsonl', 'KXHIGHNY-25AUG08-B83.5.jsonl', 'KXHIGHNY-25AUG08-B85.5.jsonl', 'KXHIGHNY-25AUG08-T79.jsonl', 'KXHIGHNY-25AUG08-T86.jsonl',
+                    'KXHIGHNY-25AUG09-B81.5.jsonl', 'KXHIGHNY-25AUG09-B83.5.jsonl', 'KXHIGHNY-25AUG09-B85.5.jsonl', 'KXHIGHNY-25AUG09-B87.5.jsonl', 'KXHIGHNY-25AUG09-T81.jsonl', 'KXHIGHNY-25AUG09-T88.jsonl',
+                    'KXHIGHNY-25AUG10-B85.5.jsonl', 'KXHIGHNY-25AUG10-B87.5.jsonl', 'KXHIGHNY-25AUG10-B89.5.jsonl', 'KXHIGHNY-25AUG10-B91.5.jsonl', 'KXHIGHNY-25AUG10-T85.jsonl', 'KXHIGHNY-25AUG10-T92.jsonl',
+                    'KXHIGHNY-25AUG11-B86.5.jsonl', 'KXHIGHNY-25AUG11-B88.5.jsonl', 'KXHIGHNY-25AUG11-B90.5.jsonl', 'KXHIGHNY-25AUG11-B92.5.jsonl', 'KXHIGHNY-25AUG11-T86.jsonl', 'KXHIGHNY-25AUG11-T93.jsonl',
+                    'KXHIGHNY-25AUG12-B86.5.jsonl', 'KXHIGHNY-25AUG12-B88.5.jsonl', 'KXHIGHNY-25AUG12-B90.5.jsonl', 'KXHIGHNY-25AUG12-B92.5.jsonl', 'KXHIGHNY-25AUG12-T86.jsonl', 'KXHIGHNY-25AUG12-T93.jsonl',
+                    'KXHIGHNY-25AUG13-B84.5.jsonl', 'KXHIGHNY-25AUG13-B86.5.jsonl', 'KXHIGHNY-25AUG13-B88.5.jsonl', 'KXHIGHNY-25AUG13-B90.5.jsonl', 'KXHIGHNY-25AUG13-T84.jsonl', 'KXHIGHNY-25AUG13-T91.jsonl',
+                    'KXHIGHNY-25AUG14-B84.5.jsonl', 'KXHIGHNY-25AUG14-B86.5.jsonl', 'KXHIGHNY-25AUG14-B88.5.jsonl', 'KXHIGHNY-25AUG14-B90.5.jsonl', 'KXHIGHNY-25AUG14-T84.jsonl', 'KXHIGHNY-25AUG14-T91.jsonl',
+                    'KXHIGHNY-25AUG15-B83.5.jsonl', 'KXHIGHNY-25AUG15-B85.5.jsonl', 'KXHIGHNY-25AUG15-B87.5.jsonl', 'KXHIGHNY-25AUG15-B89.5.jsonl', 'KXHIGHNY-25AUG15-T83.jsonl', 'KXHIGHNY-25AUG15-T90.jsonl',
+                    'KXHIGHNY-25AUG16-B83.5.jsonl', 'KXHIGHNY-25AUG16-B85.5.jsonl', 'KXHIGHNY-25AUG16-B87.5.jsonl', 'KXHIGHNY-25AUG16-B89.5.jsonl', 'KXHIGHNY-25AUG16-T83.jsonl', 'KXHIGHNY-25AUG16-T90.jsonl',
+                    'KXHIGHNY-25AUG17-B86.5.jsonl', 'KXHIGHNY-25AUG17-B88.5.jsonl', 'KXHIGHNY-25AUG17-B90.5.jsonl', 'KXHIGHNY-25AUG17-B92.5.jsonl', 'KXHIGHNY-25AUG17-T86.jsonl', 'KXHIGHNY-25AUG17-T93.jsonl',
+                    'KXHIGHNY-25AUG18-B75.5.jsonl', 'KXHIGHNY-25AUG18-B77.5.jsonl', 'KXHIGHNY-25AUG18-B79.5.jsonl', 'KXHIGHNY-25AUG18-B81.5.jsonl', 'KXHIGHNY-25AUG18-T75.jsonl', 'KXHIGHNY-25AUG18-T82.jsonl',
+                    'KXHIGHNY-25AUG19-B75.5.jsonl', 'KXHIGHNY-25AUG19-B77.5.jsonl', 'KXHIGHNY-25AUG19-B79.5.jsonl', 'KXHIGHNY-25AUG19-B81.5.jsonl', 'KXHIGHNY-25AUG19-T75.jsonl', 'KXHIGHNY-25AUG19-T82.jsonl'
+                ];
+                
+                console.log(`Using ${existingFiles.length} known market files`);
+                return existingFiles;
             }
 
             async getMarketsForDate(selectedDate, series = 'KXHIGHNY') {
                 try {
-                    console.log(`Making REAL API call for ${selectedDate}...`);
+                    console.log(`Loading markets for ${selectedDate} from JSONL files...`);
                     
-                    // Make REAL API call through proxy
-                    const marketsUrl = `${this.baseUrl}/markets?date=${selectedDate}&series_ticker=${series}`;
-                    console.log(`Fetching: ${marketsUrl}`);
+                    const marketData = await this.loadMarketData();
                     
-                    const response = await fetch(marketsUrl, { timeout: this.timeout });
-                    if (!response.ok) {
-                        throw new Error(`API Error: ${response.status} ${response.statusText}`);
-                    }
+                    // Convert date format: 2025-08-12 -> 25AUG12
+                    const date = new Date(selectedDate);
+                    const year = date.getFullYear().toString().slice(-2);
+                    const month = date.toLocaleString('en-US', { month: 'short' }).toUpperCase();
+                    const day = date.getDate().toString().padStart(2, '0');
+                    const kalshiDate = `${year}${month}${day}`;
                     
-                    const marketsData = await response.json();
-                    const markets = marketsData.markets || [];
+                    console.log(`Looking for markets with date: ${kalshiDate}`);
                     
-                    console.log(`Found ${markets.length} markets for ${selectedDate} from REAL API`);
+                    // Filter markets for the selected date
+                    const markets = [];
+                    Object.keys(marketData).forEach(ticker => {
+                        if (ticker.includes(kalshiDate)) {
+                            // Create mock market object similar to API response
+                            const data = marketData[ticker];
+                            const latestPrice = data.length > 0 ? data[data.length - 1].close : 0;
+                            
+                            markets.push({
+                                ticker: ticker,
+                                title: ticker,
+                                close_price: latestPrice / 100, // Convert to dollars
+                                status: 'closed',
+                                data_points: data.length
+                            });
+                        }
+                    });
                     
-                    // Process the real API data to match expected format
+                    console.log(`Found ${markets.length} markets for ${selectedDate}`);
+                    
+                    
+                    // Process the CSV data to match expected format
                     const enrichedMarkets = markets.map(market => {
                         // Extract strike price and market type from ticker
                         const ticker = market.ticker;
@@ -699,32 +801,31 @@
                         const strike = strikeMatch ? parseFloat(strikeMatch[2]) : 0;
                         const marketType = strikeMatch ? strikeMatch[1] : '';
                         
-                        // Generate realistic weather API data
-                        const actualTemp = market.result === 'yes' ? strike : 
-                                         (strike + (Math.random() - 0.5) * 4);
+                        // Use actual strike temperature
+                        const actualTemp = strike;
                         
                         return {
                             ticker: ticker,
-                            marketId: market.id || ticker,
+                            marketId: ticker,
                             strike: strike,
                             marketType: marketType,
-                            title: market.title || ticker,
-                            status: market.status || 'finalized',
-                            resolved: market.status === 'finalized' || market.status === 'resolved',
-                            result: market.result,
-                            lastPrice: market.last_price || market.yes_ask || 50,
-                            yesPrice: market.yes_ask || market.last_price || 50,
-                            noPrice: market.no_bid || (100 - (market.last_price || 50)),
-                            data: this.generateCandlestickData(market.last_price || 50, market.settlement_value || 0),
-                            closeTime: market.close_time,
-                            resolveTime: market.expiration_time,
-                            settlement: market.settlement_value || 0,
-                            expirationValue: market.expiration_value || actualTemp,
-                            // Generate realistic weather API data for trading algorithm
+                            title: ticker,
+                            status: 'finalized',
+                            resolved: true,
+                            result: 'settled',
+                            lastPrice: market.close_price,
+                            yesPrice: market.close_price,
+                            noPrice: 100 - market.close_price,
+                            data: marketData[ticker] || [],
+                            closeTime: null,
+                            resolveTime: null,
+                            settlement: 0,
+                            expirationValue: actualTemp,
+                            // Use consistent weather API data (no randomization)
                             apis: {
-                                synoptic: actualTemp + (Math.random() - 0.5) * 1.5,
-                                asos: actualTemp + (Math.random() - 0.5) * 1.0,
-                                nws: actualTemp + (Math.random() - 0.5) * 0.8
+                                synoptic: actualTemp,
+                                asos: actualTemp,
+                                nws: actualTemp
                             }
                         };
                     });
@@ -775,59 +876,28 @@
 
             async getCandlestickData(marketId) {
                 try {
-                    // Try to get historical stats/price data
-                    const endpoints = [
-                        `${this.baseUrl}/cached/markets/${marketId}/stats_history`,
-                        `${this.baseUrl}/markets/${marketId}/stats_history`,
-                        `${this.baseUrl}/trades?market_id=${marketId}&limit=1000`
-                    ];
+                    console.log(`Loading candlestick data for ${marketId} from JSONL...`);
                     
-                    for (const endpoint of endpoints) {
-                        try {
-                            const response = await fetch(endpoint);
-                            if (response.ok) {
-                                const data = await response.json();
-                                
-                                // Extract price points from various response formats
-                                let points = [];
-                                
-                                if (data.points) {
-                                    points = data.points;
-                                } else if (data.stats) {
-                                    points = data.stats;
-                                } else if (data.trades) {
-                                    points = data.trades.map(t => ({
-                                        timestamp: t.create_date || t.created_time,
-                                        close: parseFloat(t.price || t.last_price || 0)
-                                    }));
-                                } else if (Array.isArray(data)) {
-                                    points = data;
-                                }
-                                
-                                // Standardize format
-                                return points.map(point => ({
-                                    timestamp: point.timestamp || point.ts || point.create_date,
-                                    open: parseFloat(point.open || point.close || point.last_price || 0),
-                                    high: parseFloat(point.high || point.close || point.last_price || 0),
-                                    low: parseFloat(point.low || point.close || point.last_price || 0),
-                                    close: parseFloat(point.close || point.last_price || point.price || 0),
-                                    count: parseInt(point.count || point.volume || 1)
-                                })).filter(p => p.timestamp && !isNaN(p.close));
-                            }
-                        } catch (error) {
-                            continue; // Try next endpoint
-                        }
+                    const marketData = await this.loadMarketData();
+                    
+                    if (marketData[marketId]) {
+                        // Return the JSONL data directly - it's already in the right format
+                        const data = marketData[marketId];
+                        console.log(`Found ${data.length} data points for ${marketId}`);
+                        return data;
+                    } else {
+                        console.warn(`No data found for market ${marketId}`);
+                        return [];
                     }
-                    
-                    return []; // No data found
                 } catch (error) {
-                    console.warn(`Failed to get candlestick data for ${marketId}:`, error);
+                    console.error('Error loading candlestick data from JSONL:', error);
                     return [];
                 }
             }
         }
 
-        // Load REAL market data from Kalshi API OR fallback to CSV
+
+        // Load market data from CSV file
         async function loadRealMarketData(selectedDate) {
             try {
                 console.log(`Attempting to load data for: ${selectedDate}`);
@@ -1486,13 +1556,16 @@
             const dateSelect = document.getElementById('dateSelect');
             
             try {
-                const response = await fetch('/data/candles/KXHIGHNY_candles_5m.csv');
-                const csvText = await response.text();
-                const lines = csvText.split('\n').slice(1); // Skip header
+                // Instead of loading CSV, just hardcode the known dates from JSONL files
+                const knownDates = ['2025-08-01', '2025-08-02', '2025-08-03', '2025-08-04', '2025-08-05', '2025-08-06', '2025-08-07', '2025-08-08', '2025-08-09', '2025-08-10', '2025-08-11', '2025-08-12', '2025-08-13', '2025-08-14', '2025-08-15', '2025-08-16', '2025-08-17', '2025-08-18', '2025-08-19', '2025-07-13', '2025-07-14', '2025-07-15', '2025-07-16', '2025-07-17', '2025-07-18', '2025-07-19', '2025-07-20', '2025-07-21', '2025-07-22', '2025-07-23', '2025-07-24', '2025-07-25', '2025-07-26', '2025-07-27', '2025-07-28', '2025-07-29', '2025-07-30', '2025-07-31']
                 
                 // Extract unique dates from real data
                 const realDates = new Set();
-                lines.forEach(line => {
+                // Use hardcoded sorted dates
+                const sortedDates = ['2025-08-19', '2025-08-18', '2025-08-17', '2025-08-16', '2025-08-15', '2025-08-14', '2025-08-13', '2025-08-12', '2025-08-11', '2025-08-10', '2025-08-09', '2025-08-08', '2025-08-07', '2025-08-06', '2025-08-05', '2025-08-04', '2025-08-03', '2025-08-02', '2025-08-01', '2025-07-31', '2025-07-30', '2025-07-29', '2025-07-28', '2025-07-27', '2025-07-26', '2025-07-25', '2025-07-24', '2025-07-23', '2025-07-22', '2025-07-21', '2025-07-20', '2025-07-19', '2025-07-18', '2025-07-17', '2025-07-16', '2025-07-15', '2025-07-14', '2025-07-13'];
+                
+                // Skip the old CSV parsing logic
+                if (false) {
                     if (!line.trim()) return;
                     const [market_id, ticker] = line.split(',');
                     
@@ -1517,10 +1590,9 @@
                             realDates.add(standardDate);
                         }
                     }
-                });
+                }
                 
-                // Sort dates and add to dropdown
-                const sortedDates = Array.from(realDates).sort().reverse(); // Newest first
+                // sortedDates already defined above, just use it
                 
                 sortedDates.forEach(dateStr => {
                     const option = document.createElement('option');
