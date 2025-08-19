@@ -1,9 +1,0 @@
-2025-08-12 19:22:21,411 - WeatherAPI.NWS_API - INFO - Getting NWS data for 2025-08-11 (2025-08-11 00:00:00-04:00 to 2025-08-12 01:00:00-04:00)
-2025-08-12 19:22:21,628 - WeatherAPI.NWS_API - INFO - Fetched 25 NWS observations
-2025-08-12 19:22:21,634 - WeatherAPI.NWS_API - INFO - NWS peak for 2025-08-11: 88.0°F at 2025-08-11 14:51:00-04:00
-2025-08-12 19:22:21,634 - WeatherAPI.Synoptic_API - INFO - Getting Synoptic data for 2025-08-11 (2025-08-11 00:00:00-04:00 to 2025-08-12 01:00:00-04:00)
-2025-08-12 19:22:21,697 - WeatherAPI.Synoptic_API - INFO - Fetched 25 Synoptic observations
-2025-08-12 19:22:21,697 - WeatherAPI.Synoptic_API - INFO - Synoptic peak for 2025-08-11: 88.0°F at 2025-08-11 12:51:00-04:00
-2025-08-12 19:22:26,022 - WeatherAPI.NWS_API - INFO - Getting NWS data for 2025-08-11 (2025-08-11 00:00:00-04:00 to 2025-08-12 01:00:00-04:00)
-2025-08-12 19:22:26,042 - WeatherAPI.NWS_API - INFO - Fetched 25 NWS observations
-2025-08-12 19:22:26,043 - WeatherAPI.NWS_API - INFO - NWS peak for 2025-08-11: 88.0°F at 2025-08-11 14:51:00-04:00

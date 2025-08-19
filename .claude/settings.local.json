@@ -27,7 +27,9 @@
       "Bash(kill:*)",
       "Bash(touch:*)",
       "Bash(cp:*)",
-      "Bash(KALSHI_API_KEY=\"8adbb05c-01ca-42cf-af00-f05e551f0c25\" KALSHI_PRIVATE_KEY_FILE=\"/home/jetpackjules/kalshi-wsl/kalshi_private_key.pem\" python3 trading_dashboard_backup/kalshi_proxy_server.py)"
+      "Bash(KALSHI_API_KEY=\"8adbb05c-01ca-42cf-af00-f05e551f0c25\" KALSHI_PRIVATE_KEY_FILE=\"/home/jetpackjules/kalshi-wsl/kalshi_private_key.pem\" python3 trading_dashboard_backup/kalshi_proxy_server.py)",
+      "Bash(ss:*)",
+      "Bash(KALSHI_API_KEY=\"8adbb05c-01ca-42cf-af00-f05e551f0c25\" KALSHI_PRIVATE_KEY_FILE=\"/home/jetpackjules/kalshi-wsl/kalshi_private_key.pem\" python3 kalshi_proxy_server.py)"
     ],
     "deny": []
   }

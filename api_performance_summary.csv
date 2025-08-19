@@ -1,2 +1,0 @@
-API,api_code,total_days,avg_deviance,median_deviance,max_deviance,std_deviance,exact_matches,exact_match_pct,avg_obs_count
-NCEI ASOS,asos,98,0.4551020408163265,0.0,8.799999999999997,1.1276398533950736,55,56.12244897959183,234.58163265306123
