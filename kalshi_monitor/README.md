@@ -12,12 +12,16 @@ export KALSHI_API_KEY="your-key-id"
 export KALSHI_PRIVATE_KEY_FILE="/path/to/private_key.pem"
 ```
 
-### Option 2: .env File  
+### Option 2: .env File
 Create a `.env` file in the `kalshi_monitor/` directory:
 ```
 KALSHI_API_KEY=your-key-id
 KALSHI_PRIVATE_KEY_FILE=path/to/private_key.pem
 ```
+
+### Option 3: Hardcode (testing only)
+Edit `auth_config.py` and set `HARDCODED_API_KEY` and `HARDCODED_PRIVATE_KEY`.
+This is convenient for quick demos but avoid committing real credentials.
 
 ### Getting API Credentials
 1. Sign up at [kalshi.com](https://kalshi.com)
