@@ -907,6 +907,37 @@
                 });
                 
                 console.log(`Processed ${totalLines} lines, found ${matchingLines} matching ${marketDate}`);
+
+                // Ensure markets with no trades still appear using markets.jsonl
+                try {
+                    const marketsResponse = await fetch('/data/markets.jsonl');
+                    if (marketsResponse.ok) {
+                        const jsonlText = await marketsResponse.text();
+                        const allMarkets = jsonlText.split('\n')
+                            .filter(l => l.trim())
+                            .map(line => JSON.parse(line))
+                            .filter(m => m.ticker && m.ticker.includes(marketDate));
+
+                        allMarkets.forEach(mkt => {
+                            if (!marketData[mkt.ticker]) {
+                                const price = parseFloat(mkt.last_price || 0);
+                                const ts = mkt.open_time || `${selectedDate}T00:00:00Z`;
+                                marketData[mkt.ticker] = [{
+                                    timestamp: ts,
+                                    open: price,
+                                    high: price,
+                                    low: price,
+                                    close: price,
+                                    count: 0
+                                }];
+                            }
+                        });
+                    } else {
+                        console.warn('Could not load markets.jsonl:', marketsResponse.status);
+                    }
+                } catch (err) {
+                    console.warn('Error loading markets.jsonl:', err);
+                }
                 
                 // Extract unique tickers and organize data
                 const markets = Object.keys(marketData).map(ticker => {

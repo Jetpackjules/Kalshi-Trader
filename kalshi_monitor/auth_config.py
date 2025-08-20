@@ -6,13 +6,18 @@ Instructions:
 2. Go to Account Settings → Profile Settings
 3. Click "Create New API Key"
 4. Save the Key ID and Private Key
-5. Set environment variables:
-   export KALSHI_API_KEY="your-key-id"
-   export KALSHI_PRIVATE_KEY="-----BEGIN RSA PRIVATE KEY-----..."
-   
-Or create a .env file with:
-   KALSHI_API_KEY=your-key-id
-   KALSHI_PRIVATE_KEY_FILE=path/to/private_key.pem
+5. Choose one of the following methods to provide credentials:
+
+   a. **Environment variables**
+      export KALSHI_API_KEY="your-key-id"
+      export KALSHI_PRIVATE_KEY="-----BEGIN RSA PRIVATE KEY-----..."
+
+   b. **.env file**
+      KALSHI_API_KEY=your-key-id
+      KALSHI_PRIVATE_KEY_FILE=path/to/private_key.pem
+
+   c. **Hardcode in this file** (for demos/testing only)
+      Set `HARDCODED_API_KEY` and `HARDCODED_PRIVATE_KEY` below.
 """
 
 import os
@@ -24,12 +29,17 @@ from typing import Optional, Tuple
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding
 
+# Optional hardcoded credentials. Fill these in for quick tests or demos.
+# Environment variables and .env files take precedence when left empty.
+HARDCODED_API_KEY = ""
+HARDCODED_PRIVATE_KEY = ""
+
 def get_kalshi_api_credentials() -> Tuple[Optional[str], Optional[str]]:
-    """Get Kalshi API key and private key from environment variables"""
-    
-    # Try environment variables first
-    api_key = os.getenv('KALSHI_API_KEY')
-    private_key = os.getenv('KALSHI_PRIVATE_KEY')
+    """Get Kalshi API key and private key from available sources"""
+
+    # Optional hardcoded values
+    api_key = HARDCODED_API_KEY or os.getenv('KALSHI_API_KEY')
+    private_key = HARDCODED_PRIVATE_KEY or os.getenv('KALSHI_PRIVATE_KEY')
     private_key_file = os.getenv('KALSHI_PRIVATE_KEY_FILE')
     
     # If private key file specified, read it
