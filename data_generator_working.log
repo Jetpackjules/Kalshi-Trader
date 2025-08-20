@@ -1,5 +1,0 @@
-127.0.0.1 - - [18/Aug/2025 12:39:59] "GET / HTTP/1.1" 200 -
-127.0.0.1 - - [18/Aug/2025 12:42:58] "GET / HTTP/1.1" 200 -
-127.0.0.1 - - [18/Aug/2025 12:44:01] "POST /generate-data HTTP/1.1" 200 -
-127.0.0.1 - - [18/Aug/2025 12:44:01] code 404, message File not found
-127.0.0.1 - - [18/Aug/2025 12:44:01] "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 -
