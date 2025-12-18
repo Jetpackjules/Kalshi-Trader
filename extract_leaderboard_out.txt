@@ -1,0 +1,11 @@
+Final Leaderboard (Top 20) ===
+
+Strategy                                 | Final Equity | ROI      | Trades 
+---------------------------------------------------------------------------
+Sniper: Cheapest (Risk 50%)              | $4.35       |  -56.5% | 12     
+Diversified (Split | Risk 50%)           | $3.20       |  -68.0% | 19     
+Safe Baseline (Wait 120m | Risk 50%)     | $2.26       |  -77.4% | 12     
+Sniper: Expensive (Risk 50%)             | $1.69       |  -83.1% | 7      
+Sniper: Median (Risk 50%)                | $1.69       |  -83.1% | 7      
+Saved trades to debug_trades.csv
+=== Backtest Complete ===

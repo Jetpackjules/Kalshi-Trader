@@ -1,0 +1,85 @@
+{
+    "Safe Baseline (Wait 150m | Risk 50%)": {
+        "strategy_name": "Safe Baseline (Wait 150m | Risk 50%)",
+        "cash": -1.71,
+        "holdings": [
+            {
+                "ticker": "KXHIGHNY-25DEC13-T36",
+                "side": "no",
+                "qty": 20,
+                "price": 2,
+                "cost": 0.4,
+                "time": "2025-12-12 21:33:51.170496"
+            },
+            {
+                "ticker": "KXHIGHNY-25DEC13-B36.5",
+                "side": "no",
+                "qty": 15,
+                "price": 5,
+                "cost": 0.8,
+                "time": "2025-12-12 21:33:51.170496"
+            },
+            {
+                "ticker": "KXHIGHNY-25DEC13-B40.5",
+                "side": "no",
+                "qty": 1,
+                "price": 56,
+                "cost": 0.56,
+                "time": "2025-12-12 21:33:51.170496"
+            },
+            {
+                "ticker": "KXHIGHNY-25DEC13-B42.5",
+                "side": "no",
+                "qty": 9,
+                "price": 8,
+                "cost": 0.75,
+                "time": "2025-12-12 21:33:51.170496"
+            },
+            {
+                "ticker": "KXHIGHNY-25DEC13-T43",
+                "side": "no",
+                "qty": 20,
+                "price": 4,
+                "cost": 0.8,
+                "time": "2025-12-12 21:33:51.170496"
+            },
+            {
+                "ticker": "KXHIGHNY-25DEC12-B34.5",
+                "side": "no",
+                "qty": 40,
+                "price": 1,
+                "cost": 0.4,
+                "time": "2025-12-12 21:33:51.170496"
+            }
+        ],
+        "trades": [],
+        "daily_start_cash": 2.0,
+        "spent_today": 0.0
+    },
+    "Mean Reversion (Fade >85/<15 | Risk 20%)": {
+        "strategy_name": "Mean Reversion (Fade >85/<15 | Risk 20%)",
+        "cash": 1.72,
+        "holdings": [
+            {
+                "ticker": "KXHIGHNY-25DEC13-B42.5",
+                "side": "yes",
+                "qty": 2,
+                "price": 14,
+                "cost": 0.28,
+                "time": "2025-12-12 21:36:09.723729"
+            }
+        ],
+        "trades": [
+            {
+                "time": "2025-12-12 21:36:09.723729",
+                "action": "BUY_YES",
+                "ticker": "KXHIGHNY-25DEC13-B42.5",
+                "qty": 2,
+                "price": 14,
+                "cost": 0.28
+            }
+        ],
+        "daily_start_cash": 2.0,
+        "spent_today": 0.28
+    }
+}

@@ -1,0 +1,10 @@
+kalshi_venv/
+__pycache__/
+*.pyc
+.DS_Store
+.vscode/
+backtest_charts/
+debug_exec_trade.txt
+backtest_report_parametric.txt
+debug_trades.csv
+vm_logs/

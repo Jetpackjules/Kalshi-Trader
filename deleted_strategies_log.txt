@@ -1,0 +1,43 @@
+The following strategies were implemented but removed from the active backtester on 2025-12-16 to focus on core logic.
+
+1. MartingaleStrategy
+   - Logic: Doubles risk after a losing day, resets after a winning day.
+   - Goal: Recover losses quickly.
+   - Risk: Exponential drawdown.
+
+2. MeanReversionStrategy
+   - Logic: Fades extreme moves. Buys YES if NO > 80 (Overbought), Buys NO if NO < 20 (Oversold).
+   - Goal: Capture mean reversion in range-bound markets.
+
+3. MomentumStrategy
+   - Logic: Follows trend relative to a Moving Average (period=30).
+   - Buy NO if Price > MA + 5.
+   - Buy YES if Price < MA - 5.
+
+4. CloserStrategy
+   - Logic: Enters at 3 PM (15:00) if price is uncertain (40-60).
+   - Goal: Bet on late-day volatility or resolution.
+
+5. ContrarianStrategy
+   - Logic: "Fade the Crash". If price drops >10c in 10 mins, BUY.
+   - Goal: Catch falling knives / overreactions.
+
+6. SniperStrategy (Volatility Breakout)
+   - Logic: Wait for squeeze (range < 5c), then buy breakout.
+   - Note: Was a placeholder, not fully implemented.
+
+7. TurtleStrategy
+   - Logic: "Breakout". Buy if Price > 60-minute High.
+   - Goal: Catch sustained trends.
+
+8. FOMOStrategy
+   - Logic: "Momentum". If price rises >10c in 10 mins, BUY.
+   - Goal: Chase fast moves.
+
+9. LongshotStrategy
+   - Logic: "Deep Value". Buy NO if Price < 20c.
+   - Goal: High risk, high reward lottery tickets.
+
+10. RSIStrategy
+    - Logic: Momentum using RSI indicator.
+    - Note: Placeholder.

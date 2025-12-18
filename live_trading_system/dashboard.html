@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kalshi Granular Market Data</title>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            margin-top: 0;
+            color: #333;
+        }
+
+        .controls {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #eee;
+            border-radius: 4px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        select {
+            padding: 8px;
+            font-size: 16px;
+            min-width: 300px;
+        }
+
+        button {
+            padding: 8px 16px;
+            font-size: 16px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        #status {
+            margin-left: auto;
+            font-size: 14px;
+            color: #666;
+        }
+
+        #chart {
+            width: 100%;
+            height: 800px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Kalshi Granular Market Data</h1>
+
+        <div class="controls">
+            <label for="fileSelect">Select Day:</label>
+            <select id="fileSelect">
+                <option value="">Loading markets...</option>
+            </select>
+            <button onclick="loadData()">Refresh Now</button>
+            <span id="status">Waiting...</span>
+        </div>
+
+        <div id="chart"></div>
+    </div>
+
+    <script>
+        const LOG_DIR = 'market_logs/';
+        let currentFile = '';
+
+        async function fetchManifest() {
+            try {
+                const response = await fetch(LOG_DIR + 'manifest.json?t=' + Date.now());
+                const data = await response.json();
+                const select = document.getElementById('fileSelect');
+
+                // Save current selection
+                const savedSelection = select.value;
+
+                select.innerHTML = '';
+
+                // Sort files reverse to show newest first
+                const files = data.files.reverse();
+
+                files.forEach(file => {
+                    const option = document.createElement('option');
+                    option.value = file;
+                    // Format: market_data_KXHIGHNY-25DEC04.csv -> 25DEC04
+                    let label = file.replace('market_data_KXHIGHNY-', '').replace('.csv', '');
+                    option.text = label;
+                    select.appendChild(option);
+                });
+
+                // Restore selection if possible, else select first
+                if (savedSelection && data.files.includes(savedSelection)) {
+                    select.value = savedSelection;
+                } else if (files.length > 0) {
+                    select.value = files[0];
+                }
+
+                document.getElementById('status').innerText = 'Last updated: ' + data.last_updated;
+
+                if (!currentFile && select.value) {
+                    currentFile = select.value;
+                    loadData();
+                }
+            } catch (e) {
+                console.error("Error fetching manifest:", e);
+                document.getElementById('status').innerText = 'Error loading manifest';
+            }
+        }
+
+        async function loadData() {
+            const select = document.getElementById('fileSelect');
+            const filename = select.value;
+            if (!filename) return;
+
+            currentFile = filename;
+            document.getElementById('status').innerText = 'Loading ' + filename + '...';
+
+            try {
+                const response = await fetch(LOG_DIR + filename + '?t=' + Date.now());
+                const text = await response.text();
+                processData(text, filename);
+                document.getElementById('status').innerText = 'Loaded ' + filename + ' at ' + new Date().toLocaleTimeString();
+            } catch (e) {
+                console.error("Error loading CSV:", e);
+                document.getElementById('status').innerText = 'Error loading CSV';
+            }
+        }
+
+        function processData(csvText, title) {
+            const lines = csvText.trim().split('\n');
+            // Headers: timestamp, market_ticker, best_yes_bid, best_no_bid, implied_no_ask, implied_yes_ask
+
+            const markets = {}; // { ticker: { x: [], y: [] } }
+
+            // Skip header
+            for (let i = 1; i < lines.length; i++) {
+                const row = lines[i].split(',');
+                if (row.length < 6) continue;
+
+                const timestamp = row[0];
+                const ticker = row[1];
+                const impliedNoAsk = parseFloat(row[4]);
+
+                if (!markets[ticker]) {
+                    markets[ticker] = { x: [], y: [] };
+                }
+
+                markets[ticker].x.push(timestamp);
+                markets[ticker].y.push(impliedNoAsk);
+            }
+
+            const traces = [];
+
+            // Sort tickers to have consistent legend order
+            const sortedTickers = Object.keys(markets).sort();
+
+            sortedTickers.forEach(ticker => {
+                // Shorten ticker for legend (e.g. KXHIGHNY-25DEC04-T40 -> T40)
+                const shortName = ticker.split('-').pop();
+
+                traces.push({
+                    x: markets[ticker].x,
+                    y: markets[ticker].y,
+                    type: 'scatter',
+                    mode: 'lines+markers',
+                    name: shortName,
+                    marker: { size: 4 }
+                });
+            });
+
+            const layout = {
+                title: 'Implied "No" Price (Cost to Buy) - ' + title.replace('market_data_', '').replace('.csv', ''),
+                xaxis: { title: 'Time' },
+                yaxis: { title: 'Price (Cents)', range: [0, 100] },
+                hovermode: 'closest',
+                showlegend: true
+            };
+
+            Plotly.newPlot('chart', traces, layout);
+        }
+
+        // Initial load
+        fetchManifest();
+
+        // Auto-refresh manifest every 10s
+        setInterval(fetchManifest, 10000);
+
+        // Auto-refresh data every 30s
+        setInterval(loadData, 30000);
+
+        // Handle dropdown change
+        document.getElementById('fileSelect').addEventListener('change', (e) => {
+            currentFile = e.target.value;
+            loadData();
+        });
+    </script>
+</body>
+
+</html>
