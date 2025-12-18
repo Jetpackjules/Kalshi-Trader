@@ -1,3 +1,0 @@
-time,action,ticker,price,qty,cost,capital_after,exit_price,pnl,strategy
-2025-12-16 09:05:28.959099,BUY_NO,KXHIGHNY-25DEC17-B43.5,64,78,49.92,50.08,57,-5.460000000000008,Safe Baseline (Wait 120m | Risk 50%)
-2025-12-16 07:03:35.273723,BUY_NO,KXHIGHNY-25DEC17-B45.5,99,80,79.2,20.799999999999997,68,-24.799999999999997,Original Trend Follow (No Wait)
