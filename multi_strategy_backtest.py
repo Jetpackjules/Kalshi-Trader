@@ -89,12 +89,14 @@ class ParametricStrategy(Strategy):
     """
     A configurable strategy that waits for X time and then trades based on logic.
     """
-    def __init__(self, name, wait_minutes, risk_pct, logic_type="trend_no", greedy=False, take_profit=None, freshness_tolerance=None):
+    def __init__(self, name, wait_minutes, risk_pct, logic_type="trend_no", greedy=False, take_profit=None, freshness_tolerance=None, min_price=50, max_price=70):
         super().__init__(name, risk_pct, freshness_tolerance)
         self.wait_minutes = wait_minutes
         self.logic_type = logic_type
         self.greedy = greedy
         self.take_profit = take_profit # e.g. 95 (cents)
+        self.min_price = min_price
+        self.max_price = max_price
         
     def on_snapshot(self, snapshot, current_time, holdings):
         orders = []
@@ -137,7 +139,7 @@ class ParametricStrategy(Strategy):
                 market_price = yes_ask
                 no_price = 100 - market_price
                 
-                if 50 < no_price < 70:
+                if self.min_price < no_price < self.max_price:
                     orders.append(("BUY_NO", ticker, 1.0))
             
         return orders

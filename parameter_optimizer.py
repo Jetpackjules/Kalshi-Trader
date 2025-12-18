@@ -69,6 +69,7 @@ def generate_strategies():
         lookback_minutes = [30, 60]
         # 2. OG Fast (Small)
         wait_times = [90, 120]
+        max_prices = [60, 70, 80]
     else:
         print("🚀 FAST_MODE is OFF. Running FULL Grid Search.")
         # 1. Momentum Surfer (Full)
@@ -76,6 +77,7 @@ def generate_strategies():
         lookback_minutes = [15, 30, 45, 60, 90, 120]
         # 2. OG Fast (Full)
         wait_times = [30, 60, 90, 120, 150, 180, 240]
+        max_prices = [60, 65, 70, 75, 80, 85]
     
     for drop in drop_thresholds:
         for lookback in lookback_minutes:
@@ -89,14 +91,17 @@ def generate_strategies():
             ))
             
     for wait in wait_times:
-        name = f"OG_Fast_Wait{wait}m"
-        strategies.append(ParametricStrategy(
-            name,
-            wait_minutes=wait,
-            risk_pct=0.5,
-            logic_type="trend_no",
-            freshness_tolerance=timedelta(seconds=1)
-        ))
+        for max_p in max_prices:
+            name = f"OG_Fast_Wait{wait}m_Max{max_p}"
+            strategies.append(ParametricStrategy(
+                name,
+                wait_minutes=wait,
+                risk_pct=0.5,
+                logic_type="trend_no",
+                freshness_tolerance=timedelta(seconds=1),
+                min_price=50,
+                max_price=max_p
+            ))
         
     # 3. Baseline (Originals)
     strategies.append(ParametricStrategy(
