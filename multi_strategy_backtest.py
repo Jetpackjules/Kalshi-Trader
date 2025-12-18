@@ -16,6 +16,7 @@ CHARTS_DIR = "backtest_charts"
 INITIAL_CAPITAL = 10.64 # Starting Cash (Dec 17 Morning)
 TRADING_FEE_PER_CONTRACT = 0.02 # Fee per contract
 TEST_ONLY_LIVE_STRATEGY = False # Speed Optimization: Test only the strategy used in Live Trading
+TEST_ONLY_OG_FAST = False # Speed Optimization: Test only OG Fast (Simulated)
 AUTO_SYNC_LOGS = True # Automatically download logs from VM before running
 START_DATE = None # e.g. "25DEC10" or None for all
 END_DATE = None   # e.g. "25DEC17" or None for all
@@ -558,6 +559,10 @@ class HumanReadableBacktester:
         ))
 
         print(f"Generated {len(self.strategies)} strategies.")
+
+        if TEST_ONLY_OG_FAST:
+            print("⚠️  TEST_ONLY_OG_FAST is ON. Running ONLY 'OG Fast (Simulated)'")
+            self.strategies = [s for s in self.strategies if s.name == "OG Fast (Simulated)"]
 
         # Initialize Portfolios with Wallets
         self.portfolios = {}
