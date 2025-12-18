@@ -17,6 +17,8 @@ INITIAL_CAPITAL = 10.64 # Starting Cash (Dec 17 Morning)
 TRADING_FEE_PER_CONTRACT = 0.02 # Fee per contract
 TEST_ONLY_LIVE_STRATEGY = False # Speed Optimization: Test only the strategy used in Live Trading
 AUTO_SYNC_LOGS = True # Automatically download logs from VM before running
+START_DATE = None # e.g. "25DEC10" or None for all
+END_DATE = None   # e.g. "25DEC17" or None for all
 
 # --- Wallet Class for Realistic Settlement ---
 class Wallet:
@@ -590,9 +592,18 @@ class HumanReadableBacktester:
             print("No log files found!")
             return
             
-        # target_dates = ['25DEC17'] 
-        # recent_files = [f for f in files if any(d in f for d in target_dates)]
-        recent_files = files # Process ALL available files
+        recent_files = []
+        for f in files:
+            # Extract date part: market_data_KXHIGHNY-25DEC17.csv -> 25DEC17
+            date_str = f.split('-')[-1].replace('.csv', '')
+            
+            # Filter Logic
+            if START_DATE and date_str < START_DATE:
+                continue
+            if END_DATE and date_str > END_DATE:
+                continue
+                
+            recent_files.append(f)
         
         print(f"Processing {len(recent_files)} days of data...")
 
