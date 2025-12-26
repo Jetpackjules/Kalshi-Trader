@@ -11,15 +11,15 @@ import math
 import subprocess
 
 # --- Configuration ---
-LOG_DIR = os.path.join(os.getcwd(), "live_trading_system", "vm_logs", "market_logs")
+LOG_DIR = r"C:\Users\jetpa\OneDrive - UW\Google_Grav_Onedrive\kalshi_weather_data\live_trading_system\vm_logs\market_logs"
 CHARTS_DIR = "backtest_charts"
 INITIAL_CAPITAL = 10.64 # Starting Cash (Dec 17 Morning)
 TRADING_FEE_PER_CONTRACT = 0.02 # Fee per contract
-TEST_ONLY_LIVE_STRATEGY = True # Speed Optimization: Test only the strategy used in Live Trading
-TEST_ONLY_OG_FAST = True # Speed Optimization: Test only OG Fast (Simulated)
-AUTO_SYNC_LOGS = False # Automatically download logs from VM before running
-START_DATE = "25DEC17" # e.g. "25DEC10" or None for all
-END_DATE = "25DEC17"   # e.g. "25DEC17" or None for all
+TEST_ONLY_LIVE_STRATEGY = False # Speed Optimization: Test only the strategy used in Live Trading
+TEST_ONLY_OG_FAST = False # Speed Optimization: Test only OG Fast (Simulated)
+AUTO_SYNC_LOGS = True # Automatically download logs from VM before running
+START_DATE = None # e.g. "25DEC10" or None for all
+END_DATE = None   # e.g. "25DEC17" or None for all
 
 # --- Wallet Class for Realistic Settlement ---
 class Wallet:
@@ -62,17 +62,14 @@ class Strategy:
         self.risk_pct = risk_pct
         self.freshness_tolerance = freshness_tolerance # None = Infinite, timedelta = Limit
         self.start_time = None
-        self.active_orders = [] # Track active limit orders locally if needed
         
     def start_new_day(self, first_timestamp):
         self.start_time = first_timestamp
-        self.active_orders = []
         
-    def on_snapshot(self, market_snapshot, current_time, holdings, active_orders=None):
+    def on_snapshot(self, market_snapshot, current_time, holdings):
         """
         market_snapshot: dict {ticker: market_data_dict}
         current_time: datetime
-        active_orders: list of dicts (orders currently sitting in the book)
         Returns: list of order dicts
         """
         return []
@@ -426,217 +423,15 @@ def sanitize_data(df):
 
 # --- Main Backtester Class ---
 
-# --- Strategy 2.5 Implementation ---
-
-class InventoryAwareMarketMaker(Strategy):
-    """
-    Algorithm 1: Inventory-Aware Spread-Farming Market Maker
-    Quotes inside the spread around an EMA fair price, managing inventory risk.
-    """
-    def __init__(self, name, risk_pct=0.5, max_inventory=5000, inventory_penalty=0.01, window=20, max_offset=2):
-        super().__init__(name, risk_pct, freshness_tolerance=None)
-        self.max_inventory = max_inventory
-        self.inventory_penalty = inventory_penalty # per contract
-        self.window = window
-        self.max_offset = max_offset
-        self.fair_price = None # EMA
-        self.alpha = 2 / (window + 1)
-        
-    def on_snapshot(self, snapshot, current_time, holdings, active_orders=None):
-        orders = []
-        
-        
-        # Calculate current inventory (Net YES)
-        net_inventory = 0
-        for h in holdings:
-            if h['side'] == 'yes': net_inventory += h['qty']
-            else: net_inventory -= h['qty'] # Short YES = Long NO
-            
-        tick_expiry = current_time + timedelta(seconds=10) # 10s expiry for quotes
-        
-        for ticker, m in snapshot.items():
-            # 1. Update EMA
-            yes_ask = m.get('yes_ask') # Sellers
-            no_ask = m.get('no_ask')
-            
-            if pd.isna(yes_ask): 
-                continue
-            
-            # Use Mid Price
-            if pd.isna(no_ask):
-                 continue
-                 
-            best_bid = 100 - no_ask
-            mid = (best_bid + yes_ask) / 2.0
-            
-            if self.fair_price is None:
-                self.fair_price = mid
-            else:
-                self.fair_price = self.alpha * mid + (1 - self.alpha) * self.fair_price
-                
-            # 2. Check Inventory Limits
-            can_buy_yes = net_inventory < self.max_inventory
-            can_sell_yes = net_inventory > -self.max_inventory
-            
-            # 3. Calculate Quotes
-            # Spread
-            spread = yes_ask - best_bid
-            if spread <= 0: 
-                continue # Crossed market?
-            
-            base_offset = min(spread / 2 - 1, self.max_offset)
-            base_offset = max(0, base_offset) # Ensure non-negative
-            
-            inv_adj = net_inventory * self.inventory_penalty
-            
-            my_bid = self.fair_price - base_offset - inv_adj
-            my_ask = self.fair_price + base_offset - inv_adj
-            
-            # Round to int
-            my_bid_tick = int(math.floor(my_bid))
-            my_ask_tick = int(math.ceil(my_ask))
-            
-            # Sanity Limits
-            my_bid_tick = max(1, min(99, my_bid_tick))
-            my_ask_tick = max(1, min(99, my_ask_tick))
-            
-            qty = 10 # small size
-            
-            # 4. Generate Orders (Limit)
-            
-            if can_buy_yes:
-                 # DEBUG
-                 # print(f"DEBUG: Placing BUY_YES Limit @ {my_bid_tick} (Ask: {yes_ask})")
-                 orders.append({
-                     'action': 'BUY_YES', 'ticker': ticker, 'qty': qty, 
-                     'type': 'LIMIT', 'price': my_bid_tick, 'expiry': tick_expiry
-                 })
-            
-            if can_sell_yes: # Effective Sell YES
-                 no_price_tick = 100 - my_ask_tick
-                 orders.append({
-                     'action': 'BUY_NO', 'ticker': ticker, 'qty': qty, 
-                     'type': 'LIMIT', 'price': no_price_tick, 'expiry': tick_expiry
-                 })
-                 
-        return orders
-
-class MicroScalper(Strategy):
-    """
-    Algorithm 2: Micro Mean-Reversion Scalper (Limit-Only)
-    Exploits short-term bounces.
-    """
-    def __init__(self, name, threshold=1.5, risk_pct=0.5):
-        super().__init__(name, risk_pct, freshness_tolerance=None)
-        self.threshold = threshold
-        self.last_mids = {} # {ticker: mid_price}
-        
-    def on_snapshot(self, snapshot, current_time, holdings, active_orders=None):
-        orders = []
-        
-        for ticker, m in snapshot.items():
-            yes_ask = m.get('yes_ask')
-            no_ask = m.get('no_ask')
-            if pd.isna(yes_ask) or pd.isna(no_ask): continue
-            
-            best_bid = 100 - no_ask
-            mid = (best_bid + yes_ask) / 2.0
-            
-            last_mid = self.last_mids.get(ticker)
-            self.last_mids[ticker] = mid # Update for next tick
-            
-            if last_mid is None: continue
-            
-            delta = mid - last_mid
-            
-            # Mean Reversion Logic
-            tick_expiry = current_time + timedelta(seconds=30)
-            qty = 5
-            
-            # If price spiked UP (Positive Delta) -> Expect Down -> Short YES (Buy NO)
-            if delta >= self.threshold:
-                # Place Limit Offer at Ask (Passive entry?)
-                # "Trigger: Place YES ask at implied_yes_ask"
-                # YES Ask = Bound by sellers. If we place at implied_yes_ask, we join the queue.
-                # Equivalent: Buy NO at (100 - implied_yes_ask).
-                limit_price = 100 - yes_ask
-                orders.append({
-                     'action': 'BUY_NO', 'ticker': ticker, 'qty': qty, 
-                     'type': 'LIMIT', 'price': int(limit_price), 'expiry': tick_expiry
-                })
-                
-            # If price crashed DOWN (Negative Delta) -> Expect Up -> Long YES
-            elif delta <= -self.threshold:
-                # Place Limit Bid at Bed
-                # YES Bid = best_bid.
-                limit_price = best_bid
-                orders.append({
-                     'action': 'BUY_YES', 'ticker': ticker, 'qty': qty, 
-                     'type': 'LIMIT', 'price': int(limit_price), 'expiry': tick_expiry
-                })
-                
-        return orders
-
-class RegimeSwitcher(Strategy):
-    """
-    Algorithm 3: Meta-Controller
-    Gates strategies based on time-of-day.
-    """
-    def __init__(self, name, risk_pct=0.5):
-        super().__init__(name, risk_pct, freshness_tolerance=None)
-        self.maker = InventoryAwareMarketMaker("Maker_Sub", risk_pct)
-        self.scalper = MicroScalper("Scalper_Sub", risk_pct)
-        
-    def start_new_day(self, first_timestamp):
-        self.start_time = first_timestamp
-        self.maker.start_new_day(first_timestamp)
-        self.scalper.start_new_day(first_timestamp)
-        
-    def on_snapshot(self, snapshot, current_time, holdings, active_orders=None):
-        # Time-of-Day Logic
-        # MAKER_FAVORABLE: 10AM - 3PM
-        hour = current_time.hour
-        
-        is_maker_favorable = (10 <= hour < 15)
-        # NEUTRAL: 9AM-10AM, 3PM-4PM
-        is_neutral = (9 <= hour < 10) or (15 <= hour < 16)
-        
-        orders = []
-        
-        if is_maker_favorable:
-            # Aggressive
-            orders.extend(self.maker.on_snapshot(snapshot, current_time, holdings, active_orders))
-            orders.extend(self.scalper.on_snapshot(snapshot, current_time, holdings, active_orders))
-            
-        elif is_neutral:
-            # Conservative (Only Maker, wider?)
-            # For sim, just run Maker, no Scalper
-            orders.extend(self.maker.on_snapshot(snapshot, current_time, holdings, active_orders))
-            
-        # NO_TRADE: Outside hours (e.g. 4PM+, pre-9AM) -> Empty orders
-        
-        return orders
-
 class HumanReadableBacktester:
     def __init__(self):
         self.strategies = []
         
         # --- GENERATE STRATEGIES ---
         
-        # 0. Live Clone (Exact) - Matches trader.py
+        # 1. OG Fast (Simulated) - Strict 1s Freshness
         self.strategies.append(ParametricStrategy(
-            "Live Clone (Exact)", 
-            wait_minutes=0, 
-            risk_pct=0.5, 
-            logic_type="trend_no", 
-            freshness_tolerance=None,
-            min_price=50,
-            max_price=75
-        ))
-
-        # 1. Live Strategy v3 (Production) - Strict 1s Freshness
-        self.strategies.append(ParametricStrategy(
-            "Live Strategy v3", 
+            "OG Fast (Simulated)", 
             wait_minutes=120, 
             risk_pct=0.5, 
             logic_type="trend_no", 
@@ -763,24 +558,11 @@ class HumanReadableBacktester:
             freshness_tolerance=None
         ))
 
-        # --- Strategy 2.5 (New) ---
-        # Balanced Calibration
-        self.strategies.append(InventoryAwareMarketMaker("Algo 1: Inventory MM", risk_pct=0.5, max_offset=2, window=20)) 
-        self.strategies.append(MicroScalper("Algo 2: Micro Scalper", risk_pct=0.5, threshold=0.5))
-        self.strategies.append(RegimeSwitcher("Algo 3: Regime Switcher", risk_pct=0.5))
-
         print(f"Generated {len(self.strategies)} strategies.")
 
-        # --- Execution Flags ---
-        TEST_STRATEGY_2_5_ONLY = True
-
-        if TEST_STRATEGY_2_5_ONLY:
-             print("[Strategy 2.5] Running Strategy 2.5 Algos ONLY")
-             cols = ["Algo 1: Inventory MM", "Algo 2: Micro Scalper", "Algo 3: Regime Switcher"]
-             self.strategies = [s for s in self.strategies if s.name in cols]
-        elif TEST_ONLY_OG_FAST:
-            print("⚠️  TEST_ONLY_OG_FAST is ON. Running ONLY 'Live Strategy v3'")
-            self.strategies = [s for s in self.strategies if s.name == "Live Strategy v3"]
+        if TEST_ONLY_OG_FAST:
+            print("⚠️  TEST_ONLY_OG_FAST is ON. Running ONLY 'OG Fast (Simulated)'")
+            self.strategies = [s for s in self.strategies if s.name == "OG Fast (Simulated)"]
 
         # Initialize Portfolios with Wallets
         self.portfolios = {}
@@ -791,150 +573,12 @@ class HumanReadableBacktester:
                 'holdings': [],
                 'trades': [],
                 'daily_start_cash': INITIAL_CAPITAL,
-                'daily_start_cash': INITIAL_CAPITAL,
-                'spent_today': 0.0,
-                'active_limit_orders': []
+                'spent_today': 0.0
             }
         
         if not os.path.exists(CHARTS_DIR): os.makedirs(CHARTS_DIR)
         
         self.performance_history = [] # List of {date: str, strategy_name: equity, ...}
-
-    def check_limit_fills(self, portfolio, snapshot, timestamp, daily_trades_viz, strategy_name):
-        """
-        Checks active limit orders against current market snapshot for fills.
-        """
-        active_orders = portfolio['active_limit_orders']
-        still_active = []
-        
-        for order in active_orders:
-            ticker = order['ticker']
-            if ticker not in snapshot:
-                still_active.append(order)
-                continue
-                
-            market = snapshot[ticker]
-            # Market Prices (Seller asks)
-            yes_ask = market.get('yes_ask')
-            no_ask = market.get('no_ask')
-            
-            if pd.isna(yes_ask) or pd.isna(no_ask):
-                still_active.append(order)
-                continue
-            
-            # Derived Bid Prices (Buyer bids) - approximate as 100 - Ask of other side
-            # This is "Best Market Bid"
-            yes_bid = 100 - no_ask
-            no_bid = 100 - yes_ask
-            
-            filled = False
-            fill_price = 0.0
-            
-            limit_price = order['price']
-            qty = order['qty']
-            action = order['action'] # BUY_YES, SELL_NO etc
-            
-            # --- MATCHING LOGIC ---
-            # BUY LIMIT: Fills if Market Ask <= Limit Price (Seller met me)
-            # SELL LIMIT: Fills if Market Bid >= Limit Price (Buyer met me)
-            
-            if action == 'BUY_YES':
-                if yes_ask <= limit_price:
-                    filled = True
-                    fill_price = limit_price # Limit guarantees price (or better, but simplifiy to limit)
-            elif action == 'BUY_NO':
-                if no_ask <= limit_price:
-                    filled = True
-                    fill_price = limit_price
-            elif action == 'SELL_YES':
-                if yes_bid >= limit_price:
-                    filled = True
-                    fill_price = limit_price
-            elif action == 'SELL_NO':
-                if no_bid >= limit_price:
-                    filled = True
-                    fill_price = limit_price
-                    
-            if filled:
-                # EXECUTE TRADE
-                # Note: Inventory/Cash checks should have been done at order creation? 
-                # Or do we reserve cash?
-                # For simplicity, we assume cash was reserved or we check now.
-                # Let's check now to be safe, if buying.
-                
-                is_buy = 'BUY' in action
-                cost = 0
-                proceeds = 0
-                
-                if is_buy:
-                    price_per = fill_price / 100.0
-                    total_cost = (qty * price_per) + self.calculate_fee(fill_price, qty)
-                    
-                    if portfolio['wallet'].spend(total_cost):
-                        portfolio['cash'] = portfolio['wallet'].available_cash
-                        portfolio['spent_today'] += total_cost
-                        side = 'yes' if 'YES' in action else 'no'
-                        portfolio['holdings'].append({
-                            'ticker': ticker, 'side': side, 'qty': qty, 'price': fill_price, 'cost': total_cost
-                        })
-                        
-                        portfolio['trades'].append({
-                            'time': timestamp, 'action': action, 'ticker': ticker, 'price': fill_price, 'qty': qty, 'cost': total_cost,
-                            'capital_after': portfolio['wallet'].get_total_equity(),
-                            'type': 'LIMIT_FILL'
-                        })
-                        
-                        # Viz
-                        viz_y = no_ask if pd.notna(no_ask) else fill_price 
-                        daily_trades_viz.append({
-                            'time': timestamp, 'strategy': strategy_name, 'action': action, 'ticker': ticker,
-                            'price': fill_price, 'qty': qty, 'cost': total_cost, 'viz_y': viz_y
-                        })
-                    else:
-                        # Cancelled due to lack of funds? Or keep trying?
-                        # Keep trying strictly.
-                        still_active.append(order)
-                        
-                else: # SELL
-                    # Verify holding exists (it should, unless we sold it elsewhere? Strategies managing same ticker?)
-                    # Simplified: Assume we have it if order exists.
-                    side = 'yes' if 'YES' in action else 'no'
-                    holding_to_sell = None
-                    for h in portfolio['holdings']:
-                        if h['ticker'] == ticker and h['side'] == side:
-                            holding_to_sell = h
-                            break
-                    
-                    if holding_to_sell:
-                        price_per = fill_price / 100.0
-                        proceeds = qty * price_per
-                        portfolio['holdings'].remove(holding_to_sell)
-                        portfolio['wallet'].add_cash(proceeds)
-                        portfolio['cash'] = portfolio['wallet'].available_cash
-                        
-                        portfolio['trades'].append({
-                            'time': timestamp, 'action': action, 'ticker': ticker, 'price': fill_price, 'qty': qty, 'cost': 0, 'proceeds': proceeds,
-                            'capital_after': portfolio['wallet'].get_total_equity(),
-                            'pnl': proceeds - holding_to_sell['cost'],
-                            'exit_price': fill_price,
-                            'type': 'LIMIT_FILL'
-                        })
-                        daily_trades_viz.append({
-                            'time': timestamp, 'strategy': strategy_name, 'action': action, 'ticker': ticker,
-                            'price': fill_price, 'qty': qty, 'cost': 0, 'pnl': proceeds - holding_to_sell['cost']
-                        })
-                    else:
-                        # Holding gone? Cancel order.
-                        pass 
-
-            else:
-                # Check expiry/Time-in-force?
-                if 'expiry' in order and timestamp >= order['expiry']:
-                    pass # Expire
-                else:
-                    still_active.append(order)
-                    
-        portfolio['active_limit_orders'] = still_active
 
     def run(self):
         print("=== Starting Parametric Backtest ===")
@@ -942,15 +586,11 @@ class HumanReadableBacktester:
         if AUTO_SYNC_LOGS:
             print("🔄 Auto-Sync: Checking for new logs from VM...")
             try:
-                # Dynamically find the script relative to this file
                 sync_script = os.path.join(os.path.dirname(__file__), "live_trading_system", "sync_vm_logs.py")
                 if os.path.exists(sync_script):
                     subprocess.run(["python", sync_script], check=True)
             except Exception as e:
                 print(f"⚠️ Warning: Auto-Sync failed: {e}")
-        
-
-
         
         files = sorted(glob.glob(os.path.join(LOG_DIR, "market_data_*.csv")))
         if not files:
@@ -1008,26 +648,6 @@ class HumanReadableBacktester:
         # This fixes the issue where a tick only updates YES but we need the NO price for visualization
         df[['implied_yes_ask', 'implied_no_ask', 'best_yes_bid', 'best_no_bid']] = df.groupby('market_ticker')[['implied_yes_ask', 'implied_no_ask', 'best_yes_bid', 'best_no_bid']].ffill()
         
-        # --- FIX DATA INVERSION (CONDITIONAL) ---
-        # The CSV logs have YES and NO columns swapped ONLY for 25DEC17.
-        # We swap them back here to match reality.
-        # --- FIX DATA INVERSION (CONDITIONAL) ---
-        # The CSV logs have YES and NO columns swapped ONLY for 25DEC17.
-        # We swap them back here to match reality.
-        if "25DEC17" in csv_file:
-            # Using direct assignment to be safe
-            temp_yes = df['implied_yes_ask'].copy()
-            df['implied_yes_ask'] = df['implied_no_ask']
-            df['implied_no_ask'] = temp_yes
-            
-            temp_bid = df['best_yes_bid'].copy()
-            df['best_yes_bid'] = df['best_no_bid']
-            df['best_no_bid'] = temp_bid
-            print(f"⚠️  Applied Data Inversion Fix for {csv_file}")
-        # --------------------------
-        # --------------------------
-        # --------------------------
-
         df = sanitize_data(df)
         
         first_timestamp = df['timestamp'].iloc[0]
@@ -1069,50 +689,17 @@ class HumanReadableBacktester:
             market_state[ticker]['timestamp'] = row['timestamp']
             current_time = row['timestamp']
             
-            # Unified Strategy Loop
-            for s in self.strategies:
-                portfolio = self.portfolios[s.name]
-                wallet = portfolio['wallet']
-                
-                # 1. Check Settlement (Cash clearing)
-                wallet.check_settlements(current_time)
-                portfolio['cash'] = wallet.available_cash
-                
-                # 2. Check Limit Fills (NEW)
-                self.check_limit_fills(portfolio, market_state, current_time, daily_trades_viz, s.name)
+            for p in self.portfolios.values():
+                p['wallet'].check_settlements(current_time)
+                p['cash'] = p['wallet'].available_cash
 
-                # 3. Strategy Logic
-                orders = s.on_snapshot(market_state, current_time, portfolio['holdings'], active_orders=portfolio.get('active_limit_orders', []))
+            for strat in self.strategies:
+                orders = strat.on_snapshot(market_state, current_time, self.portfolios[strat.name]['holdings'])
                 
-                if not orders: continue
-                
-                for order in orders:
-                     # Legacy Tuple: (Action, Ticker, Weight)
-                     if isinstance(order, tuple):
-                         action, t_ticker, weight = order
-                         if t_ticker in market_state:
-                             m_data = market_state[t_ticker]
-                             # Use existing execute_trade signature? Wait, the file view showed:
-                             # self.execute_trade(strat, action, ticker, m_data['yes_ask'], m_data['no_ask'], current_time, daily_trades_viz, weight)
-                             # But `strat` variable name in loop is `s`.
-                             # And keys are 'implied_yes_ask' etc.
-                             # Actually, let's look at the old code in view_file:
-                             # self.execute_trade(strat, action, ticker, m_data['yes_ask'], m_data['no_ask']...)
-                             # But m_data was set with 'implied_yes_ask'. Wait, let me check execute_trade signature later.
-                             # For now, I will use exactly what was there, just adapted for the new loop structure.
-                             # Actually, the old code used `strat` (loop var) and `market_state[ticker]`.
-                             self.execute_trade(s, action, t_ticker, m_data['implied_yes_ask'], m_data['implied_no_ask'], current_time, daily_trades_viz, weight)
-                     
-                     # New Dict Format (Limit Orders)
-                     elif isinstance(order, dict):
-                         o_type = order.get('type', 'MARKET')
-                         if o_type == 'LIMIT':
-                             if order['qty'] > 0:
-                                 portfolio['active_limit_orders'].append(order)
-            
-            # DEBUG: Check price of 25DEC18 on Dec 17 at 14:00
-            if "25DEC18" in ticker and str(current_time).startswith("2025-12-17 14:00"):
-                 print(f"DEBUG: {current_time} {ticker} YesAsk={market_state[ticker].get('yes_ask')} NoAsk={market_state[ticker].get('no_ask')}")
+                for action, ticker, weight in orders:
+                     if ticker in market_state:
+                         m_data = market_state[ticker]
+                         self.execute_trade(strat, action, ticker, m_data['yes_ask'], m_data['no_ask'], current_time, daily_trades_viz, weight)
                     
         print(f"Processing {date_str}: 100% ({total_rows}/{total_rows})")
 
@@ -1284,8 +871,6 @@ class HumanReadableBacktester:
                     yes_ask = row['implied_yes_ask']
                     no_ask = row['implied_no_ask']
                     
-                    # print(f"DEBUG SETTLE: {ticker} | YES_ASK: {yes_ask} | NO_ASK: {no_ask}") # DEBUG
-
                     final_price = 0
                     if side == 'yes':
                         if no_ask > 90: final_price = 0

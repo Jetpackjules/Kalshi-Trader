@@ -8,17 +8,14 @@ import glob
 from datetime import datetime, timedelta
 import sys
 import math
-import collections
-import json
 from collections import defaultdict
 
 # --- Configuration ---
 LOG_DIR = os.path.join(os.getcwd(), "live_trading_system", "vm_logs", "market_logs")
 CHARTS_DIR = "backtest_charts"
-INITIAL_CAPITAL = 23.45
-START_DATE = "25DEC23" 
-END_DATE = "25DEC24"
-ENABLE_TIME_CONSTRAINTS = True # Set to False to trade 24/7
+INITIAL_CAPITAL = 1000.0 
+START_DATE = None 
+END_DATE = None
 
 if not os.path.exists(CHARTS_DIR):
     os.makedirs(CHARTS_DIR)
@@ -91,33 +88,11 @@ def calculate_convex_fee(price, qty):
     fee = math.ceil(raw_fee * 100) / 100.0
     return fee
 
-def best_yes_bid(ms):
-    yb = ms.get('yes_bid', np.nan)
-    na = ms.get('no_ask', np.nan)
-    if not pd.isna(yb):
-        return yb
-    if not pd.isna(na):
-        return 100 - na
-    return np.nan
-
-def best_yes_ask(ms):
-    return ms.get('yes_ask', np.nan)
-
 def sanitize_price(p):
     if pd.isna(p): return p
     if p > 95: return 100.0
     if p < 5: return 0.0
     return p
-
-def settle_mid_price(last_mid: float) -> float:
-    """Settle at last known mid, but snap to 100/0 if within 1%."""
-    if pd.isna(last_mid):
-        return np.nan
-    if last_mid >= 99.0:
-        return 100.0
-    if last_mid <= 1.0:
-        return 0.0
-    return float(last_mid)
 
 # --- Complex Strategy Base Class ---
 class ComplexStrategy:
@@ -125,7 +100,7 @@ class ComplexStrategy:
         self.name = name
         self.risk_pct = risk_pct
         
-    def on_market_update(self, ticker, market_state, current_time, inventory, active_orders, spendable_cash, idx=0):
+    def on_market_update(self, ticker, market_state, current_time, inventory, active_orders, wallet_equity, idx=0):
         """
         Returns: 
            list of dicts: New state (Replace current active orders)
@@ -136,34 +111,30 @@ class ComplexStrategy:
 # --- Implementation of Strategy 2.5 (V2 Refined) ---
 
 class InventoryAwareMarketMaker(ComplexStrategy):
-    def __init__(self, name, risk_pct=0.5, max_inventory=500, inventory_penalty=0.1, max_offset=2, alpha=0.1, 
-                 margin_cents=0.5, scaling_factor=4.0, max_notional_pct=0.25, max_loss_pct=0.06):
+    def __init__(self, name, risk_pct=0.5, max_inventory=50, inventory_penalty=0.1, max_offset=2, alpha=0.1):
         super().__init__(name, risk_pct)
         self.max_inventory = max_inventory
         self.inventory_penalty = inventory_penalty
         self.max_offset = max_offset
         self.alpha = alpha
         
-        # New configurable params
-        self.margin_cents = margin_cents
-        self.scaling_factor = scaling_factor
-        self.max_notional_pct = max_notional_pct
-        self.max_loss_pct = max_loss_pct
-        
         self.fair_prices = {} 
         self.last_quote_time = {} 
         self.last_mid_snapshot = {} 
 
-    def on_market_update(self, ticker, market_state, current_time, inventories, active_orders, spendable_cash, idx=0):
-        yes_ask = best_yes_ask(market_state)
-        no_ask = market_state.get('no_ask', np.nan)
-        yes_bid = best_yes_bid(market_state)
+    def on_market_update(self, ticker, market_state, current_time, inventories, active_orders, wallet_equity, idx=0):
+        yes_ask = market_state.get('yes_ask')
+        no_ask = market_state.get('no_ask')
+        yes_bid = market_state.get('yes_bid') 
         
         # Calculate Best Bid/Ask
-        if pd.isna(yes_ask) or pd.isna(yes_bid):
-            return None # Can't price without ask/bid
+        if pd.isna(yes_ask):
+            return None # Can't price without ask
 
-        mid = (yes_bid + yes_ask) / 2.0
+        cur_bid = yes_bid if not pd.isna(yes_bid) else (100 - no_ask if not pd.isna(no_ask) else np.nan)
+        if pd.isna(cur_bid): return None
+
+        mid = (cur_bid + yes_ask) / 2.0
         self.last_mid_snapshot[ticker] = mid
         self.last_quote_time[ticker] = current_time
 
@@ -178,89 +149,56 @@ class InventoryAwareMarketMaker(ComplexStrategy):
         mean_price = np.mean(hist)
         
         # --- PHASE 8 FIX: VAMR PROBABILITY (Mean-Based) ---
+        # Old: 1 - CDF(z) was a tail prob.
+        # New: Expected Reversion Price = Mean Price
         fair_prob = mean_price / 100.0
         
-        # --- TRUE AGGRESSIVE: Price at Ask ---
-        # We pay the spread to capture the alpha.
-        price_to_pay_yes = yes_ask
-        price_to_pay_no = no_ask
-        
-        # Check Long YES edge
-        edge_yes = fair_prob - (price_to_pay_yes / 100.0)
-        
-        # Check Long NO edge
-        # Buying NO short YES is 1 - fair_prob vs no_ask
-        edge_no = (1.0 - fair_prob) - (price_to_pay_no / 100.0)
+        # --- PHASE 8 FIX: EXECUTABLE EDGE ---
+        # Compare Fair Value vs. The Price We Pay (Ask)
+        exec_yes_prob_for_yes = yes_ask / 100.0
+        exec_yes_prob_for_no = 1.0 - (no_ask / 100.0) # Paying for NO at no_ask implies buying YES short at this prob
         
         edge = 0
         action = None
         price_to_pay = 0
         
+        # Check Long YES
+        edge_yes = fair_prob - exec_yes_prob_for_yes
+        # Check Long NO (Short YES)
+        edge_no =  (1.0 - fair_prob) - (no_ask / 100.0)
+        
         if edge_yes > 0:
             edge = edge_yes
             action = 'BUY_YES'
-            price_to_pay = price_to_pay_yes
+            price_to_pay = yes_ask
         elif edge_no > 0:
             edge = edge_no
             action = 'BUY_NO'
-            price_to_pay = price_to_pay_no
+            price_to_pay = no_ask
             
         if action is None: return None
         
         # --- PHASE 8 FIX: FEE/SPREAD GATE ---
+        # Fee Barrier = Convex Fee + Spread Cost + Safety
+        # Spread cost is implicit in "Executable Price" (we already paid the spread by crossing), 
+        # so we just need Fee + Safety Margin.
+        
         dummy_qty = 10
         fee_est = calculate_convex_fee(price_to_pay, dummy_qty) / dummy_qty # $ per contract
         fee_cents = fee_est * 100
         
-        required_edge_cents = fee_cents + self.margin_cents # Fee + Margin
+        # Spread analysis (informational, or extra buffer)
+        # spread_cents = max(0, yes_ask - cur_bid) / 2.0
+        
+        required_edge_cents = fee_cents + 1.0 # Fee + 1c Margin
         
         if (edge * 100) < required_edge_cents: return None
         
-        # --- PHASE 9: SCALABLE SIZING (Smart Sizing) ---
-        
-        edge_cents = edge * 100.0
-
-        # use continuous per-contract fee estimate (no rounding artifacts)
-        p = price_to_pay / 100.0
-        fee_per_contract = 0.07 * p * (1 - p)   # dollars per contract (approx)
-        fee_cents = fee_per_contract * 100.0
-
-        edge_after_fee = edge_cents - fee_cents - self.margin_cents
-        if edge_after_fee <= 0:
-            return None
-
-        scale = min(1.0, edge_after_fee / self.scaling_factor)
-
-        max_notional = spendable_cash * self.max_notional_pct
-        max_loss = spendable_cash * self.max_loss_pct
-
-        price_unit = price_to_pay / 100.0
-        cost_unit = price_unit + fee_per_contract
-
-        qty_by_notional = int(max_notional / cost_unit) if cost_unit > 0 else 0
-        qty_by_loss = int(max_loss / cost_unit) if cost_unit > 0 else 0
-
-        base_qty = min(qty_by_notional, qty_by_loss)
-        if base_qty <= 0:
-            return None
-
-        current_inv = inventories['YES'] if action == 'BUY_YES' else inventories['NO']
-        room = self.max_inventory - current_inv
-        if room <= 0:
-            return None
-
-        inv_penalty = 1.0 / (1.0 + current_inv / 200.0)
-
-        qty = int(base_qty * scale * inv_penalty)
-        qty = max(1, min(qty, room))
-        
-        # Re-gate with actual fee (rounding check)
-        fee_real = calculate_convex_fee(price_to_pay, qty)
-        fee_cents_real = (fee_real / qty) * 100.0
-        
-        edge_after_fee_real = edge_cents - fee_cents_real - self.margin_cents
-        if edge_after_fee_real <= 0:
-            return None
+        # --- PHASE 8 FIX: SIZING (Edge/Cash Cap) ---
+        # Cap at 5% of Equity
+        max_dollars = wallet_equity * 0.05
+        qty = int(max_dollars / (price_to_pay / 100.0))
+        qty = max(1, qty) # Ensure at least 1 contract if affordable
         
         orders = []
         
@@ -269,13 +207,17 @@ class InventoryAwareMarketMaker(ComplexStrategy):
             # INVARIANT: Cannot buy YES if we hold NO
             if inventories['NO'] > 0: return None
             
-            orders.append({'action': 'BUY_YES', 'ticker': ticker, 'qty': qty, 'price': yes_ask, 'expiry': current_time + timedelta(seconds=15), 'source': 'MM', 'time': current_time})
+            if inventories['YES'] < self.max_inventory:
+                 # Price at market ask to capture
+                 orders.append({'action': 'BUY_YES', 'ticker': ticker, 'qty': qty, 'price': yes_ask, 'expiry': current_time + timedelta(seconds=15), 'source': 'MM', 'time': current_time})
         
         elif action == 'BUY_NO':
             # INVARIANT: Cannot buy NO if we hold YES
             if inventories['YES'] > 0: return None
             
-            orders.append({'action': 'BUY_NO', 'ticker': ticker, 'qty': qty, 'price': no_ask, 'expiry': current_time + timedelta(seconds=15), 'source': 'MM', 'time': current_time})
+            if inventories['NO'] < self.max_inventory:
+                # Price at market ask for NO
+                orders.append({'action': 'BUY_NO', 'ticker': ticker, 'qty': qty, 'price': no_ask, 'expiry': current_time + timedelta(seconds=15), 'source': 'MM', 'time': current_time})
             
         return orders
 
@@ -286,7 +228,7 @@ class MicroScalper(ComplexStrategy):
         self.profit_target = profit_target
         self.last_mids = {}
         
-    def on_market_update(self, ticker, market_state, current_time, inventories, active_orders, spendable_cash, idx=0):
+    def on_market_update(self, ticker, market_state, current_time, inventories, active_orders, wallet_equity, idx=0):
         yes_ask = market_state.get('yes_ask')
         cur_bid = market_state.get('yes_bid', (100 - market_state.get('no_ask')) if not pd.isna(market_state.get('no_ask')) else np.nan)
         
@@ -318,39 +260,33 @@ class MicroScalper(ComplexStrategy):
         return None
 
 class RegimeSwitcher(ComplexStrategy):
-    def __init__(self, name, risk_pct=0.5, active_hours=None, tightness_percentile=50, **mm_kwargs):
+    def __init__(self, name, risk_pct=0.5):
         super().__init__(name, risk_pct)
-        # Pass mm_kwargs to InventoryAwareMarketMaker
-        self.mm = InventoryAwareMarketMaker("Sub-MM", risk_pct, **mm_kwargs)
+        self.mm = InventoryAwareMarketMaker("Sub-MM", risk_pct)
         self.scalper = MicroScalper("Sub-Scalper", risk_pct)
         self.spread_histories = defaultdict(list)
-        self.active_hours = active_hours # list of ints or None
-        self.tightness_percentile = tightness_percentile
         # Shadow Inventories for attribution/logic
         self.mm_inventory = defaultdict(int) 
         self.sc_inventory = defaultdict(int)
         
-    def on_market_update(self, ticker, market_state, current_time, portfolios_inventories, active_orders, spendable_cash, idx=0):
+    def on_market_update(self, ticker, market_state, current_time, portfolios_inventories, active_orders, wallet_equity, idx=0):
         # portfolios_inventories is dict { 'MM': {'YES': qty, 'NO': qty}, 'Scalper': {'YES': qty, 'NO': qty} }
         
-        yes_ask = best_yes_ask(market_state)
-        yes_bid = best_yes_bid(market_state)
-        if pd.isna(yes_ask) or pd.isna(yes_bid): return None
+        yes_ask = market_state.get('yes_ask')
+        no_ask = market_state.get('no_ask')
+        if pd.isna(yes_ask) or pd.isna(no_ask): return None
         
-        spread = yes_ask - yes_bid
+        spread = yes_ask - (100 - no_ask)
         hist = self.spread_histories[ticker]
         hist.append(spread)
         if len(hist) > 500: hist.pop(0)
         
-        # Relax Gating: Use configurable percentile for "tightness"
-        tight_threshold = np.percentile(hist, self.tightness_percentile) if len(hist) > 100 else sum(hist)/len(hist)
+        # Relax Gating: Use 50th percentile (Median) for "tightness"
+        tight_threshold = np.percentile(hist, 50) if len(hist) > 100 else sum(hist)/len(hist)
         is_tight = spread <= tight_threshold
         
         h = current_time.hour
-        if self.active_hours is not None:
-            is_active_hour = h in self.active_hours
-        else:
-            is_active_hour = (not ENABLE_TIME_CONSTRAINTS) or (5 <= h <= 8) or (13 <= h <= 17) or (21 <= h <= 23)
+        is_active_hour = (5 <= h <= 8) or (13 <= h <= 17) or (21 <= h <= 23)
         
         # Partition active orders by source
         mm_active = [o for o in active_orders if o.get('source') == 'MM']
@@ -361,7 +297,7 @@ class RegimeSwitcher(ComplexStrategy):
         # sc_inv = portfolios_inventories.get('Scalper', {'YES': 0, 'NO': 0}) # Scalper Disabled in V7
         
         # MM is the sole Accumulator in Phase 7
-        mm_orders = self.mm.on_market_update(ticker, market_state, current_time, mm_inv, mm_active, spendable_cash, idx) if is_active_hour and is_tight else (None if not is_active_hour else [])
+        mm_orders = self.mm.on_market_update(ticker, market_state, current_time, mm_inv, mm_active, wallet_equity, idx) if is_active_hour and is_tight else (None if not is_active_hour else [])
         scalper_orders = None # self.scalper.on_market_update(...) # Disabled
         
         if mm_orders is None and scalper_orders is None: return None
@@ -377,9 +313,8 @@ class RegimeSwitcher(ComplexStrategy):
 
 # --- Complex Backtester ---
 class ComplexBacktester:
-    def __init__(self, start_time_midnight_filter=False, **strategy_kwargs):
-        self.strategies = [RegimeSwitcher("Algo 3: Regime Switcher (Meta)", **strategy_kwargs)]
-        self.start_time_midnight_filter = start_time_midnight_filter
+    def __init__(self):
+        self.strategies = [RegimeSwitcher("Algo 3: Regime Switcher (Meta)")]
         self.performance_history = []
         self.portfolios = {}
         for s in self.strategies:
@@ -389,8 +324,7 @@ class ComplexBacktester:
                 'inventory_no': defaultdict(lambda: defaultdict(int)),
                 'active_limit_orders': defaultdict(list),
                 'trades': [],
-                'pnl_by_source': defaultdict(float),
-                'paid_out': set() # Guard against double payouts
+                'pnl_by_source': defaultdict(float) 
             }
             
     def handle_market_expiries(self, portfolio, current_time, last_prices):
@@ -412,17 +346,11 @@ class ComplexBacktester:
                 return  # not ended yet
 
             # Use last known mid as a proxy "final value" at expiry
-            mid = last_prices.get(ticker, np.nan)
-            
-            # freeze at last mid, snap only near extremes
-            settle_mid = settle_mid_price(mid)
-            if pd.isna(settle_mid):
-                return
-
+            mid = sanitize_price(last_prices.get(ticker, 50.0))
             if is_yes:
-                value_per_contract = settle_mid / 100.0
+                value_per_contract = mid / 100.0
             else:
-                value_per_contract = (100.0 - settle_mid) / 100.0
+                value_per_contract = (100.0 - mid) / 100.0
 
             payout_amount = qty * value_per_contract
 
@@ -433,14 +361,10 @@ class ComplexBacktester:
         for src in list(portfolio['inventory_yes'].keys()):
             for tkr, qty in list(portfolio['inventory_yes'][src].items()):
                 if qty > 0:
-                    key = (src, tkr, 'YES')
-                    if key in portfolio['paid_out']: continue
-                    
                     queue_payout(tkr, qty, is_yes=True)
                     # If it ended, queue_payout already passed the time check;
                     # so clear it only if ended:
                     if current_time >= (market_end_time_from_ticker(tkr) or datetime.max):
-                        portfolio['paid_out'].add(key)
                         portfolio['inventory_yes'][src][tkr] = 0
                         portfolio['active_limit_orders'][tkr] = []  # cancel any lingering orders
 
@@ -448,12 +372,8 @@ class ComplexBacktester:
         for src in list(portfolio['inventory_no'].keys()):
             for tkr, qty in list(portfolio['inventory_no'][src].items()):
                 if qty > 0:
-                    key = (src, tkr, 'NO')
-                    if key in portfolio['paid_out']: continue
-                    
                     queue_payout(tkr, qty, is_yes=False)
                     if current_time >= (market_end_time_from_ticker(tkr) or datetime.max):
-                        portfolio['paid_out'].add(key)
                         portfolio['inventory_no'][src][tkr] = 0
                         portfolio['active_limit_orders'][tkr] = []
 
@@ -461,16 +381,22 @@ class ComplexBacktester:
         active = portfolio['active_limit_orders'][ticker]
         if not active: return
         
-        y_ask = best_yes_ask(market_state)
-        y_bid = best_yes_bid(market_state)
+        y_ask = market_state.get('yes_ask')
         n_ask = market_state.get('no_ask')
-        n_bid = market_state.get('no_bid')
+        y_bid = market_state.get('yes_bid', 100-n_ask if not pd.isna(n_ask) else np.nan)
+        n_bid = market_state.get('no_bid', 100-y_ask if not pd.isna(y_ask) else np.nan)
         
         # Calculate current spread for regime-aware fill probabilities
         spread_val = np.nan
         if not pd.isna(y_ask) and not pd.isna(y_bid):
             spread_val = y_ask - y_bid
             
+        def get_fill_prob(s):
+            if pd.isna(s): return 0.15
+            if s <= 4: return 0.85
+            if s <= 8: return 0.55
+            return 0.15
+
         still_active = []
         for o in active:
             if 'expiry' in o and timestamp >= o['expiry']: continue
@@ -527,78 +453,16 @@ class ComplexBacktester:
                         'cost': cost,
                         'source': source, 
                         'spread': spread_val, 
-                        'capital_after': portfolio['wallet'].available_cash # Spendable
+                        'capital_after': portfolio['wallet'].get_total_equity()
                     }
-                    
-                    # --- DIAGNOSTICS ---
-                    mid_at_fill = (y_ask + y_bid) / 2.0 if (not pd.isna(y_ask) and not pd.isna(y_bid)) else np.nan
-                    if not pd.isna(mid_at_fill):
-                        if action == 'BUY_YES':
-                            slippage = l_price - mid_at_fill
-                        else:
-                            slippage = l_price - (100 - mid_at_fill)
-                        trade['slippage'] = slippage
-                        trade['mid_at_fill'] = mid_at_fill
-                    
                     portfolio['trades'].append(trade)
                     viz_list.append({**trade, 'strategy': strat_name, 'viz_y': 100-l_price if 'YES' in action else l_price})
                 else: still_active.append(o)
             else: still_active.append(o)
         portfolio['active_limit_orders'][ticker] = still_active
 
-    def liquidate_at_end(self, portfolio, ticker, market_state, current_time):
-        end_t = market_end_time_from_ticker(ticker)
-        if end_t is None or current_time < end_t:
-            return
-
-        yb = best_yes_bid(market_state)
-        nb = market_state.get("no_bid", np.nan)
-        
-        # We only liquidate if we have a valid price. 
-        # If no price, we can't liquidate, so it remains stuck (likely worthless or needs manual settle).
-        # But this logic forces us to try to exit.
-
-        # Liquidate YES inventory at YES_BID
-        for src in list(portfolio["inventory_yes"].keys()):
-            qty = portfolio["inventory_yes"][src].get(ticker, 0)
-            if qty > 0 and not pd.isna(yb):
-                price = float(yb)
-                fee = calculate_convex_fee(price, qty)
-                proceeds = qty * (price / 100.0) - fee
-                portfolio["wallet"].add_cash(proceeds)
-                portfolio["inventory_yes"][src][ticker] = 0
-                
-                # Log the exit
-                portfolio['trades'].append({
-                    'time': current_time, 'action': 'SELL_YES', 'ticker': ticker, 
-                    'price': price, 'qty': qty, 'fee': fee, 'source': src, 
-                    'capital_after': portfolio['wallet'].available_cash,
-                    'note': 'Forced Liquidation'
-                })
-
-        # Liquidate NO inventory at NO_BID
-        for src in list(portfolio["inventory_no"].keys()):
-            qty = portfolio["inventory_no"][src].get(ticker, 0)
-            if qty > 0 and not pd.isna(nb):
-                price = float(nb)
-                fee = calculate_convex_fee(price, qty)
-                proceeds = qty * (price / 100.0) - fee
-                portfolio["wallet"].add_cash(proceeds)
-                portfolio["inventory_no"][src][ticker] = 0
-                
-                # Log the exit
-                portfolio['trades'].append({
-                    'time': current_time, 'action': 'SELL_NO', 'ticker': ticker, 
-                    'price': price, 'qty': qty, 'fee': fee, 'source': src, 
-                    'capital_after': portfolio['wallet'].available_cash,
-                    'note': 'Forced Liquidation'
-                })
-
-        # cancel lingering orders after end
-        portfolio["active_limit_orders"][ticker] = []
-
     def run(self):
-        print("[ComplexBacktester] V5 (Honest Liquidation) Starting...")
+        print("[ComplexBacktester] V3 Starting...")
         files = sorted(glob.glob(os.path.join(LOG_DIR, "market_data_*.csv")))
         target_files = [f for f in files if (START_DATE is None or f.split('-')[-1].replace('.csv', '') >= START_DATE) and (END_DATE is None or f.split('-')[-1].replace('.csv', '') <= END_DATE)]
         
@@ -621,132 +485,74 @@ class ComplexBacktester:
             
             for idx, row in df.iterrows():
                 current_time, ticker = row['datetime'], row['market_ticker'].strip()
-                
-                # --- OPTIONAL: START AT MIDNIGHT OF EXPIRY DAY ---
-                if self.start_time_midnight_filter:
-                    try:
-                        parts = ticker.split('-')
-                        if len(parts) >= 2:
-                            date_part = parts[1] # '25DEC24'
-                            target_dt = datetime.strptime(date_part, "%y%b%d")
-                            if current_time.date() < target_dt.date():
-                                continue
-                    except: pass
-
                 ms = {'yes_ask': row.get('implied_yes_ask', np.nan), 'no_ask': row.get('implied_no_ask', np.nan), 'yes_bid': row.get('best_yes_bid', np.nan), 'no_bid': row.get('best_no_bid', np.nan)}
                 
-                # --- PHASE 10 FIX: STOP UPDATING PRICES AFTER END ---
-                end_t = market_end_time_from_ticker(ticker)
-                
-                yask = best_yes_ask(ms)
-                ybid = best_yes_bid(ms)
+                yask, ybid = ms['yes_ask'], ms['yes_bid'] if not pd.isna(ms['yes_bid']) else (100 - ms['no_ask'] if not pd.isna(ms['no_ask']) else np.nan)
                 if not pd.isna(yask) and not pd.isna(ybid): 
                     mid = (yask + ybid) / 2.0
-                    # Only record prices before end time
-                    if end_t is None or current_time < end_t:
-                        last_prices[ticker] = mid
+                    last_prices[ticker] = mid
                 
+                # Prevent trading on ended markets
+                end_t = market_end_time_from_ticker(ticker)
+                if end_t is not None and current_time >= end_t:
+                    continue  # market ended; ignore any late rows / prevent new orders
+
                 for s in self.strategies:
                     p = self.portfolios[s.name]
                     p['wallet'].check_settlements(current_time)
-                    
-                    # --- PHASE 11: FORCED LIQUIDATION AT BID (No Settle Proxy) ---
-                    self.liquidate_at_end(p, ticker, ms, current_time)
-                    
                     self.handle_market_expiries(p, current_time, last_prices)
                     self.check_limit_fills(p, ticker, ms, current_time, daily_trades_viz, s.name)
                     
-                    # Only run strategy if market is live
-                    if end_t is None or current_time < end_t:
-                        # Pass source-specific inventories (YES/NO separated)
-                        src_invs = {
-                            'MM': {'YES': p['inventory_yes']['MM'][ticker], 'NO': p['inventory_no']['MM'][ticker]},
-                            'Scalper': {'YES': p['inventory_yes']['Scalper'][ticker], 'NO': p['inventory_no']['Scalper'][ticker]}
-                        }
-                        new_orders = s.on_market_update(ticker, ms, current_time, src_invs, p['active_limit_orders'][ticker], p['wallet'].available_cash, idx)
-                        if new_orders is not None:
-                             p['active_limit_orders'][ticker] = new_orders
+
+                    # Pass source-specific inventories (YES/NO separated)
+                    src_invs = {
+                        'MM': {'YES': p['inventory_yes']['MM'][ticker], 'NO': p['inventory_no']['MM'][ticker]},
+                        'Scalper': {'YES': p['inventory_yes']['Scalper'][ticker], 'NO': p['inventory_no']['Scalper'][ticker]}
+                    }
+                    new_orders = s.on_market_update(ticker, ms, current_time, src_invs, p['active_limit_orders'][ticker], p['wallet'].get_total_equity(), idx)
+                    if new_orders is not None:
+                         p['active_limit_orders'][ticker] = new_orders
                 
                 # Tick-by-tick MTM Equity Tracking (No Netting)
                 current_equity = 0
                 for s_name, p in self.portfolios.items():
-                    cash = p['wallet'].available_cash
-                    unsettled = sum(u['amount'] for u in p['wallet'].unsettled_positions)
+                    cash = p['wallet'].get_total_equity()
                     holdings = 0
                     
                     # Sum all YES sources
                     for src in p['inventory_yes']:
                         for t, q in p['inventory_yes'][src].items():
-                           mid = last_prices.get(t, np.nan)
-                           if pd.isna(mid): continue
+                           mid = last_prices.get(t, 50)
                            holdings += q * (mid/100.0)
 
                     # Sum all NO sources
                     for src in p['inventory_no']:
                         for t, q in p['inventory_no'][src].items():
-                           mid = last_prices.get(t, np.nan)
-                           if pd.isna(mid): continue
+                           mid = last_prices.get(t, 50)
                            holdings += q * ((100-mid)/100.0)
                            
-                    current_equity += (cash + unsettled + holdings)
+                    current_equity += (cash + holdings)
                 equity_history.append(current_equity)
-                
-                # --- DAILY ACCOUNTING CHECK ---
-                if idx % 5000 == 0: # Periodic check
-                     for s_name, p in self.portfolios.items():
-                        cash = p['wallet'].available_cash
-                        unsettled = sum(u['amount'] for u in p['wallet'].unsettled_positions)
-                        
-                        # Recalculate holdings
-                        holdings_val = 0
-                        for src in p['inventory_yes']:
-                            for t, q in p['inventory_yes'][src].items():
-                               mid = last_prices.get(t, np.nan)
-                               if pd.isna(mid): continue
-                               holdings_val += q * (mid/100.0)
-                        for src in p['inventory_no']:
-                            for t, q in p['inventory_no'][src].items():
-                               mid = last_prices.get(t, np.nan)
-                               if pd.isna(mid): continue
-                               holdings_val += q * ((100-mid)/100.0)
-                               
-                        print(f"[ACCOUNTING {s_name} @ {current_time}] Cash: {cash:.2f} | Unsettled: {unsettled:.2f} | Holdings: {holdings_val:.2f} | Total: {cash+unsettled+holdings_val:.2f}")
                 
                 if idx % 10000 == 0:
                     pass # Placeholder if needed for sparse logging
             
-            # Force end-of-day settlement sweep so 00:00 + 01:00 mechanics happen
-            if not df.empty:
-                # pick a sweep that is definitely after 01:00 next day
-                day = df['datetime'].dt.date.max()
-                sweep_time = datetime.combine(day, datetime.min.time()) + timedelta(days=1, hours=1, minutes=5)
-
-                for s in self.strategies:
-                    p = self.portfolios[s.name]
-                    # 1) queue expiries (creates unsettled)
-                    self.handle_market_expiries(p, sweep_time, last_prices)
-                    # 2) release cash if settle_time <= sweep_time
-                    p['wallet'].check_settlements(sweep_time)
-
             # Post-Day Report for Viz (MTM Equity)
             daily_report = {}
             for s in self.strategies:
                 p = self.portfolios[s.name]
-                cash = p['wallet'].available_cash
-                unsettled = sum(u['amount'] for u in p['wallet'].unsettled_positions)
+                cash = p['wallet'].get_total_equity()
                 holdings = 0
                 for src in p['inventory_yes']:
                     for t, q in p['inventory_yes'][src].items():
-                        mid = last_prices.get(t, np.nan)
-                        if pd.isna(mid): continue
+                        mid = last_prices.get(t, 50)
                         holdings += q * (mid/100.0)
                 for src in p['inventory_no']:
                     for t, q in p['inventory_no'][src].items():
-                        mid = last_prices.get(t, np.nan)
-                        if pd.isna(mid): continue
+                        mid = last_prices.get(t, 50)
                         holdings += q * ((100-mid)/100.0)
                 
-                total_equity = cash + unsettled + holdings
+                total_equity = cash + holdings
                 daily_report[s.name] = {'start': INITIAL_CAPITAL, 'equity': total_equity}
                 
                 # Track for performance chart
@@ -763,40 +569,29 @@ class ComplexBacktester:
         print("\n=== FINAL RESULTS (V6 KALSHI REALITY) ===")
         for s in self.strategies:
             p = self.portfolios[s.name]
-            cash = p['wallet'].available_cash
-            unsettled = sum(u['amount'] for u in p['wallet'].unsettled_positions)
+            cash_eq = p['wallet'].get_total_equity()
             holdings_val = 0
             
             # Sum all YES sources
             for src in p['inventory_yes']:
                 for t, q in p['inventory_yes'][src].items():
-                   mid = last_prices.get(t, np.nan)
-                   if pd.isna(mid): continue
+                   mid = last_prices.get(t, 50)
                    holdings_val += q * (mid/100.0)
 
             # Sum all NO sources
             for src in p['inventory_no']:
                 for t, q in p['inventory_no'][src].items():
-                   mid = last_prices.get(t, np.nan)
-                   if pd.isna(mid): continue
+                   mid = last_prices.get(t, 50)
                    holdings_val += q * ((100-mid)/100.0)
             
-            total = cash + unsettled + holdings_val
+            total = cash_eq + holdings_val
             roi = (total / INITIAL_CAPITAL - 1) * 100
             
             trade_sources = defaultdict(int)
             for t in p['trades']: trade_sources[t['source']] += 1
             
             print(f"Strategy {s.name}: Total ${total:.2f} | ROI {roi:+.1f}% | Trades {len(p['trades'])}")
-            print(f"Strategy {s.name}: Total ${total:.2f} | ROI {roi:+.1f}% | Trades {len(p['trades'])}")
             print(f"  PnL Source Mix (Trade Count): {dict(trade_sources)}")
-            
-            # --- DIAGNOSTICS SUMMARY ---
-            slippages = [t['slippage'] for t in p['trades'] if 'slippage' in t]
-            if slippages:
-                avg_slip = sum(slippages) / len(slippages)
-                print(f"  AVG SLIPPAGE (Price Paid - Mid): {avg_slip:.2f} cents")
-                print(f"  (Positive = Paying above mid / Negative = Getting better than mid)")
             
             if p['trades']: pd.DataFrame(p['trades']).to_csv("debug_trades_v8_victory.csv", index=False)
             
@@ -808,57 +603,7 @@ class ComplexBacktester:
                 dd = (peak - val) / peak
                 if dd > max_dd: max_dd = dd
             print(f"Portfolio Max Drawdown: {max_dd*100:.1f}%")
-
-        # --- NEW: DAILY ROI TABLE ---
-        print("\n=== DAILY PERFORMANCE BREAKDOWN ===")
-        print(f"{'Date':<10} | {'Equity':<10} | {'Daily %':<8} | {'Cum %':<8} | {'DD %':<8}")
-        print("-" * 60)
-        
-        if hasattr(self, 'daily_equity_history'):
-            for s_name, history in self.daily_equity_history.items():
-                peak = INITIAL_CAPITAL
-                prev_equity = INITIAL_CAPITAL
-                
-                for i, day_data in enumerate(history):
-                    date = day_data['date']
-                    equity = day_data['equity']
-                    
-                    # Update Peak for Drawdown
-                    if equity > peak: peak = equity
-                    dd_pct = ((peak - equity) / peak) * 100.0 if peak > 0 else 0
-                    
-                    # ROI
-                    daily_ret = ((equity - prev_equity) / prev_equity) * 100.0 if prev_equity > 0 else 0
-                    cum_ret = ((equity - INITIAL_CAPITAL) / INITIAL_CAPITAL) * 100.0
-                    
-                    print(f"{date:<10} | ${equity:<9.2f} | {daily_ret:>7.2f}% | {cum_ret:>7.2f}% | {dd_pct:>7.2f}%")
-                    prev_equity = equity
-        # --- NEW: PORTFOLIO SNAPSHOT ---
-        print("\n=== FINAL PORTFOLIO SNAPSHOT ===")
-        for s in self.strategies:
-            p = self.portfolios[s.name]
-            print(f"Strategy: {s.name}")
-            for src in p['inventory_yes']:
-                for t, q in p['inventory_yes'][src].items():
-                    if q > 0: print(f"  [YES] {t}: {q}")
-            for src in p['inventory_no']:
-                for t, q in p['inventory_no'][src].items():
-                    if q > 0: print(f"  [NO]  {t}: {q}")
             
-        # --- NEW: JSON DUMP FOR VERIFICATION ---
-        final_inv = {'YES': {}, 'NO': {}}
-        for s in self.strategies:
-            p = self.portfolios[s.name]
-            for src in p['inventory_yes']:
-                for t, q in p['inventory_yes'][src].items():
-                    if q > 0: final_inv['YES'][t] = final_inv['YES'].get(t, 0) + q
-            for src in p['inventory_no']:
-                for t, q in p['inventory_no'][src].items():
-                    if q > 0: final_inv['NO'][t] = final_inv['NO'].get(t, 0) + q
-        
-        with open("debug_portfolio.json", "w") as f:
-            json.dump(final_inv, f, indent=2)
-
         self.generate_performance_chart()
 
     def generate_performance_chart(self):
@@ -925,7 +670,7 @@ class ComplexBacktester:
             # Sanitize only if market has ended
             end_t = market_end_time_from_ticker(t['ticker'])
             if end_t and chart_time >= end_t:
-                end_price = settle_mid_price(last_prices.get(t['ticker'], np.nan))
+                end_price = sanitize_price(end_price)
             
             roi = np.nan
             if not pd.isna(end_price):
