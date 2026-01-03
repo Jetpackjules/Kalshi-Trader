@@ -1,0 +1,4 @@
+                        timestamp           market_ticker  best_yes_bid  best_no_bid  implied_no_ask  implied_yes_ask                   datetime
+27054  2025-12-24T05:00:15.955590  KXHIGHNY-25DEC24-B42.5            17           77              83               23 2025-12-24 05:00:15.955590
+27067  2025-12-24T05:00:27.310810  KXHIGHNY-25DEC24-B42.5            17           75              83               25 2025-12-24 05:00:27.310810
+27068  2025-12-24T05:00:27.311005  KXHIGHNY-25DEC24-B42.5            17           76              83               24 2025-12-24 05:00:27.311005

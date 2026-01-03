@@ -11,13 +11,14 @@ import math
 import collections
 import json
 from collections import defaultdict
+from functools import lru_cache
 
 # --- Configuration ---
 LOG_DIR = os.path.join(os.getcwd(), "live_trading_system", "vm_logs", "market_logs")
 CHARTS_DIR = "backtest_charts"
-INITIAL_CAPITAL = 23.45
-START_DATE = "25DEC23" 
-END_DATE = "25DEC24"
+INITIAL_CAPITAL = 1000.00
+START_DATE = "25DEC04"
+END_DATE = "26JAN03"
 ENABLE_TIME_CONSTRAINTS = True # Set to False to trade 24/7
 
 if not os.path.exists(CHARTS_DIR):
@@ -27,8 +28,8 @@ if not os.path.exists(CHARTS_DIR):
 MARKET_END_HOUR = 0      # 00:00 next day
 PAYOUT_HOUR = 1          # 01:00 next day
 
+@lru_cache(maxsize=None)
 def parse_market_date_from_ticker(ticker: str):
-    # Finds the "25DEC16" token inside ticker
     parts = ticker.strip().split('-')
     for p in parts:
         if len(p) == 7 and p[:2].isdigit():
@@ -38,6 +39,7 @@ def parse_market_date_from_ticker(ticker: str):
                 pass
     return None
 
+@lru_cache(maxsize=None)
 def market_end_time_from_ticker(ticker: str):
     d = parse_market_date_from_ticker(ticker)
     if d is None:
@@ -46,6 +48,7 @@ def market_end_time_from_ticker(ticker: str):
     end_dt = (d + timedelta(days=1)).replace(hour=MARKET_END_HOUR, minute=0, second=0, microsecond=0)
     return end_dt
 
+@lru_cache(maxsize=None)
 def payout_time_from_ticker(ticker: str):
     d = parse_market_date_from_ticker(ticker)
     if d is None:
@@ -136,8 +139,8 @@ class ComplexStrategy:
 # --- Implementation of Strategy 2.5 (V2 Refined) ---
 
 class InventoryAwareMarketMaker(ComplexStrategy):
-    def __init__(self, name, risk_pct=0.5, max_inventory=500, inventory_penalty=0.1, max_offset=2, alpha=0.1, 
-                 margin_cents=0.5, scaling_factor=4.0, max_notional_pct=0.25, max_loss_pct=0.06):
+    def __init__(self, name, risk_pct=0.5, max_inventory=50, inventory_penalty=0.5, max_offset=2, alpha=0.1, 
+                 margin_cents=4.0, scaling_factor=4.0, max_notional_pct=0.05, max_loss_pct=0.02):
         super().__init__(name, risk_pct)
         self.max_inventory = max_inventory
         self.inventory_penalty = inventory_penalty
@@ -180,10 +183,10 @@ class InventoryAwareMarketMaker(ComplexStrategy):
         # --- PHASE 8 FIX: VAMR PROBABILITY (Mean-Based) ---
         fair_prob = mean_price / 100.0
         
-        # --- TRUE AGGRESSIVE: Price at Ask ---
-        # We pay the spread to capture the alpha.
-        price_to_pay_yes = yes_ask
-        price_to_pay_no = no_ask
+        # --- PASSIVE ENTRY: Price at Mid (Maker) ---
+        # We try to capture the spread by sitting at the mid.
+        price_to_pay_yes = int(mid)
+        price_to_pay_no = int(100 - mid)
         
         # Check Long YES edge
         edge_yes = fair_prob - (price_to_pay_yes / 100.0)
@@ -318,9 +321,10 @@ class MicroScalper(ComplexStrategy):
         return None
 
 class RegimeSwitcher(ComplexStrategy):
-    def __init__(self, name, risk_pct=0.5, active_hours=None, tightness_percentile=50, **mm_kwargs):
+    def __init__(self, name, risk_pct=0.5, active_hours=None, tightness_percentile=20, **mm_kwargs):
         super().__init__(name, risk_pct)
         # Pass mm_kwargs to InventoryAwareMarketMaker
+        if 'margin_cents' not in mm_kwargs: mm_kwargs['margin_cents'] = 4.0
         self.mm = InventoryAwareMarketMaker("Sub-MM", risk_pct, **mm_kwargs)
         self.scalper = MicroScalper("Sub-Scalper", risk_pct)
         self.spread_histories = defaultdict(list)
@@ -358,12 +362,10 @@ class RegimeSwitcher(ComplexStrategy):
         
         # Isolated Routing
         mm_inv = portfolios_inventories.get('MM', {'YES': 0, 'NO': 0})
-        # sc_inv = portfolios_inventories.get('Scalper', {'YES': 0, 'NO': 0}) # Scalper Disabled in V7
         
-        # MM is the sole Accumulator in Phase 7
         mm_orders = self.mm.on_market_update(ticker, market_state, current_time, mm_inv, mm_active, spendable_cash, idx) if is_active_hour and is_tight else (None if not is_active_hour else [])
-        scalper_orders = None # self.scalper.on_market_update(...) # Disabled
-        
+        scalper_orders = None 
+
         if mm_orders is None and scalper_orders is None: return None
         
         combined = []
@@ -377,21 +379,60 @@ class RegimeSwitcher(ComplexStrategy):
 
 # --- Complex Backtester ---
 class ComplexBacktester:
-    def __init__(self, start_time_midnight_filter=False, **strategy_kwargs):
+    def __init__(self, start_time_midnight_filter=False, initial_capital=None, **strategy_kwargs):
         self.strategies = [RegimeSwitcher("Algo 3: Regime Switcher (Meta)", **strategy_kwargs)]
         self.start_time_midnight_filter = start_time_midnight_filter
+        self.initial_capital = initial_capital if initial_capital is not None else INITIAL_CAPITAL
+        self.start_date = pd.to_datetime(START_DATE) if START_DATE else None
+        self.end_date = pd.to_datetime(END_DATE) if END_DATE else None
+        self.warmup_start_date = pd.to_datetime(WARMUP_START_DATE) if 'WARMUP_START_DATE' in globals() and WARMUP_START_DATE else None
         self.performance_history = []
         self.portfolios = {}
         for s in self.strategies:
             self.portfolios[s.name] = {
-                'wallet': Wallet(INITIAL_CAPITAL),
+                'wallet': Wallet(self.initial_capital),
                 'inventory_yes': defaultdict(lambda: defaultdict(int)), # source -> ticker -> qty
                 'inventory_no': defaultdict(lambda: defaultdict(int)),
                 'active_limit_orders': defaultdict(list),
                 'trades': [],
                 'pnl_by_source': defaultdict(float),
-                'paid_out': set() # Guard against double payouts
+                'paid_out': set(), # Guard against double payouts
+                'cost_basis': defaultdict(float) # ticker -> total cost basis
             }
+
+    def load_all_data(self):
+        print(f"Loading data from {LOG_DIR}...")
+        files = sorted(glob.glob(os.path.join(LOG_DIR, "market_data_*.csv")))
+        
+        # Filter by date
+        filtered_files = []
+        for f in files:
+            date_str = os.path.basename(f).split('-')[-1].replace('.csv', '')
+            if START_DATE and date_str < START_DATE: continue
+            if END_DATE and date_str > END_DATE: continue
+            filtered_files.append(f)
+            
+        if not filtered_files:
+            print("No files found for the given date range.")
+            return pd.DataFrame()
+            
+        dfs = []
+        for f in filtered_files:
+            try:
+                df = pd.read_csv(f)
+                df.columns = [c.strip() for c in df.columns]
+                df['datetime'] = pd.to_datetime(df['timestamp'], format='mixed', dayfirst=True)
+                dfs.append(df)
+            except Exception as e:
+                print(f"Error loading {f}: {e}")
+                
+        if not dfs: return pd.DataFrame()
+        
+        master_df = pd.concat(dfs, ignore_index=True)
+        master_df.sort_values('datetime', inplace=True)
+        # Vectorized date string pre-calculation
+        master_df['date_str'] = master_df['datetime'].dt.strftime("%y%b%d").str.upper()
+        return master_df
             
     def handle_market_expiries(self, portfolio, current_time, last_prices):
         """
@@ -403,13 +444,13 @@ class ComplexBacktester:
         # Helper to queue payout and clear position
         def queue_payout(ticker, qty, is_yes: bool):
             if qty <= 0:
-                return
+                return False
             end_time = market_end_time_from_ticker(ticker)
             pay_time = payout_time_from_ticker(ticker)
             if end_time is None or pay_time is None:
-                return
+                return False
             if current_time < end_time:
-                return  # not ended yet
+                return False # not ended yet
 
             # Use last known mid as a proxy "final value" at expiry
             mid = last_prices.get(ticker, np.nan)
@@ -417,7 +458,7 @@ class ComplexBacktester:
             # freeze at last mid, snap only near extremes
             settle_mid = settle_mid_price(mid)
             if pd.isna(settle_mid):
-                return
+                return False
 
             if is_yes:
                 value_per_contract = settle_mid / 100.0
@@ -428,6 +469,7 @@ class ComplexBacktester:
 
             # Money is locked until pay_time
             wallet.add_unsettled(payout_amount, pay_time)
+            return True
 
         # YES inventories
         for src in list(portfolio['inventory_yes'].keys()):
@@ -436,13 +478,12 @@ class ComplexBacktester:
                     key = (src, tkr, 'YES')
                     if key in portfolio['paid_out']: continue
                     
-                    queue_payout(tkr, qty, is_yes=True)
-                    # If it ended, queue_payout already passed the time check;
-                    # so clear it only if ended:
-                    if current_time >= (market_end_time_from_ticker(tkr) or datetime.max):
+                    if queue_payout(tkr, qty, is_yes=True):
                         portfolio['paid_out'].add(key)
                         portfolio['inventory_yes'][src][tkr] = 0
-                        portfolio['active_limit_orders'][tkr] = []  # cancel any lingering orders
+                        # Clear cost basis for this ticker if all sources are cleared
+                        # (In this bot, usually only one source holds a ticker at a time)
+                        portfolio['cost_basis'][tkr] = 0.0
 
         # NO inventories
         for src in list(portfolio['inventory_no'].keys()):
@@ -451,13 +492,102 @@ class ComplexBacktester:
                     key = (src, tkr, 'NO')
                     if key in portfolio['paid_out']: continue
                     
-                    queue_payout(tkr, qty, is_yes=False)
-                    if current_time >= (market_end_time_from_ticker(tkr) or datetime.max):
+                    if queue_payout(tkr, qty, is_yes=False):
                         portfolio['paid_out'].add(key)
                         portfolio['inventory_no'][src][tkr] = 0
-                        portfolio['active_limit_orders'][tkr] = []
+                        portfolio['cost_basis'][tkr] = 0.0
 
-    def check_limit_fills(self, portfolio, ticker, market_state, timestamp, viz_list, strat_name):
+    def execute_trade(self, portfolio, ticker, action, price, qty, source, timestamp, market_state, strat_name, viz_list):
+        # 1. Calculate Cost & Fee
+        fee = calculate_convex_fee(price, qty)
+        cost = qty * (price / 100.0) + fee
+        
+        # 2. Budget Check (Match Live Trader)
+        start_equity = portfolio.get('daily_start_equity', self.initial_capital)
+        risk_pct = 0.5
+        for s in self.strategies:
+            if s.name == strat_name:
+                risk_pct = s.risk_pct
+                break
+        
+        budget = start_equity * risk_pct
+        
+        # Calculate current exposure (Acquisition Cost)
+        current_exposure = 0.0
+        
+        # Inventory Exposure (Cost Basis)
+        current_exposure += sum(portfolio['cost_basis'].values())
+                
+        # Active Orders Exposure
+        for t, orders in portfolio['active_limit_orders'].items():
+            for o in orders:
+                p_ord = o['price']
+                q_ord = o['qty']
+                current_exposure += q_ord * (p_ord / 100.0)
+                
+        if (current_exposure + cost) > budget:
+            # Scale down to fit budget
+            available = budget - current_exposure
+            if available > 0 and cost > 0:
+                ratio = available / cost
+                qty = int(qty * ratio)
+                if qty <= 0:
+                    # print(f"BUDGET REJECT (Immediate) {ticker}: Exp=${current_exposure:.2f} + Cost=${cost:.2f} > Budget=${budget:.2f} (Scaled to 0)")
+                    return False
+                fee = calculate_convex_fee(price, qty)
+                cost = qty * (price / 100.0) + fee
+                # print(f"BUDGET SCALE (Immediate) {ticker}: Scaled qty to {qty} to fit budget ${budget:.2f}")
+            else:
+                # print(f"BUDGET REJECT (Immediate) {ticker}: Exp=${current_exposure:.2f} > Budget=${budget:.2f}")
+                return False
+
+        # 3. Check Cash & Execute
+        if portfolio['wallet'].spend(cost):
+            # Update Inventory
+            if action == 'BUY_YES': 
+                portfolio['inventory_yes'][source][ticker] += qty
+            elif action == 'BUY_NO': 
+                portfolio['inventory_no'][source][ticker] += qty
+            
+            # Update Cost Basis
+            portfolio['cost_basis'][ticker] += cost
+            
+            y_ask = market_state.get('yes_ask', np.nan)
+            y_bid = market_state.get('yes_bid', np.nan)
+            
+            spread_val = np.nan
+            if not pd.isna(y_ask) and not pd.isna(y_bid): spread_val = y_ask - y_bid
+
+            trade = {
+                'time': timestamp, 
+                'action': action, 
+                'ticker': ticker, 
+                'price': price, 
+                'qty': qty, 
+                'fee': fee, 
+                'cost': cost,
+                'source': source, 
+                'spread': spread_val, 
+                'capital_after': portfolio['wallet'].available_cash
+            }
+            
+            # Diagnostics
+            mid_at_fill = (y_ask + y_bid) / 2.0 if (not pd.isna(y_ask) and not pd.isna(y_bid)) else np.nan
+            if not pd.isna(mid_at_fill):
+                if action == 'BUY_YES':
+                    slippage = price - mid_at_fill
+                else:
+                    slippage = price - (100 - mid_at_fill)
+                trade['slippage'] = slippage
+                trade['mid_at_fill'] = mid_at_fill
+            
+            portfolio['trades'].append(trade)
+            viz_list.append({**trade, 'strategy': strat_name, 'viz_y': 100-price if 'YES' in action else price})
+            return True
+            
+        return False
+
+    def check_limit_fills(self, portfolio, ticker, market_state, timestamp, viz_list, strat_name, last_prices):
         active = portfolio['active_limit_orders'][ticker]
         if not active: return
         
@@ -503,9 +633,45 @@ class ComplexBacktester:
                             
             if filled:
                 fee = calculate_convex_fee(l_price, qty)
-                notional = (qty * (l_price / 100.0))
-                cost = notional + fee
+                cost = (qty * (l_price / 100.0)) + fee
                 
+                # --- BUDGET CHECK (Match Live Trader) ---
+                start_equity = portfolio.get('daily_start_equity', self.initial_capital)
+                risk_pct = 0.5 
+                budget = start_equity * risk_pct
+                
+                current_exposure = 0.0
+                
+                # 1. Inventory Exposure (Cost Basis)
+                current_exposure += sum(portfolio['cost_basis'].values())
+                        
+                # 2. Active Orders Exposure
+                for t, orders in portfolio['active_limit_orders'].items():
+                    for ord_item in orders:
+                        # Skip THIS order if it's in the list (it is)
+                        if ord_item is o: continue
+                        p = ord_item['price']
+                        q = ord_item['qty']
+                        current_exposure += q * (p / 100.0)
+                
+                if (current_exposure + cost) > budget:
+                    # Scale down to fit budget
+                    available = budget - current_exposure
+                    if available > 0 and cost > 0:
+                        ratio = available / cost
+                        qty = int(qty * ratio)
+                        if qty <= 0:
+                            # print(f"BUDGET REJECT (Limit) {ticker}: Exp=${current_exposure:.2f} + Cost=${cost:.2f} > Budget=${budget:.2f} (Scaled to 0)")
+                            still_active.append(o)
+                            continue
+                        fee = calculate_convex_fee(l_price, qty)
+                        cost = (qty * (l_price / 100.0)) + fee
+                        # print(f"BUDGET SCALE (Limit) {ticker}: Scaled qty to {qty} to fit budget ${budget:.2f}")
+                    else:
+                        # print(f"BUDGET REJECT (Limit) {ticker}: Exp=${current_exposure:.2f} > Budget=${budget:.2f}")
+                        still_active.append(o)
+                        continue
+
                 # Check Cash
                 if portfolio['wallet'].spend(cost):
                     # Update Inventory (Separate YES/NO)
@@ -514,9 +680,9 @@ class ComplexBacktester:
                     elif action == 'BUY_NO': 
                         portfolio['inventory_no'][source][ticker] += qty
                     
-                    spread_val = np.nan
-                    if not pd.isna(y_ask) and not pd.isna(y_bid): spread_val = y_ask - y_bid
-
+                    # Update Cost Basis
+                    portfolio['cost_basis'][ticker] += cost
+                    
                     trade = {
                         'time': timestamp, 
                         'action': action, 
@@ -527,10 +693,10 @@ class ComplexBacktester:
                         'cost': cost,
                         'source': source, 
                         'spread': spread_val, 
-                        'capital_after': portfolio['wallet'].available_cash # Spendable
+                        'capital_after': portfolio['wallet'].available_cash
                     }
                     
-                    # --- DIAGNOSTICS ---
+                    # Diagnostics
                     mid_at_fill = (y_ask + y_bid) / 2.0 if (not pd.isna(y_ask) and not pd.isna(y_bid)) else np.nan
                     if not pd.isna(mid_at_fill):
                         if action == 'BUY_YES':
@@ -542,8 +708,12 @@ class ComplexBacktester:
                     
                     portfolio['trades'].append(trade)
                     viz_list.append({**trade, 'strategy': strat_name, 'viz_y': 100-l_price if 'YES' in action else l_price})
-                else: still_active.append(o)
-            else: still_active.append(o)
+                    filled = True
+                else:
+                    filled = False
+            
+            if not filled:
+                still_active.append(o)
         portfolio['active_limit_orders'][ticker] = still_active
 
     def liquidate_at_end(self, portfolio, ticker, market_state, current_time):
@@ -554,10 +724,6 @@ class ComplexBacktester:
         yb = best_yes_bid(market_state)
         nb = market_state.get("no_bid", np.nan)
         
-        # We only liquidate if we have a valid price. 
-        # If no price, we can't liquidate, so it remains stuck (likely worthless or needs manual settle).
-        # But this logic forces us to try to exit.
-
         # Liquidate YES inventory at YES_BID
         for src in list(portfolio["inventory_yes"].keys()):
             qty = portfolio["inventory_yes"][src].get(ticker, 0)
@@ -567,6 +733,7 @@ class ComplexBacktester:
                 proceeds = qty * (price / 100.0) - fee
                 portfolio["wallet"].add_cash(proceeds)
                 portfolio["inventory_yes"][src][ticker] = 0
+                portfolio['cost_basis'][ticker] = 0.0
                 
                 # Log the exit
                 portfolio['trades'].append({
@@ -585,6 +752,7 @@ class ComplexBacktester:
                 proceeds = qty * (price / 100.0) - fee
                 portfolio["wallet"].add_cash(proceeds)
                 portfolio["inventory_no"][src][ticker] = 0
+                portfolio['cost_basis'][ticker] = 0.0
                 
                 # Log the exit
                 portfolio['trades'].append({
@@ -598,29 +766,67 @@ class ComplexBacktester:
         portfolio["active_limit_orders"][ticker] = []
 
     def run(self):
-        print("[ComplexBacktester] V5 (Honest Liquidation) Starting...")
-        files = sorted(glob.glob(os.path.join(LOG_DIR, "market_data_*.csv")))
-        target_files = [f for f in files if (START_DATE is None or f.split('-')[-1].replace('.csv', '') >= START_DATE) and (END_DATE is None or f.split('-')[-1].replace('.csv', '') <= END_DATE)]
+        print("[ComplexBacktester] Global Loop Mode Starting...")
+        
+        # Load Data
+        master_df = self.load_all_data()
+        if master_df.empty: return
         
         last_prices = {}
-        equity_history = []
+        last_logged_date = None
+        daily_trades_viz = []
         
-        for f in target_files:
-            try:
-                date_str = os.path.basename(f).split('-')[-1].replace('.csv', '')
-                print(f"Processing {date_str} ({target_files.index(f)+1}/{len(target_files)})...")
-                df = pd.read_csv(f)
-                df.columns = [c.strip() for c in df.columns]
-                df['datetime'] = pd.to_datetime(df['timestamp'], format='mixed', dayfirst=True)
-                df.sort_values('datetime', inplace=True)
-            except Exception as e:
-                print(f"FAILED to process {f}: {e}")
-                continue
+        for idx, row in enumerate(master_df.itertuples(index=False)):
+            current_time = row.datetime
+            ticker = row.market_ticker
+            current_date_str = row.date_str # Use pre-calculated date string
             
-            daily_trades_viz = []
+            is_warmup = self.warmup_start_date and current_time < self.start_date
             
-            for idx, row in df.iterrows():
-                current_time, ticker = row['datetime'], row['market_ticker'].strip()
+            if current_date_str != last_logged_date:
+                # End of previous day logic
+                if last_logged_date is not None:
+                    try:
+                        completed_date_obj = datetime.strptime(last_logged_date, "%y%b%d").date()
+                        sweep_time = datetime.combine(completed_date_obj, datetime.min.time()) + timedelta(days=1, hours=1, minutes=5)
+                        
+                        daily_report = {}
+                        for s in self.strategies:
+                            p = self.portfolios[s.name]
+                            self.handle_market_expiries(p, sweep_time, last_prices)
+                            p['wallet'].check_settlements(sweep_time)
+                            
+                            # Snapshot
+                            cash = p['wallet'].available_cash
+                            unsettled = sum(u['amount'] for u in p['wallet'].unsettled_positions)
+                            holdings = 0
+                            for src in p['inventory_yes']:
+                                for t, q in p['inventory_yes'][src].items():
+                                    mid = last_prices.get(t, np.nan)
+                                    if not pd.isna(mid): holdings += q * (mid/100.0)
+                            for src in p['inventory_no']:
+                                for t, q in p['inventory_no'][src].items():
+                                    mid = last_prices.get(t, np.nan)
+                                    if not pd.isna(mid): holdings += q * ((100-mid)/100.0)
+                            total_equity = cash + unsettled + holdings
+                            
+                            # UPDATE DAILY START EQUITY FOR NEXT DAY
+                            p['daily_start_equity'] = total_equity
+                            
+                            daily_report[s.name] = {'start': self.initial_capital, 'equity': total_equity}
+                            
+                            if not hasattr(self, 'daily_equity_history'): self.daily_equity_history = defaultdict(list)
+                            self.daily_equity_history[s.name].append({'date': last_logged_date, 'equity': total_equity, 'spendable_cash': cash})
+                            print(f"[Day End {last_logged_date}] {s.name} Equity: ${total_equity:.2f} (Cash ${cash:.2f})")
+                        
+                        self.generate_daily_chart(pd.DataFrame(), daily_trades_viz, daily_report, last_logged_date, last_prices)
+                        daily_trades_viz = []
+                    except Exception as e:
+                        print(f"Error in Day End logic: {e}")
+                        import traceback
+                        traceback.print_exc()
+                        
+                last_logged_date = current_date_str
                 
                 # --- OPTIONAL: START AT MIDNIGHT OF EXPIRY DAY ---
                 if self.start_time_midnight_filter:
@@ -632,182 +838,101 @@ class ComplexBacktester:
                             if current_time.date() < target_dt.date():
                                 continue
                     except: pass
-
-                ms = {'yes_ask': row.get('implied_yes_ask', np.nan), 'no_ask': row.get('implied_no_ask', np.nan), 'yes_bid': row.get('best_yes_bid', np.nan), 'no_bid': row.get('best_no_bid', np.nan)}
-                
-                # --- PHASE 10 FIX: STOP UPDATING PRICES AFTER END ---
-                end_t = market_end_time_from_ticker(ticker)
-                
-                yask = best_yes_ask(ms)
-                ybid = best_yes_bid(ms)
-                if not pd.isna(yask) and not pd.isna(ybid): 
-                    mid = (yask + ybid) / 2.0
-                    # Only record prices before end time
-                    if end_t is None or current_time < end_t:
-                        last_prices[ticker] = mid
-                
-                for s in self.strategies:
-                    p = self.portfolios[s.name]
-                    p['wallet'].check_settlements(current_time)
-                    
-                    # --- PHASE 11: FORCED LIQUIDATION AT BID (No Settle Proxy) ---
-                    self.liquidate_at_end(p, ticker, ms, current_time)
-                    
-                    self.handle_market_expiries(p, current_time, last_prices)
-                    self.check_limit_fills(p, ticker, ms, current_time, daily_trades_viz, s.name)
-                    
-                    # Only run strategy if market is live
-                    if end_t is None or current_time < end_t:
-                        # Pass source-specific inventories (YES/NO separated)
-                        src_invs = {
-                            'MM': {'YES': p['inventory_yes']['MM'][ticker], 'NO': p['inventory_no']['MM'][ticker]},
-                            'Scalper': {'YES': p['inventory_yes']['Scalper'][ticker], 'NO': p['inventory_no']['Scalper'][ticker]}
-                        }
-                        new_orders = s.on_market_update(ticker, ms, current_time, src_invs, p['active_limit_orders'][ticker], p['wallet'].available_cash, idx)
-                        if new_orders is not None:
-                             p['active_limit_orders'][ticker] = new_orders
-                
-                # Tick-by-tick MTM Equity Tracking (No Netting)
-                current_equity = 0
-                for s_name, p in self.portfolios.items():
-                    cash = p['wallet'].available_cash
-                    unsettled = sum(u['amount'] for u in p['wallet'].unsettled_positions)
-                    holdings = 0
-                    
-                    # Sum all YES sources
-                    for src in p['inventory_yes']:
-                        for t, q in p['inventory_yes'][src].items():
-                           mid = last_prices.get(t, np.nan)
-                           if pd.isna(mid): continue
-                           holdings += q * (mid/100.0)
-
-                    # Sum all NO sources
-                    for src in p['inventory_no']:
-                        for t, q in p['inventory_no'][src].items():
-                           mid = last_prices.get(t, np.nan)
-                           if pd.isna(mid): continue
-                           holdings += q * ((100-mid)/100.0)
-                           
-                    current_equity += (cash + unsettled + holdings)
-                equity_history.append(current_equity)
-                
-                # --- DAILY ACCOUNTING CHECK ---
-                if idx % 5000 == 0: # Periodic check
-                     for s_name, p in self.portfolios.items():
-                        cash = p['wallet'].available_cash
-                        unsettled = sum(u['amount'] for u in p['wallet'].unsettled_positions)
-                        
-                        # Recalculate holdings
-                        holdings_val = 0
-                        for src in p['inventory_yes']:
-                            for t, q in p['inventory_yes'][src].items():
-                               mid = last_prices.get(t, np.nan)
-                               if pd.isna(mid): continue
-                               holdings_val += q * (mid/100.0)
-                        for src in p['inventory_no']:
-                            for t, q in p['inventory_no'][src].items():
-                               mid = last_prices.get(t, np.nan)
-                               if pd.isna(mid): continue
-                               holdings_val += q * ((100-mid)/100.0)
-                               
-                        print(f"[ACCOUNTING {s_name} @ {current_time}] Cash: {cash:.2f} | Unsettled: {unsettled:.2f} | Holdings: {holdings_val:.2f} | Total: {cash+unsettled+holdings_val:.2f}")
-                
-                if idx % 10000 == 0:
-                    pass # Placeholder if needed for sparse logging
             
-            # Force end-of-day settlement sweep so 00:00 + 01:00 mechanics happen
-            if not df.empty:
-                # pick a sweep that is definitely after 01:00 next day
-                day = df['datetime'].dt.date.max()
-                sweep_time = datetime.combine(day, datetime.min.time()) + timedelta(days=1, hours=1, minutes=5)
-
-                for s in self.strategies:
-                    p = self.portfolios[s.name]
-                    # 1) queue expiries (creates unsettled)
-                    self.handle_market_expiries(p, sweep_time, last_prices)
-                    # 2) release cash if settle_time <= sweep_time
-                    p['wallet'].check_settlements(sweep_time)
-
-            # Post-Day Report for Viz (MTM Equity)
-            daily_report = {}
+            ms = {
+                'yes_ask': getattr(row, 'implied_yes_ask', np.nan), 
+                'no_ask': getattr(row, 'implied_no_ask', np.nan), 
+                'yes_bid': getattr(row, 'best_yes_bid', np.nan), 
+                'no_bid': getattr(row, 'best_no_bid', np.nan)
+            }
+            
+            # --- PHASE 10 FIX: STOP UPDATING PRICES AFTER END ---
+            end_t = market_end_time_from_ticker(ticker)
+            
+            yask = best_yes_ask(ms)
+            ybid = best_yes_bid(ms)
+            if not pd.isna(yask) and not pd.isna(ybid): 
+                mid = (yask + ybid) / 2.0
+                if end_t is None or current_time < end_t:
+                    last_prices[ticker] = mid
+            
             for s in self.strategies:
+                # Warmup Mode: Update strategy state but DO NOT execute trades
+                if is_warmup:
+                    src_invs = {
+                        'MM': {'YES': 0, 'NO': 0},
+                        'Scalper': {'YES': 0, 'NO': 0}
+                    }
+                    s.on_market_update(ticker, ms, current_time, src_invs, [], self.portfolios[s.name]['wallet'].available_cash, idx)
+                    continue
+
                 p = self.portfolios[s.name]
-                cash = p['wallet'].available_cash
-                unsettled = sum(u['amount'] for u in p['wallet'].unsettled_positions)
-                holdings = 0
-                for src in p['inventory_yes']:
-                    for t, q in p['inventory_yes'][src].items():
-                        mid = last_prices.get(t, np.nan)
-                        if pd.isna(mid): continue
-                        holdings += q * (mid/100.0)
-                for src in p['inventory_no']:
-                    for t, q in p['inventory_no'][src].items():
-                        mid = last_prices.get(t, np.nan)
-                        if pd.isna(mid): continue
-                        holdings += q * ((100-mid)/100.0)
+                p['wallet'].check_settlements(current_time)
                 
-                total_equity = cash + unsettled + holdings
-                daily_report[s.name] = {'start': INITIAL_CAPITAL, 'equity': total_equity}
+                # --- PHASE 11: FORCED LIQUIDATION AT BID ---
+                self.liquidate_at_end(p, ticker, ms, current_time)
                 
-                # Track for performance chart
-                if not hasattr(self, 'daily_equity_history'):
-                    self.daily_equity_history = defaultdict(list)
-                self.daily_equity_history[s.name].append({
-                    'date': date_str, 
-                    'equity': total_equity,
-                    'spendable_cash': p['wallet'].available_cash
-                })
+                self.handle_market_expiries(p, current_time, last_prices)
+                self.check_limit_fills(p, ticker, ms, current_time, daily_trades_viz, s.name, last_prices)
                 
-            self.generate_daily_chart(df, daily_trades_viz, daily_report, date_str, last_prices)
+                # Only run strategy if market is live
+                if end_t is None or current_time < end_t:
+                    src_invs = {
+                        'MM': {'YES': p['inventory_yes']['MM'][ticker], 'NO': p['inventory_no']['MM'][ticker]},
+                        'Scalper': {'YES': p['inventory_yes']['Scalper'][ticker], 'NO': p['inventory_no']['Scalper'][ticker]}
+                    }
+                    new_orders = s.on_market_update(ticker, ms, current_time, src_invs, p['active_limit_orders'][ticker], p['wallet'].available_cash, idx)
+                    
+                    if new_orders is not None:
+                         # --- IMMEDIATE FILL CHECK ---
+                         active_orders = []
+                         for o in new_orders:
+                             filled = False
+                             action = o['action']
+                             price = o['price']
+                             qty = o['qty']
+                             source = o['source']
+                             
+                             if action == 'BUY_YES':
+                                 curr_ask = ms.get('yes_ask', np.nan)
+                                 if not pd.isna(curr_ask) and price >= curr_ask:
+                                     self.execute_trade(p, ticker, action, price, qty, source, current_time, ms, s.name, daily_trades_viz)
+                                     filled = True
+                             elif action == 'BUY_NO':
+                                 curr_ask = ms.get('no_ask', np.nan)
+                                 if not pd.isna(curr_ask) and price >= curr_ask:
+                                     self.execute_trade(p, ticker, action, price, qty, source, current_time, ms, s.name, daily_trades_viz)
+                                     filled = True
+                             
+                             if not filled:
+                                 active_orders.append(o)
+                         
+                         p['active_limit_orders'][ticker] = active_orders
             
-        print("\n=== FINAL RESULTS (V6 KALSHI REALITY) ===")
+            if idx % 10000 == 0:
+                print(f"Processed {idx} ticks... Current: {current_time}")
+
+        # Final Day End
+        print("Final Day End logic...")
         for s in self.strategies:
             p = self.portfolios[s.name]
+            self.handle_market_expiries(p, self.end_date + timedelta(days=1) if self.end_date else current_time + timedelta(days=1), last_prices)
+            p['wallet'].check_settlements(self.end_date + timedelta(days=1) if self.end_date else current_time + timedelta(days=1))
+
+            # Final Snapshot
             cash = p['wallet'].available_cash
             unsettled = sum(u['amount'] for u in p['wallet'].unsettled_positions)
-            holdings_val = 0
-            
-            # Sum all YES sources
+            holdings = 0
             for src in p['inventory_yes']:
                 for t, q in p['inventory_yes'][src].items():
-                   mid = last_prices.get(t, np.nan)
-                   if pd.isna(mid): continue
-                   holdings_val += q * (mid/100.0)
-
-            # Sum all NO sources
+                    mid = last_prices.get(t, np.nan)
+                    if not pd.isna(mid): holdings += q * (mid/100.0)
             for src in p['inventory_no']:
                 for t, q in p['inventory_no'][src].items():
-                   mid = last_prices.get(t, np.nan)
-                   if pd.isna(mid): continue
-                   holdings_val += q * ((100-mid)/100.0)
-            
-            total = cash + unsettled + holdings_val
-            roi = (total / INITIAL_CAPITAL - 1) * 100
-            
-            trade_sources = defaultdict(int)
-            for t in p['trades']: trade_sources[t['source']] += 1
-            
-            print(f"Strategy {s.name}: Total ${total:.2f} | ROI {roi:+.1f}% | Trades {len(p['trades'])}")
-            print(f"Strategy {s.name}: Total ${total:.2f} | ROI {roi:+.1f}% | Trades {len(p['trades'])}")
-            print(f"  PnL Source Mix (Trade Count): {dict(trade_sources)}")
-            
-            # --- DIAGNOSTICS SUMMARY ---
-            slippages = [t['slippage'] for t in p['trades'] if 'slippage' in t]
-            if slippages:
-                avg_slip = sum(slippages) / len(slippages)
-                print(f"  AVG SLIPPAGE (Price Paid - Mid): {avg_slip:.2f} cents")
-                print(f"  (Positive = Paying above mid / Negative = Getting better than mid)")
-            
-            if p['trades']: pd.DataFrame(p['trades']).to_csv("debug_trades_v8_victory.csv", index=False)
-            
-        if equity_history:
-            peak = equity_history[0]
-            max_dd = 0
-            for val in equity_history:
-                if val > peak: peak = val
-                dd = (peak - val) / peak
-                if dd > max_dd: max_dd = dd
-            print(f"Portfolio Max Drawdown: {max_dd*100:.1f}%")
+                    mid = last_prices.get(t, np.nan)
+                    if not pd.isna(mid): holdings += q * ((100-mid)/100.0)
+            total_equity = cash + unsettled + holdings
+            print(f"FINAL EQUITY [{s.name}]: ${total_equity:.2f}")
 
         # --- NEW: DAILY ROI TABLE ---
         print("\n=== DAILY PERFORMANCE BREAKDOWN ===")
@@ -816,23 +941,19 @@ class ComplexBacktester:
         
         if hasattr(self, 'daily_equity_history'):
             for s_name, history in self.daily_equity_history.items():
-                peak = INITIAL_CAPITAL
-                prev_equity = INITIAL_CAPITAL
+                peak = self.initial_capital
+                prev_equity = self.initial_capital
                 
                 for i, day_data in enumerate(history):
                     date = day_data['date']
                     equity = day_data['equity']
-                    
-                    # Update Peak for Drawdown
                     if equity > peak: peak = equity
                     dd_pct = ((peak - equity) / peak) * 100.0 if peak > 0 else 0
-                    
-                    # ROI
                     daily_ret = ((equity - prev_equity) / prev_equity) * 100.0 if prev_equity > 0 else 0
-                    cum_ret = ((equity - INITIAL_CAPITAL) / INITIAL_CAPITAL) * 100.0
-                    
+                    cum_ret = ((equity - self.initial_capital) / self.initial_capital) * 100.0
                     print(f"{date:<10} | ${equity:<9.2f} | {daily_ret:>7.2f}% | {cum_ret:>7.2f}% | {dd_pct:>7.2f}%")
                     prev_equity = equity
+
         # --- NEW: PORTFOLIO SNAPSHOT ---
         print("\n=== FINAL PORTFOLIO SNAPSHOT ===")
         for s in self.strategies:
@@ -863,92 +984,45 @@ class ComplexBacktester:
 
     def generate_performance_chart(self):
         if not hasattr(self, 'daily_equity_history'): return
-        
         fig = go.Figure()
-        
         for strat_name, history in self.daily_equity_history.items():
             dates = [h['date'] for h in history]
             equities = [h['equity'] for h in history]
             spendable = [h['spendable_cash'] for h in history]
-            
-            # Plot NAV
-            fig.add_trace(go.Scatter(
-                x=dates, 
-                y=equities, 
-                mode='lines+markers', 
-                name=f"{strat_name} (NAV)"
-            ))
-            
-            # Plot Spendable Cash
-            fig.add_trace(go.Scatter(
-                x=dates, 
-                y=spendable, 
-                mode='lines+markers', 
-                name=f"{strat_name} (Spendable Cash)",
-                line=dict(dash='dot')
-            ))
-            
-        fig.update_layout(
-            title="Strategy Value Over Time (Daily MTM Equity)",
-            xaxis_title="Date",
-            yaxis_title="Total Equity ($)",
-            hovermode="x unified",
-            height=800
-        )
-        
-        # Add baseline
-        fig.add_hline(y=INITIAL_CAPITAL, line_dash="dash", line_color="gray", annotation_text="Initial Capital")
-        
+            fig.add_trace(go.Scatter(x=dates, y=equities, mode='lines+markers', name=f"{strat_name} (NAV)"))
+            fig.add_trace(go.Scatter(x=dates, y=spendable, mode='lines+markers', name=f"{strat_name} (Spendable Cash)", line=dict(dash='dot')))
+        fig.update_layout(title="Strategy Value Over Time (Daily MTM Equity)", xaxis_title="Date", yaxis_title="Total Equity ($)", hovermode="x unified", height=800)
+        fig.add_hline(y=self.initial_capital, line_dash="dash", line_color="gray", annotation_text="Initial Capital")
         filename = os.path.join(CHARTS_DIR, "final_performance_v3.html")
         fig.write_html(filename)
         print(f"Generated final performance chart: {filename}")
 
     def generate_daily_chart(self, df, trades, daily_report, date_str, last_prices):
         fig = make_subplots(rows=3, cols=1, shared_xaxes=True, vertical_spacing=0.05, row_heights=[0.6, 0.15, 0.25], subplot_titles=(f"V3 Market & Trades - {date_str}", "Daily Performance", "Trade Log"), specs=[[{"type": "xy"}], [{"type": "table"}], [{"type": "table"}]])
-        tickers = df['market_ticker'].unique()[:15]
-        for t in tickers:
-            m = df[df['market_ticker'] == t]
-            fig.add_trace(go.Scatter(x=m['timestamp'], y=m['implied_no_ask'], mode='lines', name=t, opacity=0.4), row=1, col=1)
+        if not df.empty:
+            tickers = df['market_ticker'].unique()[:15]
+            for t in tickers:
+                m = df[df['market_ticker'] == t]
+                fig.add_trace(go.Scatter(x=m['timestamp'], y=m['implied_no_ask'], mode='lines', name=t, opacity=0.4), row=1, col=1)
         for t in trades[:500]:
             color = 'blue' if 'BUY' in t['action'] else 'red'
             symbol = 'circle' if t['source'] == 'MM' else 'diamond'
             fig.add_trace(go.Scatter(x=[t['time']], y=[t['viz_y']], mode='markers', marker=dict(color=color, size=9, symbol=symbol), name=f"{t['source']} {t['action']}"), row=1, col=1)
         fig.add_trace(go.Table(header=dict(values=["Strategy", "End Equity (MTM)"]), cells=dict(values=list(zip(*[[s, f"${d['equity']:.2f}"] for s, d in daily_report.items()])))), row=2, col=1)
         
-        # Trade Log
         trade_data = []
         chart_time = df['datetime'].max() if not df.empty else datetime.now()
-        
         for t in trades:
             end_price = last_prices.get(t['ticker'], np.nan)
-            
-            # Sanitize only if market has ended
             end_t = market_end_time_from_ticker(t['ticker'])
             if end_t and chart_time >= end_t:
                 end_price = settle_mid_price(last_prices.get(t['ticker'], np.nan))
-            
             roi = np.nan
             if not pd.isna(end_price):
                 val = end_price if 'YES' in t['action'] else (100 - end_price)
                 roi = ((val / 100.0 * t['qty']) - t['cost']) / t['cost']
-            
-            trade_data.append([
-                t['time'].strftime("%H:%M"), 
-                t['ticker'], 
-                t['source'],
-                t['action'], 
-                f"{t['price']}c", 
-                t['qty'],
-                f"${t['cost']:.2f}",
-                f"{end_price:.1f}c" if not pd.isna(end_price) else "-",
-                f"{roi*100:+.1f}%" if not pd.isna(roi) else "-"
-            ])
-            
-        fig.add_trace(go.Table(
-            header=dict(values=["Time", "Ticker", "Source", "Action", "Price", "Qty", "Cost", "End Price", "ROI"]),
-            cells=dict(values=list(zip(*trade_data)))
-        ), row=3, col=1)
-        
+            trade_data.append([t['time'].strftime("%H:%M"), t['ticker'], t['source'], t['action'], f"{t['price']}c", t['qty'], f"${t['cost']:.2f}", f"{end_price:.1f}c" if not pd.isna(end_price) else "-", f"{roi*100:+.1f}%" if not pd.isna(roi) else "-"])
+        fig.add_trace(go.Table(header=dict(values=["Time", "Ticker", "Source", "Action", "Price", "Qty", "Cost", "End Price", "ROI"]), cells=dict(values=list(zip(*trade_data)))), row=3, col=1)
         fig.update_layout(height=1000, title_text=f"Complex V3: {date_str}")
         fig.write_html(os.path.join(CHARTS_DIR, f"complex_v3_{date_str}.html"))
 

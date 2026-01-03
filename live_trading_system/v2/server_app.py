@@ -30,6 +30,19 @@ def get_status():
     except Exception as e:
         return jsonify({"status": "ERROR", "message": str(e)}), 500
 
+@app.route('/api/observer_status', methods=['GET'])
+def get_observer_status():
+    try:
+        observer_file = "observer_status.json"
+        if os.path.exists(observer_file):
+            with open(observer_file, 'r') as f:
+                data = json.load(f)
+            return jsonify(data)
+        else:
+            return jsonify({"status": "WAITING", "message": "Observer starting..."})
+    except Exception as e:
+        return jsonify({"status": "ERROR", "message": str(e)}), 500
+
 @app.route('/api/control', methods=['POST'])
 def control_trader():
     try:

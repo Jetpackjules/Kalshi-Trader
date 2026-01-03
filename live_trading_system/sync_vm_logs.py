@@ -36,6 +36,79 @@ def sync_logs():
     except subprocess.CalledProcessError as e:
         print(f"Error downloading logger.log: {e}")
 
+    # 1b. Download trades.csv
+    print("Downloading trades.csv...")
+    cmd_trades = [
+        "scp",
+        "-i", KEY_FILE,
+        "-o", "StrictHostKeyChecking=no",
+        f"{VM_USER}@{VM_IP}:~/trades.csv",
+        f"{LOCAL_LOG_DIR}/"
+    ]
+    
+    try:
+        subprocess.run(cmd_trades, check=True)
+        print("Successfully downloaded trades.csv")
+    except subprocess.CalledProcessError as e:
+        print(f"Error downloading trades.csv: {e}")
+
+    # 1c. Download trader_status.json
+    print("Downloading trader_status.json...")
+    cmd_status = [
+        "scp",
+        "-i", KEY_FILE,
+        "-o", "StrictHostKeyChecking=no",
+        f"{VM_USER}@{VM_IP}:~/trader_status.json",
+        f"{LOCAL_LOG_DIR}/"
+    ]
+    
+    try:
+        subprocess.run(cmd_status, check=True)
+        print("Successfully downloaded trader_status.json")
+        
+        # Versioning: Save a copy to snapshots/ folder
+        import json
+        import shutil
+        
+        local_status_path = os.path.join(LOCAL_LOG_DIR, "trader_status.json")
+        snapshots_dir = os.path.join(LOCAL_LOG_DIR, "snapshots")
+        
+        if not os.path.exists(snapshots_dir):
+            os.makedirs(snapshots_dir)
+            
+        try:
+            with open(local_status_path, 'r') as f:
+                data = json.load(f)
+                last_update = data.get("last_update", "unknown").replace(":", "-").replace(" ", "_")
+                
+            snapshot_filename = f"trader_status_{last_update}.json"
+            snapshot_path = os.path.join(snapshots_dir, snapshot_filename)
+            
+            shutil.copy2(local_status_path, snapshot_path)
+            print(f"  Saved snapshot to: {snapshot_path}")
+            
+        except Exception as e:
+            print(f"  Warning: Could not version snapshot: {e}")
+            
+    except subprocess.CalledProcessError as e:
+        print(f"Error downloading trader_status.json: {e}")
+
+    # 1d. Download live_trader_v4.log
+    print("Downloading live_trader_v4.log...")
+    cmd_trader_log = [
+        "scp",
+        "-i", KEY_FILE,
+        "-o", "StrictHostKeyChecking=no",
+        f"{VM_USER}@{VM_IP}:~/live_trader_v4.log",
+        f"{LOCAL_LOG_DIR}/"
+    ]
+    
+    try:
+        subprocess.run(cmd_trader_log, check=True)
+        print("Successfully downloaded live_trader_v4.log")
+    except subprocess.CalledProcessError as e:
+        print(f"Error downloading live_trader_v4.log: {e}")
+
     # 2. Download market_logs directory (selective)
     print("\nSyncing market_logs/...")
     

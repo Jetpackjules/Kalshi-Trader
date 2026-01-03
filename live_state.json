@@ -1,0 +1,33 @@
+{
+  "balance": 52.69,
+  "portfolio_value": 1.26,
+  "positions": {
+    "KXHIGHNY-25DEC31-B31.5": {
+      "yes": 1,
+      "no": 0,
+      "cost": 0.31
+    },
+    "KXHIGHNY-25DEC31-B33.5": {
+      "yes": 0,
+      "no": 10,
+      "cost": 4.35
+    },
+    "KXHIGHNY-25DEC31-B35.5": {
+      "yes": 70,
+      "no": 0,
+      "cost": 6.91
+    },
+    "KXHIGHNY-25DEC31-B37.5": {
+      "yes": 42,
+      "no": 0,
+      "cost": 1.35
+    },
+    "KXHIGHNY-26JAN01-T30": {
+      "yes": 3,
+      "no": 0,
+      "cost": 0.1
+    }
+  },
+  "daily_start_equity": 53.949999999999996,
+  "timestamp": null
+}

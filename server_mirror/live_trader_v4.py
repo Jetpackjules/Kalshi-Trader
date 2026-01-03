@@ -287,7 +287,7 @@ class RegimeSwitcher(ComplexStrategy):
             mm_orders = None
         else:
             mm_orders = []
-
+            
         self.last_decision = decision
         
         if mm_orders is None: return None
@@ -325,27 +325,25 @@ class LiveTraderV4:
         self.strategy = RegimeSwitcher("Live RegimeSwitcher", risk_pct=0.5)
         self.file_offsets = {} 
         self.file_headers = {}
-        self.last_status_time = None
-        self.launch_time = datetime.now()
-        
-        # API State
-        self.balance = 0.0
-        self.portfolio_value = 0.0 
-        self.daily_start_equity = 0.0 
-        self.last_reset_date = None
-        self.positions = {} # {ticker: {'yes': qty, 'no': qty, 'cost': cost}}
-        
-        # Shadow State (Immediate updates on order success)
-        self.shadow_balance = 0.0
-        self.shadow_positions = defaultdict(lambda: {"yes": 0, "no": 0})
-        self.shadow_anchor_balance = 0.0
-        self.shadow_spent_since_sync = 0.0
-        
         # Order Management
         self.order_cache = {} # {ticker: {'orders': [], 'timestamp': ts}}
         self.open_orders_snapshot = [] # Global snapshot
         self.open_orders_snapshot_ts = 0
         self.last_requote_time = {} # {ticker: ts}
+        
+        # State Tracking
+        self.daily_start_equity = 0.0
+        self.last_reset_date = ""
+        self.balance = 0.0
+        self.portfolio_value = 0.0
+        self.positions = {}
+        
+        # Shadow State (for high-frequency tracking)
+        self.shadow_balance = 0.0
+        self.shadow_positions = defaultdict(lambda: {'yes': 0, 'no': 0})
+        self.shadow_anchor_balance = 0.0
+        self.shadow_spent_since_sync = 0.0
+        self.last_status_time = None
         
         # Load Key Once
         try:
@@ -435,12 +433,15 @@ class LiveTraderV4:
                 "strategy": self.strategy.name,
                 "equity": current_equity,
                 "cash": self.balance,
+                "portfolio_value": self.portfolio_value,
                 "pnl_today": pnl_today,
                 "trades_today": trades_count,
                 "daily_budget": budget,
+                "daily_start_equity": self.daily_start_equity,
                 "current_exposure": current_exposure,
                 "spent_today": current_exposure, # Alias for dashboard compatibility
                 "spent_pct": spent_pct,
+                "positions": self.positions,
                 "target_date": "Dec 17+",
                 "last_decision": getattr(self.strategy, "last_decision", {})
             }
@@ -531,6 +532,7 @@ class LiveTraderV4:
                             self.positions[ticker]['yes'] = qty
                         else:
                             self.positions[ticker]['no'] = qty
+                            
                         self.positions[ticker]['cost'] = cost
 
             # Daily Reset
@@ -542,6 +544,35 @@ class LiveTraderV4:
                 self.daily_start_equity = current_equity
                 self.last_reset_date = today_str
                 print(f"  [BUDGET] Daily Start Equity: ${self.daily_start_equity:.2f}")
+                
+                # --- DAILY SNAPSHOT ---
+                try:
+                    snap_dir = os.path.expanduser("~/snapshots")
+                    if not os.path.exists(snap_dir):
+                        os.makedirs(snap_dir)
+                        
+                    snap_file = os.path.join(snap_dir, f"snapshot_{today_str}.json")
+                    
+                    # Create comprehensive snapshot
+                    snapshot_data = {
+                        "timestamp": now.strftime("%Y-%m-%d %H:%M:%S"),
+                        "date": today_str,
+                        "daily_start_equity": self.daily_start_equity,
+                        "balance": self.balance,
+                        "portfolio_value": self.portfolio_value,
+                        "positions": self.positions,
+                        "strategy_config": {
+                            "name": self.strategy.name,
+                            "risk_pct": self.strategy.risk_pct
+                        }
+                    }
+                    
+                    with open(snap_file, "w") as f:
+                        json.dump(snapshot_data, f, indent=2)
+                    print(f"  [SNAPSHOT] Saved daily snapshot to {snap_file}")
+                    
+                except Exception as e:
+                    print(f"  [SNAPSHOT] Error saving snapshot: {e}")
             
             # Refresh Shadows
             self.shadow_balance = self.balance
@@ -609,44 +640,29 @@ class LiveTraderV4:
         
         if resp is None:
             print(f"❌ FAIL: No response placing order (ticker={ticker} side={side} qty={qty} price={price})", flush=True)
-            return False, 0.0
+            return False, 0.0, 0, "no_response"
 
         if resp.status_code == 201:
-            print(f"✅ ORDER: {ticker} {side.upper()} {qty} @ {price} (Exp: {expiry_ts.strftime('%H:%M:%S')})", flush=True)
-            return True, calculate_convex_fee(price, qty)
+            data = resp.json().get('order', {})
+            status = data.get('status', 'unknown')
+            filled = data.get('filled_count', 0)
+            
+            print(f"✅ ORDER: {ticker} {side.upper()} {qty} @ {price} | Status: {status} | Filled: {filled}/{qty}", flush=True)
+            
+            # If partial fill or resting, explicit log
+            if filled < qty:
+                 print(f"⚠️ PARTIAL/RESTING: Requested {qty}, Filled {filled}. Reason: Liquidity at Price.", flush=True)
+                 
+            return True, calculate_convex_fee(price, qty), filled, status
 
         print(f"❌ FAIL {resp.status_code}: {resp.text} payload={payload}", flush=True)
-        return False, 0.0
+        return False, 0.0, 0, "error"
 
-    def get_active_log_files(self):
-        all_files = sorted(glob.glob(os.path.join(LOG_DIR, "market_data_*.csv")))
-        active_files = []
-        MIN_MARKET_DATE = date(2025, 12, 17)
-        
-        for f in all_files:
-            try:
-                basename = os.path.basename(f)
-                match = re.search(r'-(\d{2}[A-Z]{3}\d{2})\.csv', basename)
-                if match:
-                    date_str = match.group(1)
-                    file_date = datetime.strptime(date_str, "%y%b%d").date()
-                    if file_date >= MIN_MARKET_DATE:
-                        active_files.append(f)
-            except: pass
-        return active_files
-
-    def process_new_data(self, log_file):
+    def fetch_new_ticks(self, log_file):
+        new_rows = []
         try:
-            # Check file size to avoid unnecessary reads
-            current_size = os.path.getsize(log_file)
-            last_offset = self.file_offsets.get(log_file, 0)
+            if not os.path.exists(log_file): return []
             
-            if current_size == last_offset:
-                return # No new data
-            
-            # print(f"DEBUG: Processing {log_file} size={current_size} offset={last_offset}", flush=True)
-            
-            # Open and seek
             with open(log_file, 'r') as f:
                 # If new file, read header to get fieldnames
                 if log_file not in self.file_headers:
@@ -656,7 +672,7 @@ class LiveTraderV4:
                     # Optimization: Seek to end to skip processing entire history on startup
                     f.seek(0, os.SEEK_END)
                     self.file_offsets[log_file] = f.tell()
-                    return 
+                    return []
                 
                 f.seek(self.file_offsets[log_file])
                 
@@ -664,16 +680,21 @@ class LiveTraderV4:
                 reader = csv.DictReader(f, fieldnames=self.file_headers[log_file])
                 
                 for row in reader:
-                    self.on_tick(row)
+                    new_rows.append(row)
                 
                 self.file_offsets[log_file] = f.tell()
 
         except Exception as e:
-            # On error, reset offset to avoid stuck state, or just pass
             print(f"Error reading log {log_file}: {e}", flush=True)
-            import traceback
-            print(traceback.format_exc(), flush=True)
             pass
+            
+        return new_rows
+
+    def process_new_data(self, log_file):
+        # LEGACY: Kept for compatibility if needed, but run() will use fetch_new_ticks
+        rows = self.fetch_new_ticks(log_file)
+        for row in rows:
+            self.on_tick(row)
 
     def on_tick(self, row):
         ticker = row['market_ticker']
@@ -882,38 +903,34 @@ class LiveTraderV4:
 
         if qty <= 0:
             print(f"SKIP {ticker} balance-fit -> qty=0 (bal={effective_cash:.2f} need={total_cost:.2f})", flush=True)
-            return
-
-        print(f"[BUDGETDBG] budget={budget:.2f} exposure={current_exposure:.2f} shadow_spent={self.shadow_spent_since_sync:.2f} api_bal={self.balance:.2f} shadow_bal={self.shadow_balance:.2f}", flush=True)
-
-        # Execute
-        print(f"TRY_ORDER {ticker} {side} qty={qty} price={price} total_cost={total_cost:.2f}", flush=True)
-        success, final_fee = self.place_real_order(ticker, qty, price, side, expiry)
-        
-        if success:
-            # Update Shadows Immediately
-            self.shadow_balance -= total_cost
-            self.shadow_spent_since_sync += total_cost
-            if side == "yes":
-                self.shadow_positions[ticker]["yes"] += qty
-            else:
-                self.shadow_positions[ticker]["no"] += qty
-            
-            # Log Trade for Dashboard
-            self.log_order(timestamp, ticker, action, price, qty, total_cost, final_fee)
-            # No optimistic balance update (avoid freeze)
-            # Force cache invalidation
-            if ticker in self.order_cache: del self.order_cache[ticker]
-
-    def log_order(self, timestamp, ticker, action, price, qty, cost, fee):
-        file_exists = os.path.isfile(ORDERS_LOG_FILE)
         try:
+            # Capture Wall Clock Time (Execution Time)
+            exec_time = datetime.now()
+            exec_time_str = exec_time.strftime("%Y-%m-%d %H:%M:%S.%f")
+            
+            # Calculate Latency (Lag between Data Tick and Execution)
+            latency_ms = 0
+            try:
+                # Assuming timestamp format matches log format
+                tick_dt = datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S.%f")
+                latency_ms = (exec_time - tick_dt).total_seconds() * 1000.0
+            except:
+                pass
+
+            file_exists = os.path.isfile(ORDERS_LOG_FILE)
             with open(ORDERS_LOG_FILE, 'a', newline='') as f:
                 writer = csv.writer(f)
                 if not file_exists:
-                    writer.writerow(["timestamp", "strategy", "ticker", "action", "price", "qty", "cost", "fee"])
-                writer.writerow([timestamp, self.strategy.name, ticker, action, price, qty, cost, fee])
+                    writer.writerow(["timestamp", "strategy", "ticker", "action", "price", "qty", "cost", "fee", "exec_time", "latency_ms"])
+                writer.writerow([timestamp, self.strategy.name, ticker, action, price, qty, cost, fee, exec_time_str, f"{latency_ms:.2f}"])
         except: pass
+
+    def get_active_log_files(self):
+        # Return list of log files to process
+        log_dir = os.path.expanduser(f"~/{LOG_DIR}")
+        if not os.path.exists(log_dir): return []
+        files = glob.glob(os.path.join(log_dir, "*.csv"))
+        return sorted(files)
 
     def run(self):
         try:
@@ -933,9 +950,26 @@ class LiveTraderV4:
                 if self.last_reset_date != now.strftime('%Y-%m-%d') and now.hour >= 5:
                     self.sync_api_state(force_reset_daily=True)
                 
+                # --- DETERMINISTIC BATCH PROCESSING ---
+                # 1. Gather all new ticks from all active files
+                all_new_ticks = []
                 active_files = self.get_active_log_files()
                 for log_file in active_files:
-                    self.process_new_data(log_file)
+                    ticks = self.fetch_new_ticks(log_file)
+                    all_new_ticks.extend(ticks)
+                
+                # 2. Sort by Timestamp (Global Chronological Order)
+                # Ensure we parse timestamp correctly for sorting
+                def parse_ts(row):
+                    try: return pd.to_datetime(row['timestamp'])
+                    except: return datetime.min
+                
+                if all_new_ticks:
+                    all_new_ticks.sort(key=parse_ts)
+                    
+                    # 3. Process in Order
+                    for row in all_new_ticks:
+                        self.on_tick(row)
                     
                 if self.last_status_time is None or (now - self.last_status_time).total_seconds() >= 60:
                     self.sync_api_state()

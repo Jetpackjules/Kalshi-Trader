@@ -193,6 +193,36 @@
             </div>
         </div>
 
+        <!-- Observer Panel (New) -->
+        <div class="control-panel" style="border-left: 5px solid #6f42c1; background: #f3f0ff;">
+            <h2 style="margin-top: 0;">Observer Bot (Theoretical Fair Price)</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Ticker</div>
+                    <div class="stat-value" id="obsTicker" style="font-size: 18px;">-</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Market Mid</div>
+                    <div class="stat-value" id="obsMid">-</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Observer Fair</div>
+                    <div class="stat-value" id="obsFair" style="color: #6f42c1;">-</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Spread / Thresh</div>
+                    <div class="stat-value" id="obsSpread" style="font-size: 18px;">-</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Status</div>
+                    <div class="stat-value" id="obsStatus" style="font-size: 18px;">-</div>
+                </div>
+            </div>
+            <div style="margin-top: 10px; font-size: 12px; color: #666;">
+                Updates every 100ms. Shows what the bot <b>should</b> see if it wasn't gated.
+            </div>
+        </div>
+
         <!-- Chart Controls -->
         <div class="controls">
             <label for="fileSelect">Select Market Day:</label>
@@ -200,6 +230,7 @@
                 <option value="">Loading markets...</option>
             </select>
             <button class="btn btn-refresh" onclick="loadData()">Refresh Graph</button>
+            <button class="btn" style="background: #6c757d; color: white;" onclick="viewLog()">View Log</button>
             <span id="status" style="margin-left: auto;">Waiting...</span>
         </div>
 
@@ -303,9 +334,7 @@
                     body: JSON.stringify({ action: action })
                 });
                 const result = await response.json();
-                // alert(result.message); // Optional: Remove alert for smoother XP
 
-                // Wait a bit for file to write then refresh
                 setTimeout(() => {
                     updateStatus();
                     btn.disabled = false;
@@ -352,7 +381,7 @@
             }
         }
 
-        // --- CHART LOGIC (Existing) ---
+        // --- CHART LOGIC ---
         async function fetchManifest() {
             try {
                 const response = await fetch(LOG_DIR + 'manifest.json?t=' + Date.now());
@@ -407,6 +436,14 @@
             }
         }
 
+        function viewLog() {
+            const select = document.getElementById('fileSelect');
+            const filename = select.value;
+            if (filename) {
+                window.open('/market_logs/' + filename, '_blank');
+            }
+        }
+
         function processData(csvText, title) {
             const lines = csvText.trim().split('\n');
             const markets = {};
@@ -453,16 +490,62 @@
             Plotly.newPlot('chart', traces, layout);
         }
 
+        // --- OBSERVER LOGIC ---
+        async function loadObserverStatus() {
+            try {
+                const response = await fetch('/api/observer_status?t=' + Date.now());
+                const data = await response.json();
+
+                if (data.status === "WAITING") {
+                    document.getElementById('obsStatus').innerText = "Waiting...";
+                    return;
+                }
+
+                document.getElementById('obsTicker').innerText = data.ticker || '-';
+                document.getElementById('obsMid').innerText = data.mid ? data.mid.toFixed(1) + '¢' : '-';
+
+                // Highlight Fair Price Divergence
+                const fair = data.fair_price;
+                const mid = data.mid;
+                const elFair = document.getElementById('obsFair');
+                elFair.innerText = fair ? fair.toFixed(2) + '¢' : '-';
+
+                if (fair && mid && Math.abs(fair - mid) > 2.0) {
+                    elFair.style.color = '#dc3545'; // Red if divergent
+                    elFair.style.fontWeight = 'bold';
+                    elFair.innerText += ' (DIVERGENCE!)';
+                } else {
+                    elFair.style.color = '#6f42c1';
+                }
+
+                document.getElementById('obsSpread').innerText = `${data.spread}¢ / ${data.threshold}¢`;
+
+                const elStatus = document.getElementById('obsStatus');
+                if (data.is_tight) {
+                    elStatus.innerText = "TIGHT (Updating)";
+                    elStatus.style.color = '#28a745';
+                } else {
+                    elStatus.innerText = "WIDE (Gated)";
+                    elStatus.style.color = '#ffc107';
+                }
+
+            } catch (e) {
+                console.error("Observer error:", e);
+            }
+        }
+
         // Init
         fetchManifest();
         updateStatus();
-        loadTrades(); // Initial load
+        loadTrades();
+        loadObserverStatus();
 
         // Loops
         setInterval(fetchManifest, 10000);
         setInterval(loadData, 30000);
-        setInterval(updateStatus, 2000); // Poll status every 2s
-        setInterval(loadTrades, 5000); // Poll trades every 5s
+        setInterval(updateStatus, 2000);
+        setInterval(loadTrades, 5000);
+        setInterval(loadObserverStatus, 500);
 
         document.getElementById('fileSelect').addEventListener('change', (e) => {
             currentFile = e.target.value;

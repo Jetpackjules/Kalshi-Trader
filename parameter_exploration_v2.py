@@ -4,7 +4,6 @@ import complex_strategy_backtest as csb
 from collections import defaultdict
 import plotly.colors as pcolors
 
-# --- CONFIGURATION OVERRIDES ---
 csb.INITIAL_CAPITAL = 1000.00
 csb.START_DATE = None 
 csb.END_DATE = None
@@ -17,7 +16,7 @@ scenarios = [
     # 1. BASELINE (Winner from Phase 12)
     {
         "name": "Baseline (Day-Only)", 
-        "midnight_filter": True, 
+        "midnight_filter": False, 
         "kwargs": {
             "active_hours": DEFAULT_HOURS,
             "risk_pct": 0.5
@@ -27,7 +26,7 @@ scenarios = [
     # 2. SNIPER MODE (High Selectivity, High Conviction)
     {
         "name": "Sniper Mode", 
-        "midnight_filter": True, 
+        "midnight_filter": False, 
         "kwargs": {
             "active_hours": DEFAULT_HOURS,
             "tightness_percentile": 20, # Only top 20% tightest spreads
@@ -41,7 +40,7 @@ scenarios = [
     # 3. SPRAY & PRAY (High Volume, Low Edge)
     {
         "name": "Spray & Pray", 
-        "midnight_filter": True, 
+        "midnight_filter": False, 
         "kwargs": {
             "active_hours": DEFAULT_HOURS,
             "tightness_percentile": 90, # Trade almost always
@@ -55,7 +54,7 @@ scenarios = [
     # 4. THE WHALE (High Risk, Deep Pockets)
     {
         "name": "The Whale", 
-        "midnight_filter": True, 
+        "midnight_filter": False, 
         "kwargs": {
             "active_hours": DEFAULT_HOURS,
             "max_notional_pct": 0.80,   # Use 80% of cash
@@ -68,7 +67,7 @@ scenarios = [
     # 5. INVENTORY PHOBIC (Quick flip or nothing)
     {
         "name": "Inventory Phobic", 
-        "midnight_filter": True, 
+        "midnight_filter": False, 
         "kwargs": {
             "active_hours": DEFAULT_HOURS,
             "inventory_penalty": 10.0,  # Punishment factor for holding
@@ -80,7 +79,7 @@ scenarios = [
     # 6. GOLDEN HOURS (Vol Capture)
     {
         "name": "Golden Hours Only", 
-        "midnight_filter": True, 
+        "midnight_filter": False, 
         "kwargs": {
             "active_hours": GOLDEN_HOURS,
             "tightness_percentile": 60,

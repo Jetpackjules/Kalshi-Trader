@@ -18,8 +18,8 @@ TRADING_FEE_PER_CONTRACT = 0.02 # Fee per contract
 TEST_ONLY_LIVE_STRATEGY = True # Speed Optimization: Test only the strategy used in Live Trading
 TEST_ONLY_OG_FAST = True # Speed Optimization: Test only OG Fast (Simulated)
 AUTO_SYNC_LOGS = False # Automatically download logs from VM before running
-START_DATE = "25DEC17" # e.g. "25DEC10" or None for all
-END_DATE = "25DEC17"   # e.g. "25DEC17" or None for all
+START_DATE = "26JAN01" # e.g. "25DEC10" or None for all
+END_DATE = "26JAN01"   # e.g. "25DEC17" or None for all
 
 # --- Wallet Class for Realistic Settlement ---
 class Wallet:
@@ -478,45 +478,37 @@ class InventoryAwareMarketMaker(Strategy):
             can_buy_yes = net_inventory < self.max_inventory
             can_sell_yes = net_inventory > -self.max_inventory
             
-            # 3. Calculate Quotes
-            # Spread
-            spread = yes_ask - best_bid
-            if spread <= 0: 
-                continue # Crossed market?
+            # 3. Calculate Quotes (AGGRESSIVE LIMIT LOGIC - Matching v5)
+            # Instead of quoting inside spread, we check for EDGE and pay the spread if it exists.
             
-            base_offset = min(spread / 2 - 1, self.max_offset)
-            base_offset = max(0, base_offset) # Ensure non-negative
+            # Fair Price (EMA)
+            fair_prob = self.fair_price / 100.0
             
-            inv_adj = net_inventory * self.inventory_penalty
+            # Execution Prices (Aggressive: Ask + 1)
+            exec_yes = min(99, yes_ask + 1)
+            exec_no = min(99, no_ask + 1)
             
-            my_bid = self.fair_price - base_offset - inv_adj
-            my_ask = self.fair_price + base_offset - inv_adj
+            # Edge Calculation
+            edge_yes = fair_prob - (exec_yes / 100.0)
+            edge_no = (1.0 - fair_prob) - (exec_no / 100.0)
             
-            # Round to int
-            my_bid_tick = int(math.floor(my_bid))
-            my_ask_tick = int(math.ceil(my_ask))
+            # Fee Buffer (approx 2c round trip)
+            required_edge = 0.02 
             
-            # Sanity Limits
-            my_bid_tick = max(1, min(99, my_bid_tick))
-            my_ask_tick = max(1, min(99, my_ask_tick))
+            qty = 10 # Fixed size for sim
             
-            qty = 10 # small size
+            # 4. Generate Orders (Aggressive Limit -> Immediate Fill Assumption)
             
-            # 4. Generate Orders (Limit)
-            
-            if can_buy_yes:
-                 # DEBUG
-                 # print(f"DEBUG: Placing BUY_YES Limit @ {my_bid_tick} (Ask: {yes_ask})")
+            if can_buy_yes and edge_yes > required_edge:
                  orders.append({
                      'action': 'BUY_YES', 'ticker': ticker, 'qty': qty, 
-                     'type': 'LIMIT', 'price': my_bid_tick, 'expiry': tick_expiry
+                     'type': 'LIMIT', 'price': exec_yes, 'expiry': tick_expiry
                  })
             
-            if can_sell_yes: # Effective Sell YES
-                 no_price_tick = 100 - my_ask_tick
+            if can_sell_yes and edge_no > required_edge: # Buy NO
                  orders.append({
                      'action': 'BUY_NO', 'ticker': ticker, 'qty': qty, 
-                     'type': 'LIMIT', 'price': no_price_tick, 'expiry': tick_expiry
+                     'type': 'LIMIT', 'price': exec_no, 'expiry': tick_expiry
                  })
                  
         return orders
@@ -1249,6 +1241,10 @@ class HumanReadableBacktester:
             if wallet.spend(cost):
                 portfolio['cash'] = wallet.available_cash
                 portfolio['spent_today'] += cost
+                
+                # DEBUG: Trace Spend
+                print(f"  [TRADE] {ticker} {action} | Qty: {qty} | Cost: ${cost:.2f} | Equity: ${total_equity:.2f} | Budget: ${daily_budget:.2f} | Spent: ${portfolio['spent_today']:.2f}")
+
                 portfolio['holdings'].append({
                     'ticker': ticker, 'side': side, 'qty': qty, 'price': price, 'cost': cost
                 })

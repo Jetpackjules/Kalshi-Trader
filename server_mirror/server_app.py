@@ -78,6 +78,13 @@ def get_trades():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route('/download_trades')
+def download_trades():
+    try:
+        return send_from_directory('.', 'trades.csv', as_attachment=True)
+    except Exception as e:
+        return str(e), 404
+
 @app.route('/market_logs/<path:filename>')
 def serve_logs(filename):
     return send_from_directory(LOG_DIR, filename)
