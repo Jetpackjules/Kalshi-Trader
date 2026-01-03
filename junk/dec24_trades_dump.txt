@@ -1,0 +1,35 @@
+Found 20 trades on Dec 24.
+                     timestamp             strategy                  ticker   action  price  qty  cost   fee
+89  2025-12-24 05:00:15.955590  Live RegimeSwitcher  KXHIGHNY-25DEC24-B42.5  BUY_YES     23    4  0.97  0.05
+90  2025-12-24 05:00:27.310810  Live RegimeSwitcher  KXHIGHNY-25DEC24-B42.5  BUY_YES     25    2  0.53  0.03
+91  2025-12-24 05:00:33.347923  Live RegimeSwitcher    KXHIGHNY-25DEC24-T47   BUY_NO     93    1  0.94  0.01
+92  2025-12-24 05:00:36.702633  Live RegimeSwitcher  KXHIGHNY-25DEC24-B42.5  BUY_YES     23    2  0.49  0.03
+93  2025-12-24 05:00:40.438722  Live RegimeSwitcher  KXHIGHNY-25DEC24-B42.5  BUY_YES     25    2  0.53  0.03
+94  2025-12-24 05:00:45.396596  Live RegimeSwitcher  KXHIGHNY-25DEC24-B42.5  BUY_YES     24    2  0.51  0.03
+95  2025-12-24 05:00:53.591706  Live RegimeSwitcher  KXHIGHNY-25DEC24-B42.5  BUY_YES     23    2  0.49  0.03
+96  2025-12-24 05:00:55.982617  Live RegimeSwitcher  KXHIGHNY-25DEC24-B44.5   BUY_NO     48    1  0.50  0.02
+97  2025-12-24 05:01:00.873948  Live RegimeSwitcher  KXHIGHNY-25DEC24-B42.5  BUY_YES     23    2  0.49  0.03
+98  2025-12-24 05:03:55.362987  Live RegimeSwitcher  KXHIGHNY-25DEC24-B42.5  BUY_YES     25    1  0.27  0.02
+99  2025-12-24 05:04:01.653569  Live RegimeSwitcher  KXHIGHNY-25DEC24-B42.5  BUY_YES     23    2  0.49  0.03
+100 2025-12-24 05:04:06.761235  Live RegimeSwitcher  KXHIGHNY-25DEC24-B42.5  BUY_YES     22    2  0.47  0.03
+101 2025-12-24 05:04:09.524452  Live RegimeSwitcher  KXHIGHNY-25DEC24-B42.5  BUY_YES     24    1  0.26  0.02
+102 2025-12-24 05:04:14.381832  Live RegimeSwitcher  KXHIGHNY-25DEC24-B42.5  BUY_YES     21    2  0.45  0.03
+103 2025-12-24 05:04:18.397695  Live RegimeSwitcher  KXHIGHNY-25DEC24-B42.5  BUY_YES     24    1  0.26  0.02
+104 2025-12-24 05:04:20.692009  Live RegimeSwitcher  KXHIGHNY-25DEC24-B42.5  BUY_YES     23    1  0.25  0.02
+105 2025-12-24 05:16:06.488214  Live RegimeSwitcher  KXHIGHNY-25DEC24-B44.5   BUY_NO     44    1  0.46  0.02
+106 2025-12-24 05:16:55.695207  Live RegimeSwitcher  KXHIGHNY-25DEC24-B44.5   BUY_NO     44    1  0.46  0.02
+107 2025-12-24 05:17:18.217871  Live RegimeSwitcher  KXHIGHNY-25DEC24-B44.5   BUY_NO     44    1  0.46  0.02
+108 2025-12-24 06:42:34.774943  Live RegimeSwitcher  KXHIGHNY-25DEC24-B42.5  BUY_YES      5    1  0.06  0.01
+
+Found 17 trades on Dec 23.
+                    timestamp             strategy                  ticker   action  price  qty  cost   fee
+79 2025-12-23 13:26:59.118334  Live RegimeSwitcher  KXHIGHNY-25DEC24-B46.5  BUY_YES     11    2  0.24  0.02
+80 2025-12-23 13:26:59.118334  Live RegimeSwitcher  KXHIGHNY-25DEC24-B46.5  BUY_YES     11    2  0.24  0.02
+81 2025-12-23 13:27:04.411969  Live RegimeSwitcher  KXHIGHNY-25DEC24-B46.5  BUY_YES     11    1  0.12  0.01
+82 2025-12-23 13:27:04.411969  Live RegimeSwitcher  KXHIGHNY-25DEC24-B46.5  BUY_YES     11    1  0.12  0.01
+83 2025-12-23 13:27:17.987371  Live RegimeSwitcher  KXHIGHNY-25DEC24-B46.5  BUY_YES     11    1  0.12  0.01
+84 2025-12-23 13:27:17.987371  Live RegimeSwitcher  KXHIGHNY-25DEC24-B46.5  BUY_YES     11    1  0.12  0.01
+85 2025-12-23 13:27:56.315181  Live RegimeSwitcher  KXHIGHNY-25DEC24-B46.5  BUY_YES     11    1  0.12  0.01
+86 2025-12-23 13:27:56.315181  Live RegimeSwitcher  KXHIGHNY-25DEC24-B46.5  BUY_YES     11    1  0.12  0.01
+87 2025-12-23 13:28:02.550106  Live RegimeSwitcher  KXHIGHNY-25DEC24-B46.5  BUY_YES     11    1  0.12  0.01
+88 2025-12-23 13:28:02.550106  Live RegimeSwitcher  KXHIGHNY-25DEC24-B46.5  BUY_YES     11    1  0.12  0.01

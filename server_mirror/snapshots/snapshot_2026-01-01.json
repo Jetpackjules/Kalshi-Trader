@@ -1,0 +1,38 @@
+{
+  "timestamp": "2026-01-01 17:35:48",
+  "date": "2026-01-01",
+  "daily_start_equity": 52.94,
+  "balance": 26.26,
+  "portfolio_value": 26.68,
+  "positions": {
+    "KXHIGHNY-26JAN02-B28.5": {
+      "yes": 0,
+      "no": 5,
+      "cost": 4.2
+    },
+    "KXHIGHNY-26JAN02-B32.5": {
+      "yes": 0,
+      "no": 14,
+      "cost": 8.36
+    },
+    "KXHIGHNY-26JAN01-T30": {
+      "yes": 3,
+      "no": 0,
+      "cost": 0.1
+    },
+    "KXHIGHNY-26JAN01-B32.5": {
+      "yes": 76,
+      "no": 0,
+      "cost": 11.18
+    },
+    "KXHIGHNY-26JAN01-B34.5": {
+      "yes": 0,
+      "no": 13,
+      "cost": 2.69
+    }
+  },
+  "strategy_config": {
+    "name": "Live RegimeSwitcher",
+    "risk_pct": 0.5
+  }
+}

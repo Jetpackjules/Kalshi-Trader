@@ -1,0 +1,3 @@
+                          time  action                ticker  price  qty   fee    cost source  spread  capital_after  slippage  mid_at_fill                   datetime
+18  2025-12-24 05:00:35.716366  BUY_NO  KXHIGHNY-25DEC24-T47     94  378  1.50  356.82     MM       8        8538.16       4.0         10.0 2025-12-24 05:00:35.716366
+19  2025-12-24 05:00:38.534618  BUY_NO  KXHIGHNY-25DEC24-T47     92  122  0.63  112.87     MM       7        8425.29       3.5         11.5 2025-12-24 05:00:38.534618
