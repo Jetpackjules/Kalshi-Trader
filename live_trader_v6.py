@@ -3,6 +3,7 @@ import json
 import os
 import sys
 import time
+from copy import deepcopy
 from datetime import datetime, timedelta
 from collections import defaultdict
 
@@ -328,11 +329,86 @@ class LiveTraderV6(LiveTraderV4):
         self._max_inventory_override = max_inventory
         self._inventory_per_dollar = inventory_per_dollar
         self._uncap_inventory = uncap_inventory
+        self._last_positions_snapshot = None
         self.strategy = RegimeSwitcherV6(
             "Live RegimeSwitcher V6 (Backtester-Parity)",
             risk_pct=risk_pct,
             tightness_percentile=tightness_percentile,
         )
+
+    def sync_api_state(self, force_reset_daily: bool = False):
+        prev_positions = deepcopy(self.positions)
+        super().sync_api_state(force_reset_daily=force_reset_daily)
+        self._log_position_fills(prev_positions, self.positions)
+
+    def _log_position_fills(self, prev_positions: dict, curr_positions: dict) -> None:
+        if self._last_positions_snapshot is None:
+            self._last_positions_snapshot = deepcopy(curr_positions)
+            return
+
+        now = datetime.now()
+        fill_rows = []
+
+        tickers = set(prev_positions.keys()) | set(curr_positions.keys())
+        for ticker in tickers:
+            prev = prev_positions.get(ticker, {})
+            curr = curr_positions.get(ticker, {})
+
+            prev_yes = int(prev.get("yes", 0) or 0)
+            prev_no = int(prev.get("no", 0) or 0)
+            prev_cost = float(prev.get("cost", 0.0) or 0.0)
+
+            curr_yes = int(curr.get("yes", 0) or 0)
+            curr_no = int(curr.get("no", 0) or 0)
+            curr_cost = float(curr.get("cost", 0.0) or 0.0)
+
+            yes_delta = curr_yes - prev_yes
+            no_delta = curr_no - prev_no
+            cost_delta = curr_cost - prev_cost
+
+            if yes_delta == 0 and no_delta == 0:
+                continue
+
+            if yes_delta != 0:
+                qty = abs(yes_delta)
+                action = "BUY_YES" if yes_delta > 0 else "SELL_YES"
+                avg_price = None
+                if qty > 0 and cost_delta != 0:
+                    avg_price = round(abs(cost_delta) / qty * 100.0, 2)
+                fill_rows.append((ticker, action, qty, avg_price, cost_delta))
+
+            if no_delta != 0:
+                qty = abs(no_delta)
+                action = "BUY_NO" if no_delta > 0 else "SELL_NO"
+                avg_price = None
+                if qty > 0 and cost_delta != 0:
+                    avg_price = round(abs(cost_delta) / qty * 100.0, 2)
+                fill_rows.append((ticker, action, qty, avg_price, cost_delta))
+
+        if not fill_rows:
+            return
+
+        try:
+            file_exists = os.path.isfile("fills.csv")
+            with open("fills.csv", "a", newline="", encoding="utf-8") as f:
+                if not file_exists:
+                    f.write("timestamp,strategy,ticker,action,qty,avg_price_cents,cost_delta\n")
+                for ticker, action, qty, avg_price, cost_delta in fill_rows:
+                    avg_str = "" if avg_price is None else f"{avg_price:.2f}"
+                    f.write(
+                        f"{now.strftime('%Y-%m-%d %H:%M:%S')},{self.strategy.name},{ticker},{action},{qty},{avg_str},{cost_delta:.4f}\n"
+                    )
+        except Exception as e:
+            print(f"[FILL_LOG] Failed to write fills.csv: {e}", flush=True)
+
+        for ticker, action, qty, avg_price, cost_delta in fill_rows:
+            avg_str = "n/a" if avg_price is None else f"{avg_price:.2f}c"
+            print(
+                f"[FILL_SYNC] {ticker} {action} qty={qty} avg={avg_str} cost_delta=${cost_delta:.4f}",
+                flush=True,
+            )
+
+        self._last_positions_snapshot = deepcopy(curr_positions)
 
     def _apply_inventory_cap(self) -> None:
         mm = getattr(self.strategy, "mm", None)
@@ -417,12 +493,18 @@ class LiveTraderV6(LiveTraderV4):
 
             while True:
                 if not self.check_control_flag():
-                    self.update_status_file("PAUSED")
-                    time.sleep(10)
-                    continue
+                self.update_status_file("PAUSED")
+                time.sleep(10)
+                continue
 
                 self.update_status_file("RUNNING")
                 now = datetime.now()
+
+                if self.last_status_time is None or (now - self.last_status_time).total_seconds() >= 60:
+                    self.sync_api_state()
+                    self.refresh_open_orders_snapshot()
+                    self.print_status()
+                    self.last_status_time = now
 
                 if self.last_reset_date != now.strftime("%Y-%m-%d") and now.hour >= 5:
                     self.sync_api_state(force_reset_daily=True)
@@ -444,12 +526,6 @@ class LiveTraderV6(LiveTraderV4):
                     all_new_ticks.sort(key=parse_ts)
                     for row in all_new_ticks:
                         self.on_tick(row)
-
-                if self.last_status_time is None or (now - self.last_status_time).total_seconds() >= 60:
-                    self.sync_api_state()
-                    self.refresh_open_orders_snapshot()
-                    self.print_status()
-                    self.last_status_time = now
 
                 time.sleep(1)
         except Exception as e:
