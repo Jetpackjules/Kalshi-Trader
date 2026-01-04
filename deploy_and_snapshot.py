@@ -19,13 +19,14 @@ def run_command(cmd, description):
         # Use shell=True for Windows to handle paths/commands correctly if needed, 
         # but list of args is usually safer. However, for scp/ssh with complex args, string might be easier.
         subprocess.check_call(cmd, shell=True)
-        print("✅ Success\n")
+        print("OK\n")
     except subprocess.CalledProcessError as e:
-        print(f"❌ Error: {e}\n")
+        print(f"ERROR: {e}\n")
         # Don't exit immediately, try to continue if possible, or raise?
         # For killing process, failure might mean no process running.
         if "pkill" in cmd:
-            print("(Process might not have been running, continuing...)")
+            print("(Process might not have been running; continuing.)")
+            return
         else:
             raise e
 
@@ -47,7 +48,7 @@ def main():
         remote_path = f"{REMOTE_HOME}/{filename}"
         # Check if local file exists
         if not os.path.exists(local_path):
-            print(f"⚠️ Warning: {local_path} not found. Skipping.")
+            print(f"WARNING: {local_path} not found. Skipping.")
             continue
             
         scp_cmd = f'scp -i {KEY_PATH} -o StrictHostKeyChecking=no {local_path} {SERVER_ADDR}:{remote_path}'
