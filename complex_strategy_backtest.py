@@ -14,11 +14,16 @@ from collections import defaultdict
 from functools import lru_cache
 
 # --- Configuration ---
-LOG_DIR = os.path.join(os.getcwd(), "live_trading_system", "vm_logs", "market_logs")
+LOG_DIR_CANDIDATES = [
+    os.path.join(os.getcwd(), "vm_logs", "market_logs"),
+    os.path.join(os.getcwd(), "server_mirror", "market_logs"),
+    os.path.join(os.getcwd(), "live_trading_system", "vm_logs", "market_logs"),
+]
+LOG_DIR = next((d for d in LOG_DIR_CANDIDATES if os.path.exists(d)), LOG_DIR_CANDIDATES[0])
 CHARTS_DIR = "backtest_charts"
 INITIAL_CAPITAL = 1000.00
 START_DATE = "25DEC04"
-END_DATE = "26JAN03"
+END_DATE = ""
 ENABLE_TIME_CONSTRAINTS = True # Set to False to trade 24/7
 
 if not os.path.exists(CHARTS_DIR):
@@ -379,12 +384,36 @@ class RegimeSwitcher(ComplexStrategy):
 
 # --- Complex Backtester ---
 class ComplexBacktester:
-    def __init__(self, start_time_midnight_filter=False, initial_capital=None, **strategy_kwargs):
-        self.strategies = [RegimeSwitcher("Algo 3: Regime Switcher (Meta)", **strategy_kwargs)]
+    def __init__(
+        self,
+        start_time_midnight_filter: bool = False,
+        initial_capital: float | None = None,
+        strategies: list[ComplexStrategy] | None = None,
+        log_dir: str | None = None,
+        charts_dir: str | None = None,
+        start_date: str | None = None,
+        end_date: str | None = None,
+        generate_daily_charts: bool = True,
+        generate_final_chart: bool = True,
+        **strategy_kwargs,
+    ):
+        self.generate_daily_charts = generate_daily_charts
+        self.generate_final_chart = generate_final_chart
+
+        self.log_dir = log_dir or LOG_DIR
+        self.charts_dir = charts_dir or CHARTS_DIR
+        if not os.path.exists(self.charts_dir):
+            os.makedirs(self.charts_dir)
+
+        self.strategies = strategies if strategies is not None else [
+            RegimeSwitcher("Algo 3: Regime Switcher (Meta)", **strategy_kwargs)
+        ]
         self.start_time_midnight_filter = start_time_midnight_filter
         self.initial_capital = initial_capital if initial_capital is not None else INITIAL_CAPITAL
-        self.start_date = pd.to_datetime(START_DATE) if START_DATE else None
-        self.end_date = pd.to_datetime(END_DATE) if END_DATE else None
+        start_date = START_DATE if start_date is None else start_date
+        end_date = END_DATE if end_date is None else end_date
+        self.start_date = pd.to_datetime(start_date) if start_date else None
+        self.end_date = pd.to_datetime(end_date) if end_date else None
         self.warmup_start_date = pd.to_datetime(WARMUP_START_DATE) if 'WARMUP_START_DATE' in globals() and WARMUP_START_DATE else None
         self.performance_history = []
         self.portfolios = {}
@@ -401,8 +430,8 @@ class ComplexBacktester:
             }
 
     def load_all_data(self):
-        print(f"Loading data from {LOG_DIR}...")
-        files = sorted(glob.glob(os.path.join(LOG_DIR, "market_data_*.csv")))
+        print(f"Loading data from {self.log_dir}...")
+        files = sorted(glob.glob(os.path.join(self.log_dir, "market_data_*.csv")))
         
         # Filter by date
         filtered_files = []
@@ -611,6 +640,8 @@ class ComplexBacktester:
             qty = o['qty']
             source = o.get('source', 'Unknown')
             ticker = o['ticker'].strip()
+
+            fill_price = None
             
             # Simple Fill Rule (Phase 6): If price crosses limit, fill.
             # Phase 7.5: Mutual Exclusivity Safety Net
@@ -622,6 +653,7 @@ class ComplexBacktester:
                     
                 if not pd.isna(y_ask) and y_ask <= l_price:
                     filled = True
+                    fill_price = float(y_ask)
             elif action == 'BUY_NO': 
                 # Reject if we hold YES (Safety Net)
                 if portfolio['inventory_yes'][source][ticker] > 0:
@@ -630,14 +662,23 @@ class ComplexBacktester:
                     
                 if not pd.isna(n_ask) and n_ask <= l_price:
                     filled = True
+                    fill_price = float(n_ask)
                             
             if filled:
-                fee = calculate_convex_fee(l_price, qty)
-                cost = (qty * (l_price / 100.0)) + fee
+                if fill_price is None:
+                    still_active.append(o)
+                    continue
+
+                fee = calculate_convex_fee(fill_price, qty)
+                cost = (qty * (fill_price / 100.0)) + fee
                 
                 # --- BUDGET CHECK (Match Live Trader) ---
                 start_equity = portfolio.get('daily_start_equity', self.initial_capital)
-                risk_pct = 0.5 
+                risk_pct = 0.5
+                for s in self.strategies:
+                    if s.name == strat_name:
+                        risk_pct = s.risk_pct
+                        break
                 budget = start_equity * risk_pct
                 
                 current_exposure = 0.0
@@ -664,8 +705,8 @@ class ComplexBacktester:
                             # print(f"BUDGET REJECT (Limit) {ticker}: Exp=${current_exposure:.2f} + Cost=${cost:.2f} > Budget=${budget:.2f} (Scaled to 0)")
                             still_active.append(o)
                             continue
-                        fee = calculate_convex_fee(l_price, qty)
-                        cost = (qty * (l_price / 100.0)) + fee
+                        fee = calculate_convex_fee(fill_price, qty)
+                        cost = (qty * (fill_price / 100.0)) + fee
                         # print(f"BUDGET SCALE (Limit) {ticker}: Scaled qty to {qty} to fit budget ${budget:.2f}")
                     else:
                         # print(f"BUDGET REJECT (Limit) {ticker}: Exp=${current_exposure:.2f} > Budget=${budget:.2f}")
@@ -687,7 +728,7 @@ class ComplexBacktester:
                         'time': timestamp, 
                         'action': action, 
                         'ticker': ticker, 
-                        'price': l_price, 
+                        'price': fill_price, 
                         'qty': qty, 
                         'fee': fee, 
                         'cost': cost,
@@ -700,14 +741,14 @@ class ComplexBacktester:
                     mid_at_fill = (y_ask + y_bid) / 2.0 if (not pd.isna(y_ask) and not pd.isna(y_bid)) else np.nan
                     if not pd.isna(mid_at_fill):
                         if action == 'BUY_YES':
-                            slippage = l_price - mid_at_fill
+                            slippage = fill_price - mid_at_fill
                         else:
-                            slippage = l_price - (100 - mid_at_fill)
+                            slippage = fill_price - (100 - mid_at_fill)
                         trade['slippage'] = slippage
                         trade['mid_at_fill'] = mid_at_fill
                     
                     portfolio['trades'].append(trade)
-                    viz_list.append({**trade, 'strategy': strat_name, 'viz_y': 100-l_price if 'YES' in action else l_price})
+                    viz_list.append({**trade, 'strategy': strat_name, 'viz_y': 100-fill_price if 'YES' in action else fill_price})
                     filled = True
                 else:
                     filled = False
@@ -819,7 +860,8 @@ class ComplexBacktester:
                             self.daily_equity_history[s.name].append({'date': last_logged_date, 'equity': total_equity, 'spendable_cash': cash})
                             print(f"[Day End {last_logged_date}] {s.name} Equity: ${total_equity:.2f} (Cash ${cash:.2f})")
                         
-                        self.generate_daily_chart(pd.DataFrame(), daily_trades_viz, daily_report, last_logged_date, last_prices)
+                        if self.generate_daily_charts:
+                            self.generate_daily_chart(pd.DataFrame(), daily_trades_viz, daily_report, last_logged_date, last_prices)
                         daily_trades_viz = []
                     except Exception as e:
                         print(f"Error in Day End logic: {e}")
@@ -896,13 +938,11 @@ class ComplexBacktester:
                              if action == 'BUY_YES':
                                  curr_ask = ms.get('yes_ask', np.nan)
                                  if not pd.isna(curr_ask) and price >= curr_ask:
-                                     self.execute_trade(p, ticker, action, price, qty, source, current_time, ms, s.name, daily_trades_viz)
-                                     filled = True
+                                     filled = bool(self.execute_trade(p, ticker, action, float(curr_ask), qty, source, current_time, ms, s.name, daily_trades_viz))
                              elif action == 'BUY_NO':
                                  curr_ask = ms.get('no_ask', np.nan)
                                  if not pd.isna(curr_ask) and price >= curr_ask:
-                                     self.execute_trade(p, ticker, action, price, qty, source, current_time, ms, s.name, daily_trades_viz)
-                                     filled = True
+                                     filled = bool(self.execute_trade(p, ticker, action, float(curr_ask), qty, source, current_time, ms, s.name, daily_trades_viz))
                              
                              if not filled:
                                  active_orders.append(o)
@@ -933,6 +973,12 @@ class ComplexBacktester:
                     if not pd.isna(mid): holdings += q * ((100-mid)/100.0)
             total_equity = cash + unsettled + holdings
             print(f"FINAL EQUITY [{s.name}]: ${total_equity:.2f}")
+
+            total_fees = sum(t.get('fee', 0.0) for t in p.get('trades', []))
+            print(
+                f"FINAL BREAKDOWN [{s.name}]: Cash=${cash:.2f} | Unsettled=${unsettled:.2f} | Holdings=${holdings:.2f} | "
+                f"Trades={len(p.get('trades', []))} | Fees=${total_fees:.2f}"
+            )
 
         # --- NEW: DAILY ROI TABLE ---
         print("\n=== DAILY PERFORMANCE BREAKDOWN ===")
@@ -980,7 +1026,8 @@ class ComplexBacktester:
         with open("debug_portfolio.json", "w") as f:
             json.dump(final_inv, f, indent=2)
 
-        self.generate_performance_chart()
+        if self.generate_final_chart:
+            self.generate_performance_chart()
 
     def generate_performance_chart(self):
         if not hasattr(self, 'daily_equity_history'): return
@@ -993,7 +1040,7 @@ class ComplexBacktester:
             fig.add_trace(go.Scatter(x=dates, y=spendable, mode='lines+markers', name=f"{strat_name} (Spendable Cash)", line=dict(dash='dot')))
         fig.update_layout(title="Strategy Value Over Time (Daily MTM Equity)", xaxis_title="Date", yaxis_title="Total Equity ($)", hovermode="x unified", height=800)
         fig.add_hline(y=self.initial_capital, line_dash="dash", line_color="gray", annotation_text="Initial Capital")
-        filename = os.path.join(CHARTS_DIR, "final_performance_v3.html")
+        filename = os.path.join(self.charts_dir, "final_performance_v3.html")
         fig.write_html(filename)
         print(f"Generated final performance chart: {filename}")
 
@@ -1024,7 +1071,7 @@ class ComplexBacktester:
             trade_data.append([t['time'].strftime("%H:%M"), t['ticker'], t['source'], t['action'], f"{t['price']}c", t['qty'], f"${t['cost']:.2f}", f"{end_price:.1f}c" if not pd.isna(end_price) else "-", f"{roi*100:+.1f}%" if not pd.isna(roi) else "-"])
         fig.add_trace(go.Table(header=dict(values=["Time", "Ticker", "Source", "Action", "Price", "Qty", "Cost", "End Price", "ROI"]), cells=dict(values=list(zip(*trade_data)))), row=3, col=1)
         fig.update_layout(height=1000, title_text=f"Complex V3: {date_str}")
-        fig.write_html(os.path.join(CHARTS_DIR, f"complex_v3_{date_str}.html"))
+        fig.write_html(os.path.join(self.charts_dir, f"complex_v3_{date_str}.html"))
 
 if __name__ == "__main__":
     ComplexBacktester().run()

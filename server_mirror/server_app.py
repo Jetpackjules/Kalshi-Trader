@@ -20,7 +20,25 @@ def dashboard():
 
 @app.route('/app_log')
 def serve_app_log():
-    return send_from_directory('.', 'live_trader_v4.log')
+    # Serve the newest trader log to keep the dashboard in sync with the
+    # currently-running version (v4/v5/v6...).
+    candidates = []
+    try:
+        for name in os.listdir('.'):
+            if name.startswith('live_trader_v') and name.endswith('.log'):
+                try:
+                    candidates.append((os.path.getmtime(name), name))
+                except OSError:
+                    continue
+    except OSError:
+        candidates = []
+
+    if not candidates:
+        # Keep response simple for the browser.
+        return "No live_trader_v*.log found in server directory", 404
+
+    _, latest_name = max(candidates)
+    return send_from_directory('.', latest_name)
 
 @app.route('/api/status', methods=['GET'])
 def get_status():

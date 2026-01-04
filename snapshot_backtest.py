@@ -1,15 +1,17 @@
+import argparse
 import json
-import pandas as pd
-import numpy as np
 import os
-import math
-from datetime import datetime, timedelta
 from collections import defaultdict
-from complex_strategy_backtest import ComplexBacktester, Wallet
+from datetime import datetime, timedelta
 
-# Paths
-SNAPSHOT_FILE = r"c:\Users\jetpa\OneDrive - UW\Google_Grav_Onedrive\kalshi_weather_data\live_trading_system\vm_logs\snapshots\snapshot_2026-01-01.json"
-MARKET_LOGS_DIR = r"c:\Users\jetpa\OneDrive - UW\Google_Grav_Onedrive\kalshi_weather_data\live_trading_system\vm_logs\market_logs"
+import numpy as np
+import pandas as pd
+
+from complex_strategy_backtest import ComplexBacktester, Wallet, RegimeSwitcher
+
+
+DEFAULT_SNAPSHOT_DIR = os.path.join(os.getcwd(), "vm_logs", "snapshots")
+DEFAULT_MARKET_LOGS_DIR = os.path.join(os.getcwd(), "vm_logs", "market_logs")
 
 # --- Helper Functions ---
 def calculate_convex_fee(price, qty):
@@ -263,11 +265,13 @@ class RegimeSwitcher(ComplexStrategy):
         return combined
 
 class SnapshotBacktester(ComplexBacktester):
-    def __init__(self, snapshot_path):
+    def __init__(self, snapshot_path: str, market_logs_dir: str):
         super().__init__()
         self.snapshot_path = snapshot_path
+        self.market_logs_dir = market_logs_dir
         self.load_snapshot()
-        self.strategies = [RegimeSwitcher("SnapshotStrategy")]
+        # Use the same strategy as the main backtester by default
+        self.strategies = [RegimeSwitcher("Algo 3: Regime Switcher (Meta)")]
 
     def load_snapshot(self):
         print(f"Loading snapshot from {self.snapshot_path}...")
@@ -280,39 +284,46 @@ class SnapshotBacktester(ComplexBacktester):
         self.current_time = self.start_date
         
         # 2. Initialize Wallet
-        balance = data.get('balance') or data.get('cash')
+        balance = float(data.get('balance') or data.get('cash') or 0.0)
+        strategy_name = "Algo 3: Regime Switcher (Meta)"
+
         self.portfolios = {
-            'SnapshotStrategy': {
+            strategy_name: {
                 'wallet': Wallet(balance),
-                'inventory_yes': {'SnapshotStrategy': {}},
-                'inventory_no': {'SnapshotStrategy': {}},
-                'active_limit_orders': {},
+                'inventory_yes': defaultdict(lambda: defaultdict(int)),
+                'inventory_no': defaultdict(lambda: defaultdict(int)),
+                'active_limit_orders': defaultdict(list),
                 'trades': [],
-                'paid_out': set()
+                'pnl_by_source': defaultdict(float),
+                'paid_out': set(),
+                'cost_basis': defaultdict(float),
+                'daily_start_equity': float(data.get('daily_start_equity') or 0.0),
             }
         }
         
         # 3. Initialize Inventory & Calculate Exposure
-        positions = data['positions']
+        positions = data.get('positions', {})
         self.current_exposure = 0.0
+
+        p = self.portfolios[strategy_name]
         
         for ticker, pos in positions.items():
             yes_qty = pos.get('yes', 0)
             no_qty = pos.get('no', 0)
             cost = pos.get('cost', 0.0)
             self.current_exposure += cost
-            
+
+            # Attribute all snapshot holdings to the MM source for parity with ComplexBacktester
             if yes_qty > 0:
-                if ticker not in self.portfolios['SnapshotStrategy']['inventory_yes']['SnapshotStrategy']:
-                    self.portfolios['SnapshotStrategy']['inventory_yes']['SnapshotStrategy'][ticker] = 0
-                self.portfolios['SnapshotStrategy']['inventory_yes']['SnapshotStrategy'][ticker] = yes_qty
+                p['inventory_yes']['MM'][ticker] = int(yes_qty)
             if no_qty > 0:
-                if ticker not in self.portfolios['SnapshotStrategy']['inventory_no']['SnapshotStrategy']:
-                    self.portfolios['SnapshotStrategy']['inventory_no']['SnapshotStrategy'][ticker] = 0
-                self.portfolios['SnapshotStrategy']['inventory_no']['SnapshotStrategy'][ticker] = no_qty
+                p['inventory_no']['MM'][ticker] = int(no_qty)
+            if cost and cost > 0:
+                p['cost_basis'][ticker] = float(cost)
                 
         # 4. Set Daily Start Equity
-        self.daily_start_equity = data['daily_start_equity']
+        self.daily_start_equity = float(data.get('daily_start_equity') or 0.0)
+        p['daily_start_equity'] = self.daily_start_equity
         
         print(f"Snapshot Loaded:")
         print(f"  Timestamp: {self.start_date}")
@@ -321,136 +332,118 @@ class SnapshotBacktester(ComplexBacktester):
         print(f"  Current Exposure: ${self.current_exposure:.2f}")
         print(f"  Positions: {len(positions)}")
 
-        # --- MANUAL SETTLEMENT PATCH (Jan 1 Markets) ---
-        # The Sim doesn't have full settlement logic, so we apply the known outcome of Jan 1 markets
-        # to see if the freed-up budget triggers trades.
-        print("Applying Manual Settlement for Jan 1 Markets...")
-        
-        # 1. Remove Expired Positions
-        jan1_tickers = [t for t in positions if "26JAN01" in t]
-        settled_cash = 13.00 # From comparing snapshots ($39.26 - $26.26)
-        removed_exposure = 0.0
-        
-        for t in jan1_tickers:
-            print(f"  Settling {t}...")
-            # Remove from inventory
-            if t in self.portfolios['SnapshotStrategy']['inventory_yes']['SnapshotStrategy']:
-                del self.portfolios['SnapshotStrategy']['inventory_yes']['SnapshotStrategy'][t]
-            if t in self.portfolios['SnapshotStrategy']['inventory_no']['SnapshotStrategy']:
-                del self.portfolios['SnapshotStrategy']['inventory_no']['SnapshotStrategy'][t]
-            
-            # Calculate removed exposure
-            removed_exposure += positions[t]['cost']
-            
-        # 2. Update Wallet and Exposure
-        self.portfolios['SnapshotStrategy']['wallet'].available_cash += settled_cash
-        self.current_exposure -= removed_exposure
-        
-        print(f"Settlement Complete:")
-        print(f"  Cash Added: ${settled_cash:.2f} -> New Balance: ${self.portfolios['SnapshotStrategy']['wallet'].available_cash:.2f}")
-        print(f"  Exposure Removed: ${removed_exposure:.2f} -> New Exposure: ${self.current_exposure:.2f}")
-        print(f"  Budget Freed: ${removed_exposure:.2f}")
-
     def run_simulation(self):
-        print(f"Starting Simulation from {self.current_time}...")
-        
-        # Load Data
-        files = [f for f in os.listdir(MARKET_LOGS_DIR) if f.startswith("market_data_KXHIGHNY-") and f.endswith(".csv")]
-        relevant_data = []
-        print(f"Scanning {len(files)} log files for data after {self.current_time}...")
-        
-        for f in files:
-            path = os.path.join(MARKET_LOGS_DIR, f)
+        print(f"Starting parity simulation from {self.current_time}...")
+
+        logs_dir = self.market_logs_dir
+        if not os.path.exists(logs_dir):
+            raise FileNotFoundError(f"Market logs dir not found: {logs_dir}")
+
+        files = [
+            os.path.join(logs_dir, f)
+            for f in os.listdir(logs_dir)
+            if f.startswith("market_data_") and f.endswith(".csv")
+        ]
+        files.sort()
+
+        relevant = []
+        for path in files:
             try:
                 df = pd.read_csv(path)
-                df['timestamp'] = pd.to_datetime(df['timestamp'])
-                
-                # Filter for data AFTER the snapshot
-                start_ts = self.current_time
-                # We can go until the end of the file/day
-                
-                mask = (df['timestamp'] >= start_ts)
-                df_subset = df[mask].copy()
-                
-                if not df_subset.empty:
-                    relevant_data.append(df_subset)
-            except Exception as e:
-                pass
-                
-        if not relevant_data:
+                df.columns = [c.strip() for c in df.columns]
+                df['datetime'] = pd.to_datetime(df['timestamp'], format='mixed', dayfirst=True)
+                df = df[df['datetime'] >= self.current_time]
+                if not df.empty:
+                    df['date_str'] = df['datetime'].dt.strftime("%y%b%d").str.upper()
+                    relevant.append(df)
+            except Exception:
+                continue
+
+        if not relevant:
             print("No market data found after snapshot time.")
             return
-            
-        full_df = pd.concat(relevant_data)
-        full_df = full_df.sort_values('timestamp')
-        print(f"Found {len(full_df)} ticks.")
-        
-        trade_count = 0
-        
-        for i, row in full_df.iterrows():
-            self.current_time = row['timestamp']
-            ticker = row['market_ticker']
-            
-            market_state = {
-                'yes_bid': row['best_yes_bid'],
-                'yes_ask': row['implied_yes_ask'],
-                'no_bid': row['best_no_bid'],
-                'no_ask': row['implied_no_ask'],
-                'last_price': row.get('last_price', 0),
-                'timestamp': row['timestamp']
+
+        master_df = pd.concat(relevant, ignore_index=True)
+        master_df.sort_values('datetime', inplace=True)
+        print(f"Loaded {len(master_df)} ticks after snapshot.")
+
+        last_prices = {}
+        daily_trades_viz = []
+        strategy_name = "Algo 3: Regime Switcher (Meta)"
+        p = self.portfolios[strategy_name]
+
+        for idx, row in enumerate(master_df.itertuples(index=False)):
+            current_time = row.datetime
+            ticker = row.market_ticker
+            ms = {
+                'yes_ask': getattr(row, 'implied_yes_ask', np.nan),
+                'no_ask': getattr(row, 'implied_no_ask', np.nan),
+                'yes_bid': getattr(row, 'best_yes_bid', np.nan),
+                'no_bid': getattr(row, 'best_no_bid', np.nan),
             }
-            
-            for strategy in self.strategies:
-                portfolio = self.portfolios[strategy.name]
-                
-                inv_yes = portfolio['inventory_yes']['SnapshotStrategy'].get(ticker, 0)
-                inv_no = portfolio['inventory_no']['SnapshotStrategy'].get(ticker, 0)
-                
-                # MATCH LIVE BOT BEHAVIOR: Nested Inventory
-                pos_for_strategy = {
-                    'MM': {
-                        'YES': inv_yes, 
-                        'NO': inv_no
-                    }
+
+            # update last_prices only while market live (same as ComplexBacktester)
+            end_t = self.market_end_time_from_ticker(ticker) if hasattr(self, 'market_end_time_from_ticker') else None
+            yask = ms.get('yes_ask', np.nan)
+            ybid = ms.get('yes_bid', np.nan)
+            if not pd.isna(yask) and not pd.isna(ybid):
+                mid = (yask + ybid) / 2.0
+                if end_t is None or current_time < end_t:
+                    last_prices[ticker] = mid
+
+            p['wallet'].check_settlements(current_time)
+            self.liquidate_at_end(p, ticker, ms, current_time)
+            self.handle_market_expiries(p, current_time, last_prices)
+            self.check_limit_fills(p, ticker, ms, current_time, daily_trades_viz, strategy_name, last_prices)
+
+            if end_t is None or current_time < end_t:
+                src_invs = {
+                    'MM': {'YES': p['inventory_yes']['MM'][ticker], 'NO': p['inventory_no']['MM'][ticker]},
+                    'Scalper': {'YES': p['inventory_yes']['Scalper'][ticker], 'NO': p['inventory_no']['Scalper'][ticker]},
                 }
-                
-                # Calculate Spendable Cash (Budget - Exposure)
-                budget = self.daily_start_equity * strategy.risk_pct
-                available_budget = budget - self.current_exposure
-                
-                # Also limited by actual cash balance
-                spendable = min(portfolio['wallet'].available_cash, available_budget)
-                
-                # If budget is full, spendable might be negative or zero
-                if spendable < 0: spendable = 0
-                
-                orders = strategy.on_market_update(
-                    ticker, 
-                    market_state, 
-                    self.current_time, 
-                    pos_for_strategy, 
-                    [], # active_orders
-                    spendable
-                )
-                
-                if orders:
-                    for order in orders:
-                        print(f"[{self.current_time}] SIGNAL: {order['action']} {order['qty']} @ {order['price']} ({order['source']})")
-                        trade_count += 1
-                        
-                        # Update Exposure (Simplified)
-                        # In a real backtest we'd execute and update cost.
-                        # Here we just increment exposure to prevent infinite signaling if we were looping.
-                        # But since we process linear time, it's fine.
-                        # However, if we get a signal, we should technically "execute" it to update exposure for the NEXT tick.
-                        # Otherwise we might get the same signal 100 times.
-                        
-                        cost = (order['qty'] * order['price'] / 100.0) + calculate_convex_fee(order['price'], order['qty'])
-                        self.current_exposure += cost
-                        portfolio['wallet'].available_cash -= cost
-                        
-        print(f"Simulation Complete. Total Signals: {trade_count}")
+                for s in self.strategies:
+                    new_orders = s.on_market_update(
+                        ticker,
+                        ms,
+                        current_time,
+                        src_invs,
+                        p['active_limit_orders'][ticker],
+                        p['wallet'].available_cash,
+                        idx,
+                    )
+                    if new_orders is not None:
+                        active_orders = []
+                        for o in new_orders:
+                            filled = False
+                            action = o['action']
+                            limit_price = o['price']
+                            qty = o['qty']
+                            source = o['source']
+
+                            if action == 'BUY_YES':
+                                curr_ask = ms.get('yes_ask', np.nan)
+                                if not pd.isna(curr_ask) and limit_price >= curr_ask:
+                                    filled = bool(self.execute_trade(p, ticker, action, float(curr_ask), qty, source, current_time, ms, s.name, daily_trades_viz))
+                            elif action == 'BUY_NO':
+                                curr_ask = ms.get('no_ask', np.nan)
+                                if not pd.isna(curr_ask) and limit_price >= curr_ask:
+                                    filled = bool(self.execute_trade(p, ticker, action, float(curr_ask), qty, source, current_time, ms, s.name, daily_trades_viz))
+
+                            if not filled:
+                                active_orders.append(o)
+                        p['active_limit_orders'][ticker] = active_orders
+
+        print(f"Parity simulation complete. Trades executed: {len(p.get('trades', []))}")
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--snapshot", required=True, help="Path to snapshot JSON")
+    parser.add_argument("--market-logs-dir", default=DEFAULT_MARKET_LOGS_DIR)
+    args = parser.parse_args()
+
+    backtester = SnapshotBacktester(args.snapshot, args.market_logs_dir)
+    backtester.run_simulation()
+
 
 if __name__ == "__main__":
-    backtester = SnapshotBacktester(SNAPSHOT_FILE)
-    backtester.run_simulation()
+    main()
