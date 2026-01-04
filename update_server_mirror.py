@@ -1,8 +1,10 @@
 import argparse
 import os
+import json
 import shlex
 import subprocess
 from pathlib import Path
+from typing import Any
 
 
 def run(cmd: list[str]) -> str:
@@ -18,6 +20,27 @@ def run(cmd: list[str]) -> str:
 
 def ensure_dir(path: Path) -> None:
     path.mkdir(parents=True, exist_ok=True)
+
+
+def load_state(path: Path) -> dict[str, dict[str, Any]]:
+    if not path.exists():
+        return {}
+    try:
+        with path.open("r", encoding="utf-8") as f:
+            data = json.load(f)
+        if isinstance(data, dict):
+            return {str(k): (v if isinstance(v, dict) else {}) for k, v in data.items()}
+    except (OSError, json.JSONDecodeError):
+        pass
+    return {}
+
+
+def save_state(path: Path, state: dict[str, dict[str, Any]]) -> None:
+    tmp_path = path.with_suffix(path.suffix + ".tmp")
+    with tmp_path.open("w", encoding="utf-8") as f:
+        json.dump(state, f, indent=2, sort_keys=True)
+        f.write("\n")
+    os.replace(tmp_path, path)
 
 
 def main() -> int:
@@ -66,6 +89,9 @@ def main() -> int:
     local_dir = Path(args.local_dir).expanduser().resolve()
     ensure_dir(local_dir)
 
+    state_path = local_dir / ".mirror_state.json"
+    state = load_state(state_path)
+
     ssh_base = [
         "ssh",
         "-T",
@@ -111,14 +137,32 @@ def main() -> int:
         f"cd {shlex.quote(args.remote_root)} && "
         f"find . -maxdepth 4 -type f {include_expr} "
         + " ".join(excludes)
-        + " -print"
+        + " -printf '%P\t%T@\t%s\\n'"
     )
 
     stdout = run(ssh_base + [remote_find])
-    rel_paths = [line.strip() for line in stdout.splitlines() if line.strip()]
 
-    # Normalize: remove leading ./
-    rel_paths = [p[2:] if p.startswith("./") else p for p in rel_paths]
+    # Parse: rel_path<TAB>mtime_epoch_float<TAB>size_bytes
+    remote_meta: dict[str, dict[str, Any]] = {}
+    for raw_line in stdout.splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        parts = line.split("\t")
+        if len(parts) != 3:
+            continue
+        rel, mtime_s, size_s = parts
+        rel = rel.strip().lstrip("/")
+        try:
+            mtime = int(float(mtime_s))
+            size = int(size_s)
+        except ValueError:
+            continue
+        if not rel:
+            continue
+        remote_meta[rel] = {"remote_mtime": mtime, "remote_size": size}
+
+    rel_paths = sorted(remote_meta.keys())
 
     # Copy each file.
     scp_base = [
@@ -130,16 +174,50 @@ def main() -> int:
     ]
 
     copied = 0
+    skipped = 0
     for rel in rel_paths:
         remote_path = f"{args.user}@{args.host}:{args.remote_root}/{rel}"
         local_path = local_dir / rel
         ensure_dir(local_path.parent)
+
+        remote_mtime = int(remote_meta[rel]["remote_mtime"])
+        remote_size = int(remote_meta[rel]["remote_size"])
+
+        prev = state.get(rel, {})
+        prev_mtime = prev.get("remote_mtime")
+        prev_size = prev.get("remote_size")
+
+        should_copy = True
+        if local_path.exists() and isinstance(prev_mtime, int) and isinstance(prev_size, int):
+            if prev_mtime == remote_mtime and prev_size == remote_size:
+                should_copy = False
+        elif local_path.exists():
+            # If we don't have state yet but the file exists locally, skip downloading
+            # when sizes match. This avoids re-downloading an existing mirror on first run.
+            try:
+                if local_path.stat().st_size == remote_size:
+                    should_copy = False
+            except OSError:
+                pass
+
         if args.dry_run:
-            print(f"COPY {remote_path} -> {local_path}")
+            action = "COPY" if should_copy else "SKIP"
+            print(f"{action} {remote_path} -> {local_path}")
+            if should_copy:
+                copied += 1
+            else:
+                skipped += 1
             continue
+
+        if not should_copy:
+            skipped += 1
+            state[rel] = {"remote_mtime": remote_mtime, "remote_size": remote_size}
+            continue
+
         try:
             subprocess.run(scp_base + [remote_path, str(local_path)], check=True)
             copied += 1
+            state[rel] = {"remote_mtime": remote_mtime, "remote_size": remote_size}
         except subprocess.CalledProcessError as e:
             print(f"WARN: failed to copy {rel}: {e}")
 
@@ -171,10 +249,14 @@ def main() -> int:
                     try:
                         path.unlink()
                         deleted += 1
+                        state.pop(rel, None)
                     except OSError as e:
                         print(f"WARN: failed to delete {path}: {e}")
 
-    print(f"Done. Copied {copied} files into {local_dir}.")
+    if not args.dry_run:
+        save_state(state_path, state)
+
+    print(f"Done. Copied {copied} files into {local_dir}. Skipped {skipped} unchanged files.")
     if args.prune:
         print(f"Pruned {deleted} local files.")
 
