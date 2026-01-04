@@ -50,7 +50,7 @@ class InventoryAwareMarketMakerV6(ComplexStrategy):
         self,
         name: str,
         risk_pct: float = 0.5,
-        max_inventory: int = 50,
+        max_inventory: int | None = 50,
         inventory_penalty: float = 0.5,
         max_offset: int = 2,
         alpha: float = 0.1,
@@ -165,14 +165,19 @@ class InventoryAwareMarketMakerV6(ComplexStrategy):
             return None, debug
 
         current_inv = inventories.get("YES", 0) if action == "BUY_YES" else inventories.get("NO", 0)
-        room = self.max_inventory - current_inv
-        if room <= 0:
-            debug["status"] = f"Inventory Full ({current_inv})"
-            return None, debug
+        if self.max_inventory is None:
+            room = float("inf")
+        else:
+            room = self.max_inventory - current_inv
+            if room <= 0:
+                debug["status"] = f"Inventory Full ({current_inv})"
+                return None, debug
 
         inv_penalty = 1.0 / (1.0 + current_inv / 200.0)
         qty = int(base_qty * scale * inv_penalty)
-        qty = max(1, min(qty, room))
+        qty = max(1, qty)
+        if self.max_inventory is not None:
+            qty = min(qty, int(room))
 
         fee_real = calculate_convex_fee(price_to_pay, qty)
         fee_cents_real = (fee_real / qty) * 100.0
@@ -308,14 +313,56 @@ class RegimeSwitcherV6(ComplexStrategy):
 
 
 class LiveTraderV6(LiveTraderV4):
-    def __init__(self, *, paper: bool = False, risk_pct: float = 0.5, tightness_percentile: int = 20):
+    def __init__(
+        self,
+        *,
+        paper: bool = False,
+        risk_pct: float = 0.5,
+        tightness_percentile: int = 20,
+        max_inventory: int | None = None,
+        inventory_per_dollar: float | None = None,
+        uncap_inventory: bool = False,
+    ):
         super().__init__()
         self.paper = paper
+        self._max_inventory_override = max_inventory
+        self._inventory_per_dollar = inventory_per_dollar
+        self._uncap_inventory = uncap_inventory
         self.strategy = RegimeSwitcherV6(
             "Live RegimeSwitcher V6 (Backtester-Parity)",
             risk_pct=risk_pct,
             tightness_percentile=tightness_percentile,
         )
+
+    def _apply_inventory_cap(self) -> None:
+        mm = getattr(self.strategy, "mm", None)
+        if mm is None or not hasattr(mm, "max_inventory"):
+            return
+
+        if self._uncap_inventory:
+            mm.max_inventory = None
+            print("[CONFIG] max_inventory=None (uncapped)", flush=True)
+            return
+
+        if self._max_inventory_override is not None:
+            mm.max_inventory = self._max_inventory_override
+            print(f"[CONFIG] max_inventory={mm.max_inventory}", flush=True)
+            return
+
+        if self._inventory_per_dollar is not None:
+            # Use daily_start_equity if available; otherwise fall back to balance.
+            base = getattr(self, "daily_start_equity", None)
+            if base is None:
+                base = getattr(self, "balance", 0.0)
+
+            try:
+                cap = int(round(float(base) * float(self._inventory_per_dollar)))
+            except Exception:
+                cap = 0
+
+            cap = max(1, cap)
+            mm.max_inventory = cap
+            print(f"[CONFIG] max_inventory={mm.max_inventory} (inventory_per_dollar={self._inventory_per_dollar})", flush=True)
 
     def place_real_order(self, ticker, qty, price, side, expiry_ts):
         if self.paper:
@@ -325,6 +372,7 @@ class LiveTraderV6(LiveTraderV4):
 
     def export_snapshot_now(self, out_path: str | None = None) -> str:
         self.sync_api_state(force_reset_daily=False)
+        self._apply_inventory_cap()
         try:
             self.refresh_open_orders_snapshot()
         except Exception:
@@ -364,6 +412,7 @@ class LiveTraderV6(LiveTraderV4):
             mode = "PAPER" if self.paper else "LIVE"
             print(f"=== Live Trader V6 ({mode}) ===", flush=True)
             self.sync_api_state(force_reset_daily=True)
+            self._apply_inventory_cap()
             self.update_status_file("STARTING")
 
             while True:
@@ -377,6 +426,7 @@ class LiveTraderV6(LiveTraderV4):
 
                 if self.last_reset_date != now.strftime("%Y-%m-%d") and now.hour >= 5:
                     self.sync_api_state(force_reset_daily=True)
+                    self._apply_inventory_cap()
 
                 all_new_ticks = []
                 active_files = self.get_active_log_files()
@@ -421,10 +471,25 @@ def main() -> None:
     parser.add_argument("--snapshot-out", default=None, help="Optional explicit snapshot output path")
     parser.add_argument("--risk-pct", type=float, default=0.5)
     parser.add_argument("--tightness-percentile", type=int, default=20)
+    parser.add_argument("--max-inventory", type=int, default=None, help="Override max inventory cap (contracts)")
+    parser.add_argument(
+        "--inventory-per-dollar",
+        type=float,
+        default=0.5,
+        help="Set max inventory as round(daily_start_equity * K). Example: if $100 used 50, K=0.5.",
+    )
+    parser.add_argument("--uncap-inventory", action="store_true", help="Set max_inventory=None (no inventory cap)")
 
     args = parser.parse_args()
 
-    trader = LiveTraderV6(paper=args.paper, risk_pct=args.risk_pct, tightness_percentile=args.tightness_percentile)
+    trader = LiveTraderV6(
+        paper=args.paper,
+        risk_pct=args.risk_pct,
+        tightness_percentile=args.tightness_percentile,
+        max_inventory=(int(args.max_inventory) if args.max_inventory is not None else None),
+        inventory_per_dollar=(None if args.uncap_inventory or args.max_inventory is not None else args.inventory_per_dollar),
+        uncap_inventory=args.uncap_inventory,
+    )
 
     if args.snapshot:
         trader.export_snapshot_now(args.snapshot_out)

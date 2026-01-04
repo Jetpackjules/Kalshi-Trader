@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import importlib
+import inspect
 import os
 import sys
 from dataclasses import dataclass
@@ -45,6 +46,29 @@ def _load_strategy_factory(spec: StrategySpec) -> Callable[[], object]:
     raise TypeError(f"{spec.module}:{spec.symbol} is not callable")
 
 
+def _call_strategy_factory(factory: Callable[..., object], *, initial_capital: float) -> object:
+    sig = inspect.signature(factory)
+    params = sig.parameters
+
+    if not params:
+        return factory()
+
+    kwargs: dict[str, object] = {}
+    if "initial_capital" in params or any(p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values()):
+        kwargs["initial_capital"] = initial_capital
+    return factory(**kwargs)
+
+
+def _set_max_inventory(strategy: object, max_inventory: int | None) -> None:
+    # RegimeSwitcher-style wrapper
+    if hasattr(strategy, "mm") and hasattr(getattr(strategy, "mm"), "max_inventory"):
+        getattr(strategy, "mm").max_inventory = max_inventory
+
+    # Direct MM-style strategy
+    if hasattr(strategy, "max_inventory"):
+        setattr(strategy, "max_inventory", max_inventory)
+
+
 def _parse_strategy_specs(raw: Iterable[str]) -> list[StrategySpec]:
     specs: list[StrategySpec] = []
     for item in raw:
@@ -86,6 +110,18 @@ def main() -> int:
     parser.add_argument("--start-date", default="25DEC04", help="YYMONDD, e.g. 25DEC04")
     parser.add_argument("--end-date", default="", help="YYMONDD, empty means no upper bound")
     parser.add_argument("--initial-capital", type=float, default=1000.0)
+    parser.add_argument(
+        "--max-inventory",
+        type=int,
+        default=None,
+        help="Override max inventory cap (contracts). If omitted, use strategy default or --inventory-per-dollar.",
+    )
+    parser.add_argument(
+        "--inventory-per-dollar",
+        type=float,
+        default=None,
+        help="Set max inventory as round(initial_capital * K). Example: if $100 used 50, K=0.5.",
+    )
     parser.add_argument("--log-dir", default="", help="Market logs dir; defaults to vm_logs/server_mirror autodetect")
     parser.add_argument("--charts-dir", default="backtest_charts")
     parser.add_argument(
@@ -104,7 +140,15 @@ def main() -> int:
     strategies = []
     for spec in specs:
         factory = _load_strategy_factory(spec)
-        strategies.append(factory())
+        strat = _call_strategy_factory(factory, initial_capital=args.initial_capital)
+
+        if args.max_inventory is not None:
+            _set_max_inventory(strat, args.max_inventory)
+        elif args.inventory_per_dollar is not None:
+            scaled = int(round(args.initial_capital * args.inventory_per_dollar))
+            _set_max_inventory(strat, scaled)
+
+        strategies.append(strat)
 
     bt = ComplexBacktester(
         strategies=strategies,

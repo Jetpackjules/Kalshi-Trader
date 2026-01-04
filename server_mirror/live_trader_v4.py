@@ -39,7 +39,28 @@ API_URL = "https://api.elections.kalshi.com"
 
 # Path Setup
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-PRIVATE_KEY_PATH = os.path.join(SCRIPT_DIR, "kalshi_prod_private_key.pem")
+_DEFAULT_KEY_NAME = "kalshi_prod_private_key.pem"
+_REPO_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
+
+
+def _pick_private_key_path() -> str:
+    env_path = os.environ.get("KALSHI_PRIVATE_KEY_PATH")
+    if env_path and os.path.exists(env_path):
+        return env_path
+
+    same_dir = os.path.join(SCRIPT_DIR, _DEFAULT_KEY_NAME)
+    if os.path.exists(same_dir):
+        return same_dir
+
+    keys_dir = os.path.join(_REPO_ROOT, "keys", _DEFAULT_KEY_NAME)
+    if os.path.exists(keys_dir):
+        return keys_dir
+
+    # Fall back to the original expected location for a clearer error message.
+    return same_dir
+
+
+PRIVATE_KEY_PATH = _pick_private_key_path()
 
 # --- Helper Functions (From Backtest) ---
 def calculate_convex_fee(price, qty):

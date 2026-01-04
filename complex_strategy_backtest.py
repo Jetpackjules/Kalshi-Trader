@@ -21,7 +21,7 @@ LOG_DIR_CANDIDATES = [
 ]
 LOG_DIR = next((d for d in LOG_DIR_CANDIDATES if os.path.exists(d)), LOG_DIR_CANDIDATES[0])
 CHARTS_DIR = "backtest_charts"
-INITIAL_CAPITAL = 1000.00
+INITIAL_CAPITAL = 100.00
 START_DATE = "25DEC04"
 END_DATE = ""
 ENABLE_TIME_CONSTRAINTS = True # Set to False to trade 24/7
@@ -144,9 +144,23 @@ class ComplexStrategy:
 # --- Implementation of Strategy 2.5 (V2 Refined) ---
 
 class InventoryAwareMarketMaker(ComplexStrategy):
-    def __init__(self, name, risk_pct=0.5, max_inventory=50, inventory_penalty=0.5, max_offset=2, alpha=0.1, 
-                 margin_cents=4.0, scaling_factor=4.0, max_notional_pct=0.05, max_loss_pct=0.02):
+    def __init__(
+        self,
+        name,
+        risk_pct=0.5,
+        max_inventory=50,
+        hmax_inventory=None,
+        inventory_penalty=0.5,
+        max_offset=2,
+        alpha=0.1,
+        margin_cents=4.0,
+        scaling_factor=4.0,
+        max_notional_pct=0.05,
+        max_loss_pct=0.02,
+    ):
         super().__init__(name, risk_pct)
+        if hmax_inventory is not None and max_inventory == 50:
+            max_inventory = hmax_inventory
         self.max_inventory = max_inventory
         self.inventory_penalty = inventory_penalty
         self.max_offset = max_offset
@@ -253,14 +267,20 @@ class InventoryAwareMarketMaker(ComplexStrategy):
             return None
 
         current_inv = inventories['YES'] if action == 'BUY_YES' else inventories['NO']
-        room = self.max_inventory - current_inv
-        if room <= 0:
-            return None
+        if self.max_inventory is None:
+            room = float('inf')
+        else:
+            room = self.max_inventory - current_inv
+            if room <= 0:
+                return None
 
         inv_penalty = 1.0 / (1.0 + current_inv / 200.0)
 
         qty = int(base_qty * scale * inv_penalty)
-        qty = max(1, min(qty, room))
+        if self.max_inventory is None:
+            qty = max(1, qty)
+        else:
+            qty = max(1, min(qty, room))
         
         # Re-gate with actual fee (rounding check)
         fee_real = calculate_convex_fee(price_to_pay, qty)
