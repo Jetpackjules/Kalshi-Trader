@@ -1,0 +1,106 @@
+{
+  "check_imports.py": {
+    "remote_mtime": 1766266367,
+    "remote_size": 88
+  },
+  "dashboard.html": {
+    "remote_mtime": 1767555835,
+    "remote_size": 23090
+  },
+  "debug_positions.py": {
+    "remote_mtime": 1765868655,
+    "remote_size": 2029
+  },
+  "export_live_state.py": {
+    "remote_mtime": 1767248642,
+    "remote_size": 1059
+  },
+  "granular_logger.py": {
+    "remote_mtime": 1765571452,
+    "remote_size": 12395
+  },
+  "live_state.json": {
+    "remote_mtime": 1767252309,
+    "remote_size": 580
+  },
+  "live_trader_v3.py": {
+    "remote_mtime": 1765868849,
+    "remote_size": 19372
+  },
+  "live_trader_v4.py": {
+    "remote_mtime": 1767556799,
+    "remote_size": 41982
+  },
+  "live_trader_v5.py": {
+    "remote_mtime": 1767478072,
+    "remote_size": 33727
+  },
+  "live_trader_v6.py": {
+    "remote_mtime": 1767556800,
+    "remote_size": 15930
+  },
+  "live_trading_system/live_trader_v4.py": {
+    "remote_mtime": 1767316863,
+    "remote_size": 34491
+  },
+  "logger.py": {
+    "remote_mtime": 1765571452,
+    "remote_size": 11067
+  },
+  "observer_bot.py": {
+    "remote_mtime": 1766944101,
+    "remote_size": 4328
+  },
+  "observer_status.json": {
+    "remote_mtime": 1767558441,
+    "remote_size": 161
+  },
+  "output.log": {
+    "remote_mtime": 1767556583,
+    "remote_size": 1045220
+  },
+  "server_app.py": {
+    "remote_mtime": 1767555833,
+    "remote_size": 4922
+  },
+  "setup_vm.sh": {
+    "remote_mtime": 1764880207,
+    "remote_size": 1723
+  },
+  "snapshot_2026-01-04_081048.json": {
+    "remote_mtime": 1767543056,
+    "remote_size": 93057
+  },
+  "snapshot_2026-01-04_081622.json": {
+    "remote_mtime": 1767543390,
+    "remote_size": 93057
+  },
+  "snapshot_2026-01-04_115625.json": {
+    "remote_mtime": 1767556589,
+    "remote_size": 93104
+  },
+  "snapshot_2026-01-04_115959.json": {
+    "remote_mtime": 1767556802,
+    "remote_size": 93104
+  },
+  "start_trader.sh": {
+    "remote_mtime": 1766270648,
+    "remote_size": 335
+  },
+  "trader_status.json": {
+    "remote_mtime": 1767556583,
+    "remote_size": 611
+  },
+  "trades.csv": {
+    "remote_mtime": 1767313591,
+    "remote_size": 3483
+  },
+  "trading_enabled.txt": {
+    "remote_mtime": 1767487107,
+    "remote_size": 5
+  },
+  "web_server.py": {
+    "remote_mtime": 1765409851,
+    "remote_size": 647
+  }
+}

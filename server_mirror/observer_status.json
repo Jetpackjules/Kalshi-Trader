@@ -1,1 +1,1 @@
-{"timestamp": "06:27:13", "ticker": "KXHIGHNY-26JAN04-B35.5", "mid": 45.5, "spread": 5.0, "fair_price": 45.2, "is_tight": false, "threshold": 3.0, "hist_len": 500}
+{"timestamp": "12:27:21", "ticker": "KXHIGHNY-26JAN04-B37.5", "mid": 0.5, "spread": 1.0, "fair_price": 3.55, "is_tight": true, "threshold": 5.0, "hist_len": 500}

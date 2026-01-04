@@ -112,6 +112,7 @@ def main() -> int:
         "-o -name '*.sh'",
         "-o -name 'trading_enabled.txt'",
         "-o -name 'trades.csv'",
+        "-o -name 'output.log'",
     ]
     if args.include_logs:
         include_parts.append("-o -name '*.log'")
@@ -237,7 +238,7 @@ def main() -> int:
                 continue
 
             # Only prune files in the filtered set types.
-            if path.name in {"trading_enabled.txt", "trades.csv"}:
+            if path.name in {"trading_enabled.txt", "trades.csv", "output.log"}:
                 pass
             elif path.suffix.lower() not in allowed_suffixes:
                 continue

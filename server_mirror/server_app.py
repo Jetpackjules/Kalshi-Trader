@@ -18,8 +18,20 @@ def index():
 def dashboard():
     return send_from_directory('.', 'dashboard.html')
 
+@app.route('/output.log')
+def serve_output_log():
+    if os.path.exists('output.log'):
+        return send_from_directory('.', 'output.log')
+    return "output.log not found in server directory", 404
+
 @app.route('/app_log')
 def serve_app_log():
+    # Prefer output.log since the deploy/start flow commonly runs:
+    #   nohup ...live_trader_v6.py > output.log 2>&1 &
+    # Fall back to the newest live_trader_v*.log to keep backward compatibility.
+    if os.path.exists('output.log'):
+        return send_from_directory('.', 'output.log')
+
     # Serve the newest trader log to keep the dashboard in sync with the
     # currently-running version (v4/v5/v6...).
     candidates = []
@@ -35,7 +47,7 @@ def serve_app_log():
 
     if not candidates:
         # Keep response simple for the browser.
-        return "No live_trader_v*.log found in server directory", 404
+        return "No output.log or live_trader_v*.log found in server directory", 404
 
     _, latest_name = max(candidates)
     return send_from_directory('.', latest_name)

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from complex_strategy_backtest import RegimeSwitcher
+from backtesting.engine import RegimeSwitcher
 
 
 def meta_regime_switcher_default() -> RegimeSwitcher:

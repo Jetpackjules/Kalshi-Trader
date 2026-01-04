@@ -903,6 +903,34 @@ class LiveTraderV4:
 
         if qty <= 0:
             print(f"SKIP {ticker} balance-fit -> qty=0 (bal={effective_cash:.2f} need={total_cost:.2f})", flush=True)
+
+        if qty <= 0:
+            return
+
+        # --- REAL ORDER PLACEMENT ---
+        ok, placed_fee, filled, status = self.place_real_order(ticker, qty, price, side, expiry)
+        if not ok:
+            # place_real_order already prints details; keep a lightweight breadcrumb here.
+            print(f"ORDER_FAIL {ticker} {side.upper()} {qty} @ {int(round(price))} status={status}", flush=True)
+            return
+
+        # Update shadow state (best-effort) so the next ticks don't over-order.
+        # Reserve funds for the full request (limit buys reserve cash even if unfilled).
+        req_price = int(round(price))
+        req_fee = calculate_convex_fee(req_price, int(qty))
+        req_cost = (int(qty) * (req_price / 100.0)) + req_fee
+        self.shadow_balance = max(0.0, self.shadow_balance - req_cost)
+
+        if filled and filled > 0:
+            if side == 'yes':
+                self.shadow_positions[ticker]['yes'] += int(filled)
+            else:
+                self.shadow_positions[ticker]['no'] += int(filled)
+
+        # Invalidate cache so open-orders refresh reflects the new order quickly.
+        if ticker in self.order_cache:
+            del self.order_cache[ticker]
+
         try:
             # Capture Wall Clock Time (Execution Time)
             exec_time = datetime.now()

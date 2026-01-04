@@ -42,7 +42,7 @@ import pandas as pd  # noqa: E402
 class InventoryAwareMarketMakerV6(ComplexStrategy):
     """Backtester-parity MM sizing + gating.
 
-    This matches the logic/params in complex_strategy_backtest.py (as closely as practical)
+    This matches the logic/params in backtesting/engine.py (as closely as practical)
     but returns a (orders, debug) tuple for the V4 engine.
     """
 
