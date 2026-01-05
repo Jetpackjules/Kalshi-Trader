@@ -421,10 +421,16 @@ class ComplexBacktester:
         end_date: str | None = None,
         generate_daily_charts: bool = True,
         generate_final_chart: bool = True,
+        inventory_per_dollar_daily: float | None = None,
+        enable_time_constraints: bool | None = None,
         **strategy_kwargs,
     ):
         self.generate_daily_charts = generate_daily_charts
         self.generate_final_chart = generate_final_chart
+        self.inventory_per_dollar_daily = inventory_per_dollar_daily
+        if enable_time_constraints is not None:
+            global ENABLE_TIME_CONSTRAINTS
+            ENABLE_TIME_CONSTRAINTS = bool(enable_time_constraints)
 
         self.log_dir = log_dir or LOG_DIR
         self.charts_dir = charts_dir or CHARTS_DIR
@@ -476,6 +482,22 @@ class ComplexBacktester:
                 'paid_out': set(), # Guard against double payouts
                 'cost_basis': defaultdict(float) # ticker -> total cost basis
             }
+        if self.inventory_per_dollar_daily is not None:
+            for s in self.strategies:
+                self._apply_inventory_cap_for_strategy(s, self.initial_capital)
+
+    def _apply_inventory_cap_for_strategy(self, strategy, equity_value: float) -> None:
+        if self.inventory_per_dollar_daily is None:
+            return
+        mm = getattr(strategy, "mm", None)
+        if mm is None or not hasattr(mm, "max_inventory"):
+            return
+        try:
+            cap = int(round(float(equity_value) * float(self.inventory_per_dollar_daily)))
+        except Exception:
+            cap = 0
+        cap = max(1, cap)
+        mm.max_inventory = cap
 
     def load_all_data(self):
         print(f"Loading data from {self.log_dir}...")
@@ -930,6 +952,8 @@ class ComplexBacktester:
                             
                             # UPDATE DAILY START EQUITY FOR NEXT DAY
                             p['daily_start_equity'] = total_equity
+                            if self.inventory_per_dollar_daily is not None:
+                                self._apply_inventory_cap_for_strategy(s, total_equity)
                             
                             daily_report[s.name] = {'start': self.initial_capital, 'equity': total_equity}
                             

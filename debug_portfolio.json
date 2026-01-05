@@ -1,4 +1,11 @@
 {
-  "YES": {},
-  "NO": {}
+  "YES": {
+    "KXHIGHNY-26JAN05-T33": 5223,
+    "KXHIGHNY-26JAN05-T40": 1115,
+    "KXHIGHNY-26JAN05-B39.5": 1266
+  },
+  "NO": {
+    "KXHIGHNY-26JAN05-B35.5": 437,
+    "KXHIGHNY-26JAN05-B33.5": 493
+  }
 }

@@ -3,6 +3,7 @@ import json
 import os
 import sys
 import time
+from copy import deepcopy
 from datetime import datetime, timedelta
 from collections import defaultdict
 
@@ -50,7 +51,7 @@ class InventoryAwareMarketMakerV6(ComplexStrategy):
         self,
         name: str,
         risk_pct: float = 0.5,
-        max_inventory: int = 50,
+        max_inventory: int | None = 50,
         inventory_penalty: float = 0.5,
         max_offset: int = 2,
         alpha: float = 0.1,
@@ -165,14 +166,19 @@ class InventoryAwareMarketMakerV6(ComplexStrategy):
             return None, debug
 
         current_inv = inventories.get("YES", 0) if action == "BUY_YES" else inventories.get("NO", 0)
-        room = self.max_inventory - current_inv
-        if room <= 0:
-            debug["status"] = f"Inventory Full ({current_inv})"
-            return None, debug
+        if self.max_inventory is None:
+            room = float("inf")
+        else:
+            room = self.max_inventory - current_inv
+            if room <= 0:
+                debug["status"] = f"Inventory Full ({current_inv})"
+                return None, debug
 
         inv_penalty = 1.0 / (1.0 + current_inv / 200.0)
         qty = int(base_qty * scale * inv_penalty)
-        qty = max(1, min(qty, room))
+        qty = max(1, qty)
+        if self.max_inventory is not None:
+            qty = min(qty, int(room))
 
         fee_real = calculate_convex_fee(price_to_pay, qty)
         fee_cents_real = (fee_real / qty) * 100.0
@@ -308,23 +314,164 @@ class RegimeSwitcherV6(ComplexStrategy):
 
 
 class LiveTraderV6(LiveTraderV4):
-    def __init__(self, *, paper: bool = False, risk_pct: float = 0.5, tightness_percentile: int = 20):
+    def __init__(
+        self,
+        *,
+        paper: bool = False,
+        risk_pct: float = 0.8,
+        tightness_percentile: int = 20,
+        max_inventory: int | None = None,
+        inventory_per_dollar: float | None = None,
+        uncap_inventory: bool = False,
+    ):
         super().__init__()
         self.paper = paper
+        self._max_inventory_override = max_inventory
+        self._inventory_per_dollar = inventory_per_dollar
+        self._uncap_inventory = uncap_inventory
+        self._last_positions_snapshot = None
+        self._attempted_orders = 0
         self.strategy = RegimeSwitcherV6(
-            "Live RegimeSwitcher V6 (Backtester-Parity)",
+            "Live hb_notional_010 (Hours)",
             risk_pct=risk_pct,
             tightness_percentile=tightness_percentile,
+            max_inventory=100,
+            margin_cents=4.0,
+            scaling_factor=4.0,
+            max_notional_pct=0.10,
+            max_loss_pct=0.03,
         )
+
+    def sync_api_state(self, force_reset_daily: bool = False):
+        prev_positions = deepcopy(self.positions)
+        super().sync_api_state(force_reset_daily=force_reset_daily)
+        self._log_position_fills(prev_positions, self.positions)
+
+    def _log_position_fills(self, prev_positions: dict, curr_positions: dict) -> None:
+        if self._last_positions_snapshot is None:
+            self._last_positions_snapshot = deepcopy(curr_positions)
+            return
+
+        now = datetime.now()
+        fill_rows = []
+
+        tickers = set(prev_positions.keys()) | set(curr_positions.keys())
+        for ticker in tickers:
+            prev = prev_positions.get(ticker, {})
+            curr = curr_positions.get(ticker, {})
+
+            prev_yes = int(prev.get("yes", 0) or 0)
+            prev_no = int(prev.get("no", 0) or 0)
+            prev_cost = float(prev.get("cost", 0.0) or 0.0)
+
+            curr_yes = int(curr.get("yes", 0) or 0)
+            curr_no = int(curr.get("no", 0) or 0)
+            curr_cost = float(curr.get("cost", 0.0) or 0.0)
+
+            yes_delta = curr_yes - prev_yes
+            no_delta = curr_no - prev_no
+            cost_delta = curr_cost - prev_cost
+
+            if yes_delta == 0 and no_delta == 0:
+                continue
+
+            if yes_delta != 0:
+                qty = abs(yes_delta)
+                action = "BUY_YES" if yes_delta > 0 else "SELL_YES"
+                avg_price = None
+                if qty > 0 and cost_delta != 0:
+                    avg_price = round(abs(cost_delta) / qty * 100.0, 2)
+                fill_rows.append((ticker, action, qty, avg_price, cost_delta))
+
+            if no_delta != 0:
+                qty = abs(no_delta)
+                action = "BUY_NO" if no_delta > 0 else "SELL_NO"
+                avg_price = None
+                if qty > 0 and cost_delta != 0:
+                    avg_price = round(abs(cost_delta) / qty * 100.0, 2)
+                fill_rows.append((ticker, action, qty, avg_price, cost_delta))
+
+        if not fill_rows:
+            return
+
+        try:
+            file_exists = os.path.isfile("fills.csv")
+            with open("fills.csv", "a", newline="", encoding="utf-8") as f:
+                if not file_exists:
+                    f.write("timestamp,strategy,ticker,action,qty,avg_price_cents,cost_delta\n")
+                for ticker, action, qty, avg_price, cost_delta in fill_rows:
+                    avg_str = "" if avg_price is None else f"{avg_price:.2f}"
+                    f.write(
+                        f"{now.strftime('%Y-%m-%d %H:%M:%S')},{self.strategy.name},{ticker},{action},{qty},{avg_str},{cost_delta:.4f}\n"
+                    )
+        except Exception as e:
+            print(f"[FILL_LOG] Failed to write fills.csv: {e}", flush=True)
+
+        for ticker, action, qty, avg_price, cost_delta in fill_rows:
+            avg_str = "n/a" if avg_price is None else f"{avg_price:.2f}c"
+            print(
+                f"[FILL_SYNC] {ticker} {action} qty={qty} avg={avg_str} cost_delta=${cost_delta:.4f}",
+                flush=True,
+            )
+
+        self._last_positions_snapshot = deepcopy(curr_positions)
+
+    def _apply_inventory_cap(self) -> None:
+        mm = getattr(self.strategy, "mm", None)
+        if mm is None or not hasattr(mm, "max_inventory"):
+            return
+
+        if self._uncap_inventory:
+            mm.max_inventory = None
+            print("[CONFIG] max_inventory=None (uncapped)", flush=True)
+            return
+
+        if self._max_inventory_override is not None:
+            mm.max_inventory = self._max_inventory_override
+            print(f"[CONFIG] max_inventory={mm.max_inventory}", flush=True)
+            return
+
+        if self._inventory_per_dollar is not None:
+            # Use daily_start_equity if available; otherwise fall back to balance.
+            base = getattr(self, "daily_start_equity", None)
+            if base is None:
+                base = getattr(self, "balance", 0.0)
+
+            try:
+                cap = int(round(float(base) * float(self._inventory_per_dollar)))
+            except Exception:
+                cap = 0
+
+            cap = max(1, cap)
+            mm.max_inventory = cap
+            print(f"[CONFIG] max_inventory={mm.max_inventory} (inventory_per_dollar={self._inventory_per_dollar})", flush=True)
 
     def place_real_order(self, ticker, qty, price, side, expiry_ts):
         if self.paper:
+            self._log_order_attempt(ticker, qty, price, side, "PAPER")
             print(f"[PAPER] WOULD PLACE: {ticker} {side.upper()} {qty} @ {price} exp={expiry_ts}", flush=True)
             return True
-        return super().place_real_order(ticker, qty, price, side, expiry_ts)
+        ok = super().place_real_order(ticker, qty, price, side, expiry_ts)
+        self._log_order_attempt(ticker, qty, price, side, "OK" if ok else "FAIL")
+        return ok
+
+    def _log_order_attempt(self, ticker: str, qty: int, price: float, side: str, result: str) -> None:
+        self._attempted_orders += 1
+        now = datetime.now()
+        try:
+            file_exists = os.path.isfile("attempted_orders.csv")
+            with open("attempted_orders.csv", "a", newline="", encoding="utf-8") as f:
+                if not file_exists:
+                    f.write("timestamp,strategy,ticker,side,qty,price,result\n")
+                f.write(
+                    f"{now.strftime('%Y-%m-%d %H:%M:%S')},{self.strategy.name},{ticker},{side},{qty},{price},{result}\n"
+                )
+        except Exception as e:
+            print(f"[ORDER_ATTEMPT] Failed to write attempted_orders.csv: {e}", flush=True)
 
     def export_snapshot_now(self, out_path: str | None = None) -> str:
         self.sync_api_state(force_reset_daily=False)
+        self._apply_inventory_cap()
         try:
             self.refresh_open_orders_snapshot()
         except Exception:
@@ -363,7 +510,22 @@ class LiveTraderV6(LiveTraderV4):
         try:
             mode = "PAPER" if self.paper else "LIVE"
             print(f"=== Live Trader V6 ({mode}) ===", flush=True)
+            print(
+                "[STRATEGY] name={name} risk_pct={risk} tightness={tight} max_inv={max_inv} "
+                "margin={margin} scaling={scaling} max_notional_pct={notional} max_loss_pct={loss}".format(
+                    name=self.strategy.name,
+                    risk=getattr(self.strategy, "risk_pct", None),
+                    tight=getattr(self.strategy, "tightness_percentile", None),
+                    max_inv=getattr(self.strategy.mm, "max_inventory", None),
+                    margin=getattr(self.strategy.mm, "margin_cents", None),
+                    scaling=getattr(self.strategy.mm, "scaling_factor", None),
+                    notional=getattr(self.strategy.mm, "max_notional_pct", None),
+                    loss=getattr(self.strategy.mm, "max_loss_pct", None),
+                ),
+                flush=True,
+            )
             self.sync_api_state(force_reset_daily=True)
+            self._apply_inventory_cap()
             self.update_status_file("STARTING")
 
             while True:
@@ -375,8 +537,15 @@ class LiveTraderV6(LiveTraderV4):
                 self.update_status_file("RUNNING")
                 now = datetime.now()
 
+                if self.last_status_time is None or (now - self.last_status_time).total_seconds() >= 60:
+                    self.sync_api_state()
+                    self.refresh_open_orders_snapshot()
+                    self.print_status()
+                    self.last_status_time = now
+
                 if self.last_reset_date != now.strftime("%Y-%m-%d") and now.hour >= 5:
                     self.sync_api_state(force_reset_daily=True)
+                    self._apply_inventory_cap()
 
                 all_new_ticks = []
                 active_files = self.get_active_log_files()
@@ -394,12 +563,6 @@ class LiveTraderV6(LiveTraderV4):
                     all_new_ticks.sort(key=parse_ts)
                     for row in all_new_ticks:
                         self.on_tick(row)
-
-                if self.last_status_time is None or (now - self.last_status_time).total_seconds() >= 60:
-                    self.sync_api_state()
-                    self.refresh_open_orders_snapshot()
-                    self.print_status()
-                    self.last_status_time = now
 
                 time.sleep(1)
         except Exception as e:
@@ -419,12 +582,27 @@ def main() -> None:
     parser.add_argument("--paper", action="store_true", help="Run active without placing real orders")
     parser.add_argument("--snapshot", action="store_true", help="Write a snapshot now and exit")
     parser.add_argument("--snapshot-out", default=None, help="Optional explicit snapshot output path")
-    parser.add_argument("--risk-pct", type=float, default=0.5)
+    parser.add_argument("--risk-pct", type=float, default=0.8)
     parser.add_argument("--tightness-percentile", type=int, default=20)
+    parser.add_argument("--max-inventory", type=int, default=None, help="Override max inventory cap (contracts)")
+    parser.add_argument(
+        "--inventory-per-dollar",
+        type=float,
+        default=0.5,
+        help="Set max inventory as round(daily_start_equity * K). Example: if $100 used 50, K=0.5.",
+    )
+    parser.add_argument("--uncap-inventory", action="store_true", help="Set max_inventory=None (no inventory cap)")
 
     args = parser.parse_args()
 
-    trader = LiveTraderV6(paper=args.paper, risk_pct=args.risk_pct, tightness_percentile=args.tightness_percentile)
+    trader = LiveTraderV6(
+        paper=args.paper,
+        risk_pct=args.risk_pct,
+        tightness_percentile=args.tightness_percentile,
+        max_inventory=(int(args.max_inventory) if args.max_inventory is not None else None),
+        inventory_per_dollar=(None if args.uncap_inventory or args.max_inventory is not None else args.inventory_per_dollar),
+        uncap_inventory=args.uncap_inventory,
+    )
 
     if args.snapshot:
         trader.export_snapshot_now(args.snapshot_out)

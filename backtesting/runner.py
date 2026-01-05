@@ -140,6 +140,38 @@ def _series_to_daily_returns(equities: list[float]) -> list[float]:
     return out
 
 
+def _build_strategies(
+    specs: list[StrategySpec],
+    *,
+    base_capital: float,
+    snapshot: dict | None,
+    args: argparse.Namespace,
+) -> list[object]:
+    strategies: list[object] = []
+    for spec in specs:
+        factory = _load_strategy_factory(spec)
+        strat = _call_strategy_factory(factory, initial_capital=base_capital)
+
+        if args.max_inventory is not None:
+            _set_max_inventory(strat, args.max_inventory)
+        elif args.inventory_per_dollar is not None and args.inventory_per_dollar_daily is None:
+            scaled = int(round(args.initial_capital * args.inventory_per_dollar))
+            _set_max_inventory(strat, scaled)
+
+        # Best-effort: apply snapshot strategy config (if present) unless user overrides via flags.
+        if snapshot is not None:
+            cfg = snapshot.get("strategy_config") or {}
+            if args.max_inventory is None and args.inventory_per_dollar is None and "max_inventory" in cfg:
+                _set_max_inventory(strat, cfg.get("max_inventory"))
+            if hasattr(strat, "risk_pct") and "risk_pct" in cfg:
+                setattr(strat, "risk_pct", float(cfg["risk_pct"]))
+            if hasattr(strat, "tightness_percentile") and "tightness_percentile" in cfg:
+                setattr(strat, "tightness_percentile", int(cfg["tightness_percentile"]))
+
+        strategies.append(strat)
+    return strategies
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run modular backtests and compare variants on one graph.")
     parser.add_argument(
@@ -186,12 +218,28 @@ def main() -> int:
         default=None,
         help="Set max inventory as round(initial_capital * K). Example: if $100 used 50, K=0.5.",
     )
+    parser.add_argument(
+        "--inventory-per-dollar-daily",
+        type=float,
+        default=None,
+        help="Set max inventory daily as round(daily_start_equity * K). Overrides --inventory-per-dollar.",
+    )
     parser.add_argument("--log-dir", default="", help="Market logs dir; defaults to vm_logs/server_mirror autodetect")
     parser.add_argument("--charts-dir", default="backtest_charts")
     parser.add_argument(
         "--out",
         default=os.path.join("backtest_charts", "comparison_variants.html"),
         help="Output HTML path",
+    )
+    parser.add_argument(
+        "--trade-all-day",
+        action="store_true",
+        help="Disable time constraints so strategies can trade 24/7.",
+    )
+    parser.add_argument(
+        "--compare-trade-hours",
+        action="store_true",
+        help="Run one backtest with normal hours and one with 24/7, then chart both.",
     )
 
     args = parser.parse_args()
@@ -218,59 +266,84 @@ def main() -> int:
             snapshot_end_dt = datetime.strptime(args.end_ts, "%Y-%m-%d %H:%M:%S")
 
     specs = _parse_strategy_specs(args.strategy)
-    strategies = []
-    for spec in specs:
-        factory = _load_strategy_factory(spec)
-        strat = _call_strategy_factory(factory, initial_capital=base_capital)
-
-        if args.max_inventory is not None:
-            _set_max_inventory(strat, args.max_inventory)
-        elif args.inventory_per_dollar is not None:
-            scaled = int(round(args.initial_capital * args.inventory_per_dollar))
-            _set_max_inventory(strat, scaled)
-
-        # Best-effort: apply snapshot strategy config (if present) unless user overrides via flags.
-        if snapshot is not None:
-            cfg = snapshot.get("strategy_config") or {}
-            if args.max_inventory is None and args.inventory_per_dollar is None and "max_inventory" in cfg:
-                _set_max_inventory(strat, cfg.get("max_inventory"))
-            if hasattr(strat, "risk_pct") and "risk_pct" in cfg:
-                setattr(strat, "risk_pct", float(cfg["risk_pct"]))
-            if hasattr(strat, "tightness_percentile") and "tightness_percentile" in cfg:
-                setattr(strat, "tightness_percentile", int(cfg["tightness_percentile"]))
-
-        strategies.append(strat)
-
     start_date = args.start_date
     end_date = args.end_date
     if snapshot_start_dt is not None:
         start_date = _dt_to_datestr(snapshot_start_dt)
         # If the user didn't provide an end-date, keep it open.
 
-    bt = ComplexBacktester(
-        strategies=strategies,
-        log_dir=log_dir,
-        charts_dir=charts_dir,
-        start_date=start_date,
-        end_date=end_date,
-        start_datetime=snapshot_start_dt,
-        end_datetime=snapshot_end_dt,
-        buy_slippage_cents=float(args.buy_slippage_cents or 0.0),
-        seed_warmup_from_history=bool(args.simulate_live),
-        round_prices_to_int=bool(args.simulate_live),
-        min_requote_interval_seconds=(float(args.min_requote_interval) if args.simulate_live else 0.0),
-        initial_capital=base_capital,
-        generate_daily_charts=False,
-        generate_final_chart=False,
-    )
+    def _run_once(enable_time_constraints: bool | None) -> ComplexBacktester:
+        strategies = _build_strategies(specs, base_capital=base_capital, snapshot=snapshot, args=args)
+        bt = ComplexBacktester(
+            strategies=strategies,
+            log_dir=log_dir,
+            charts_dir=charts_dir,
+            start_date=start_date,
+            end_date=end_date,
+            start_datetime=snapshot_start_dt,
+            end_datetime=snapshot_end_dt,
+            buy_slippage_cents=float(args.buy_slippage_cents or 0.0),
+            seed_warmup_from_history=bool(args.simulate_live),
+            round_prices_to_int=bool(args.simulate_live),
+            min_requote_interval_seconds=(float(args.min_requote_interval) if args.simulate_live else 0.0),
+            initial_capital=base_capital,
+            generate_daily_charts=False,
+            generate_final_chart=False,
+            inventory_per_dollar_daily=(float(args.inventory_per_dollar_daily) if args.inventory_per_dollar_daily is not None else None),
+            enable_time_constraints=enable_time_constraints,
+        )
 
-    if snapshot is not None:
-        for s in strategies:
-            _seed_portfolio_from_snapshot(bt, s.name, snapshot)
+        if snapshot is not None:
+            for s in strategies:
+                _seed_portfolio_from_snapshot(bt, s.name, snapshot)
 
-    started = datetime.now()
-    bt.run()
-    elapsed = datetime.now() - started
+        started = datetime.now()
+        bt.run()
+        bt._elapsed = datetime.now() - started
+        return bt
+
+    if args.compare_trade_hours:
+        bt_hours = _run_once(enable_time_constraints=True)
+        bt_all = _run_once(enable_time_constraints=False)
+
+        if not hasattr(bt_hours, "daily_equity_history") or not hasattr(bt_all, "daily_equity_history"):
+            raise RuntimeError("No daily_equity_history produced (no data or date range mismatch)")
+
+        fig = make_subplots(
+            rows=1,
+            cols=1,
+            shared_xaxes=True,
+            subplot_titles=("Equity (MTM) by Strategy: Hours vs All-Day",),
+        )
+
+        for strat_name, history in bt_hours.daily_equity_history.items():
+            dates, equities = _equity_history_to_series(history)
+            fig.add_trace(
+                go.Scatter(x=dates, y=equities, mode="lines+markers", name=f"{strat_name} (hours)"),
+                row=1,
+                col=1,
+            )
+
+        for strat_name, history in bt_all.daily_equity_history.items():
+            dates, equities = _equity_history_to_series(history)
+            fig.add_trace(
+                go.Scatter(x=dates, y=equities, mode="lines+markers", name=f"{strat_name} (all-day)", line=dict(dash="dot")),
+                row=1,
+                col=1,
+            )
+
+        fig.update_layout(
+            title=f"Variant Comparison (elapsed {bt_hours._elapsed} + {bt_all._elapsed})",
+            hovermode="x unified",
+            height=900,
+        )
+        fig.update_yaxes(title_text="Equity ($)", row=1, col=1)
+        fig.write_html(args.out)
+        print(f"Wrote comparison chart: {args.out}")
+        print(f"Used log_dir: {log_dir}")
+        return 0
+
+    bt = _run_once(enable_time_constraints=(False if args.trade_all_day else None))
 
     if not hasattr(bt, "daily_equity_history"):
         raise RuntimeError("No daily_equity_history produced (no data or date range mismatch)")
@@ -299,7 +372,7 @@ def main() -> int:
         )
 
     fig.update_layout(
-        title=f"Variant Comparison (elapsed {elapsed})",
+        title=f"Variant Comparison (elapsed {bt._elapsed})",
         hovermode="x unified",
         height=900,
     )

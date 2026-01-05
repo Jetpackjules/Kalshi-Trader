@@ -318,7 +318,7 @@ class LiveTraderV6(LiveTraderV4):
         self,
         *,
         paper: bool = False,
-        risk_pct: float = 0.5,
+        risk_pct: float = 0.8,
         tightness_percentile: int = 20,
         max_inventory: int | None = None,
         inventory_per_dollar: float | None = None,
@@ -330,10 +330,16 @@ class LiveTraderV6(LiveTraderV4):
         self._inventory_per_dollar = inventory_per_dollar
         self._uncap_inventory = uncap_inventory
         self._last_positions_snapshot = None
+        self._attempted_orders = 0
         self.strategy = RegimeSwitcherV6(
-            "Live RegimeSwitcher V6 (Backtester-Parity)",
+            "Live hb_notional_010 (Hours)",
             risk_pct=risk_pct,
             tightness_percentile=tightness_percentile,
+            max_inventory=100,
+            margin_cents=4.0,
+            scaling_factor=4.0,
+            max_notional_pct=0.10,
+            max_loss_pct=0.03,
         )
 
     def sync_api_state(self, force_reset_daily: bool = False):
@@ -442,9 +448,26 @@ class LiveTraderV6(LiveTraderV4):
 
     def place_real_order(self, ticker, qty, price, side, expiry_ts):
         if self.paper:
+            self._log_order_attempt(ticker, qty, price, side, "PAPER")
             print(f"[PAPER] WOULD PLACE: {ticker} {side.upper()} {qty} @ {price} exp={expiry_ts}", flush=True)
             return True
-        return super().place_real_order(ticker, qty, price, side, expiry_ts)
+        ok = super().place_real_order(ticker, qty, price, side, expiry_ts)
+        self._log_order_attempt(ticker, qty, price, side, "OK" if ok else "FAIL")
+        return ok
+
+    def _log_order_attempt(self, ticker: str, qty: int, price: float, side: str, result: str) -> None:
+        self._attempted_orders += 1
+        now = datetime.now()
+        try:
+            file_exists = os.path.isfile("attempted_orders.csv")
+            with open("attempted_orders.csv", "a", newline="", encoding="utf-8") as f:
+                if not file_exists:
+                    f.write("timestamp,strategy,ticker,side,qty,price,result\n")
+                f.write(
+                    f"{now.strftime('%Y-%m-%d %H:%M:%S')},{self.strategy.name},{ticker},{side},{qty},{price},{result}\n"
+                )
+        except Exception as e:
+            print(f"[ORDER_ATTEMPT] Failed to write attempted_orders.csv: {e}", flush=True)
 
     def export_snapshot_now(self, out_path: str | None = None) -> str:
         self.sync_api_state(force_reset_daily=False)
@@ -487,15 +510,29 @@ class LiveTraderV6(LiveTraderV4):
         try:
             mode = "PAPER" if self.paper else "LIVE"
             print(f"=== Live Trader V6 ({mode}) ===", flush=True)
+            print(
+                "[STRATEGY] name={name} risk_pct={risk} tightness={tight} max_inv={max_inv} "
+                "margin={margin} scaling={scaling} max_notional_pct={notional} max_loss_pct={loss}".format(
+                    name=self.strategy.name,
+                    risk=getattr(self.strategy, "risk_pct", None),
+                    tight=getattr(self.strategy, "tightness_percentile", None),
+                    max_inv=getattr(self.strategy.mm, "max_inventory", None),
+                    margin=getattr(self.strategy.mm, "margin_cents", None),
+                    scaling=getattr(self.strategy.mm, "scaling_factor", None),
+                    notional=getattr(self.strategy.mm, "max_notional_pct", None),
+                    loss=getattr(self.strategy.mm, "max_loss_pct", None),
+                ),
+                flush=True,
+            )
             self.sync_api_state(force_reset_daily=True)
             self._apply_inventory_cap()
             self.update_status_file("STARTING")
 
             while True:
                 if not self.check_control_flag():
-                self.update_status_file("PAUSED")
-                time.sleep(10)
-                continue
+                    self.update_status_file("PAUSED")
+                    time.sleep(10)
+                    continue
 
                 self.update_status_file("RUNNING")
                 now = datetime.now()
@@ -545,7 +582,7 @@ def main() -> None:
     parser.add_argument("--paper", action="store_true", help="Run active without placing real orders")
     parser.add_argument("--snapshot", action="store_true", help="Write a snapshot now and exit")
     parser.add_argument("--snapshot-out", default=None, help="Optional explicit snapshot output path")
-    parser.add_argument("--risk-pct", type=float, default=0.5)
+    parser.add_argument("--risk-pct", type=float, default=0.8)
     parser.add_argument("--tightness-percentile", type=int, default=20)
     parser.add_argument("--max-inventory", type=int, default=None, help="Override max inventory cap (contracts)")
     parser.add_argument(
