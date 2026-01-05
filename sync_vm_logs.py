@@ -110,6 +110,48 @@ def sync_logs():
     except subprocess.CalledProcessError as e:
         print(f"Error downloading live_trader_v4.log: {e}")
 
+    # 1e. Download unified_engine.log
+    print("Downloading unified_engine.log...")
+    cmd_unified_log = [
+        "scp",
+        "-i", KEY_FILE,
+        "-o", "StrictHostKeyChecking=no",
+        f"{VM_USER}@{VM_IP}:~/unified_engine.log",
+        f"{LOCAL_LOG_DIR}/"
+    ]
+
+    try:
+        subprocess.run(cmd_unified_log, check=True)
+        print("Successfully downloaded unified_engine.log")
+    except subprocess.CalledProcessError as e:
+        print(f"Error downloading unified_engine.log: {e}")
+
+    # 1f. Download unified_engine_out outputs
+    print("Downloading unified_engine_out outputs...")
+    unified_out_dir = os.path.join(LOCAL_LOG_DIR, "unified_engine_out")
+    if not os.path.exists(unified_out_dir):
+        os.makedirs(unified_out_dir)
+
+    unified_files = [
+        "unified_trades.csv",
+        "unified_orders.csv",
+        "unified_positions.json",
+    ]
+
+    for filename in unified_files:
+        cmd_unified_out = [
+            "scp",
+            "-i", KEY_FILE,
+            "-o", "StrictHostKeyChecking=no",
+            f"{VM_USER}@{VM_IP}:~/unified_engine_out/{filename}",
+            f"{unified_out_dir}/"
+        ]
+        try:
+            subprocess.run(cmd_unified_out, check=True)
+            print(f"Successfully downloaded {filename}")
+        except subprocess.CalledProcessError as e:
+            print(f"Error downloading {filename}: {e}")
+
     # 2. Download market_logs directory (selective)
     print("\nSyncing market_logs/...")
     

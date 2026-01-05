@@ -32,6 +32,8 @@ ORDERS_LOG_FILE = "trades.csv" # Point to trades.csv for dashboard compatibility
 MIN_REQUOTE_INTERVAL = 2.0 # Seconds between refreshing orders for a ticker
 ORDER_CACHE_TTL = 1.0 # Seconds to trust cached open orders
 RETRYABLE_HTTP = {502, 503, 504}
+LIVE_TICK_LOG_DIR = "live_tick_logs"
+LIVE_TICK_LOG_PREFIX = "live_ticks_ingest"
 
 # API Config
 KEY_ID = "ab739236-261e-4130-bd46-2c0330d0bf57"
@@ -330,6 +332,14 @@ class LiveTraderV4:
         self.open_orders_snapshot = [] # Global snapshot
         self.open_orders_snapshot_ts = 0
         self.last_requote_time = {} # {ticker: ts}
+
+        # Live tick replay logging
+        self.tick_seq = 0
+        self.tick_log_dir = os.path.expanduser(f"~/{LIVE_TICK_LOG_DIR}")
+        try:
+            os.makedirs(self.tick_log_dir, exist_ok=True)
+        except Exception:
+            pass
         
         # State Tracking
         self.daily_start_equity = 0.0
@@ -806,6 +816,9 @@ class LiveTraderV4:
         last_req = self.last_requote_time.get(ticker, 0)
         if (time.time() - last_req) < MIN_REQUOTE_INTERVAL:
             return # Skip strategy to avoid churn
+
+        # Log the exact tick state used for strategy decisions (replay parity).
+        self._log_tick_for_replay(current_time, ticker, market_state)
         
         # --- 4. Call Strategy ---
         desired_orders = self.strategy.on_market_update(ticker, market_state, current_time, portfolios_inventories, active_orders_for_strat, self.shadow_balance)
@@ -952,6 +965,33 @@ class LiveTraderV4:
                     writer.writerow(["timestamp", "strategy", "ticker", "action", "price", "qty", "cost", "fee", "exec_time", "latency_ms"])
                 writer.writerow([timestamp, self.strategy.name, ticker, action, price, qty, cost, fee, exec_time_str, f"{latency_ms:.2f}"])
         except: pass
+
+    def _log_tick_for_replay(self, current_time, ticker, market_state):
+        try:
+            ingest_time = datetime.now()
+            date_str = current_time.strftime("%Y-%m-%d")
+            out_path = os.path.join(self.tick_log_dir, f"{LIVE_TICK_LOG_PREFIX}_{date_str}.csv")
+            file_exists = os.path.isfile(out_path)
+            with open(out_path, "a", newline="") as f:
+                writer = csv.writer(f)
+                if not file_exists:
+                    writer.writerow(
+                        ["seq", "tick_timestamp", "ingest_timestamp", "ticker", "yes_ask", "yes_bid", "no_ask", "no_bid"]
+                    )
+                writer.writerow([
+                    self.tick_seq,
+                    current_time.strftime("%Y-%m-%d %H:%M:%S.%f"),
+                    ingest_time.strftime("%Y-%m-%d %H:%M:%S.%f"),
+                    ticker,
+                    market_state.get("yes_ask"),
+                    market_state.get("yes_bid"),
+                    market_state.get("no_ask"),
+                    market_state.get("no_bid"),
+                ])
+            self.tick_seq += 1
+        except Exception:
+            # Best-effort logging only; never block trading.
+            pass
 
     def get_active_log_files(self):
         # Return list of log files to process

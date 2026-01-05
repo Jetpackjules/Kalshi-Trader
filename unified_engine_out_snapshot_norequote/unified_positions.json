@@ -1,0 +1,40 @@
+{
+  "cash": 46.16000000000001,
+  "positions": {
+    "KXHIGHNY-26JAN04-B31.5": {
+      "yes": 0,
+      "no": 3,
+      "cost": 2.56
+    },
+    "KXHIGHNY-26JAN05-B35.5": {
+      "yes": 0,
+      "no": 2,
+      "cost": 0.8400000000000001
+    },
+    "KXHIGHNY-26JAN05-B37.5": {
+      "yes": 1,
+      "no": 0,
+      "cost": 0.22999999999999998
+    },
+    "KXHIGHNY-26JAN06-B41.5": {
+      "yes": 0,
+      "no": 6,
+      "cost": 3.4500000000000006
+    },
+    "KXHIGHNY-26JAN06-B43.5": {
+      "yes": 2,
+      "no": 0,
+      "cost": 0.43000000000000005
+    },
+    "KXHIGHNY-26JAN06-T39": {
+      "yes": 0,
+      "no": 3,
+      "cost": 2.49
+    },
+    "KXHIGHNY-26JAN05-B33.5": {
+      "yes": 12,
+      "no": 0,
+      "cost": 2.1
+    }
+  }
+}
