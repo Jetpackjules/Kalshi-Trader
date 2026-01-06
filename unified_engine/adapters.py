@@ -3,6 +3,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
+import csv
+import json
+import os
 
 import math
 
@@ -41,7 +44,7 @@ class BaseAdapter:
 
 
 class SimAdapter(BaseAdapter):
-    def __init__(self, *, initial_cash: float = 0.0, diag_log=None):
+    def __init__(self, *, initial_cash: float = 0.0, diag_log=None, out_dir: str | None = None):
         self.cash = float(initial_cash)
         self.positions: dict[str, dict[str, Any]] = {}
         self.open_orders: list[dict[str, Any]] = []
@@ -49,6 +52,51 @@ class SimAdapter(BaseAdapter):
         self.order_history: list[dict[str, Any]] = []
         self._order_id = 0
         self._diag_log = diag_log
+        self._out_dir = out_dir
+        self._trades_path = None
+        self._orders_path = None
+        if out_dir:
+            os.makedirs(out_dir, exist_ok=True)
+            self._trades_path = os.path.join(out_dir, "unified_trades.csv")
+            self._orders_path = os.path.join(out_dir, "unified_orders.csv")
+
+    def _append_trade_row(self, trade: dict[str, Any]) -> None:
+        if not self._trades_path:
+            return
+        file_exists = os.path.isfile(self._trades_path)
+        with open(self._trades_path, "a", newline="") as f:
+            writer = csv.writer(f)
+            if not file_exists:
+                writer.writerow(["time", "action", "ticker", "price", "qty", "fee", "cost", "source"])
+            writer.writerow([
+                trade["time"],
+                trade["action"],
+                trade["ticker"],
+                trade["price"],
+                trade["qty"],
+                trade["fee"],
+                trade["cost"],
+                trade["source"],
+            ])
+
+    def _append_order_row(self, order: dict[str, Any]) -> None:
+        if not self._orders_path:
+            return
+        file_exists = os.path.isfile(self._orders_path)
+        with open(self._orders_path, "a", newline="") as f:
+            writer = csv.writer(f)
+            if not file_exists:
+                writer.writerow(["time", "ticker", "side", "price", "qty", "status", "filled"])
+            writer.writerow([
+                order["time"],
+                order["ticker"],
+                order["side"],
+                order["price"],
+                order["qty"],
+                order["status"],
+                order.get("filled", 0),
+            ])
+
 
     def _next_id(self) -> str:
         self._order_id += 1
@@ -109,6 +157,7 @@ class SimAdapter(BaseAdapter):
                     "filled": filled,
                 }
             )
+            self._append_order_row(self.order_history[-1])
             return OrderResult(ok=True, filled=filled, status="executed")
 
         self.open_orders.append(new_order)
@@ -133,6 +182,7 @@ class SimAdapter(BaseAdapter):
                 "filled": 0,
             }
         )
+        self._append_order_row(self.order_history[-1])
         return OrderResult(ok=True, filled=0, status="resting")
 
     def _maybe_fill(self, order: dict, market_state: dict, current_time: datetime) -> int:
@@ -182,18 +232,18 @@ class SimAdapter(BaseAdapter):
         order["remaining_count"] = 0
         order["status"] = "executed"
 
-        self.trades.append(
-            {
-                "time": current_time,
-                "action": "BUY_YES" if side == "yes" else "BUY_NO",
-                "ticker": ticker,
-                "price": price,
-                "qty": qty,
-                "fee": fee,
-                "cost": cost,
-                "source": "SIM",
-            }
-        )
+        trade = {
+            "time": current_time,
+            "action": "BUY_YES" if side == "yes" else "BUY_NO",
+            "ticker": ticker,
+            "price": price,
+            "qty": qty,
+            "fee": fee,
+            "cost": cost,
+            "source": "SIM",
+        }
+        self.trades.append(trade)
+        self._append_trade_row(trade)
         if self._diag_log:
             self._diag_log(
                 "TRADE",

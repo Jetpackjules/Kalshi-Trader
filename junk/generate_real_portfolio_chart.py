@@ -1,40 +1,46 @@
-import pandas as pd
-import plotly.graph_objects as go
+import json
 import os
 import re
 from datetime import datetime, timedelta
 
+import pandas as pd
+import plotly.graph_objects as go
+
 # Paths
-VM_LOGS_DIR = r"c:\Users\jetpa\OneDrive - UW\Google_Grav_Onedrive\kalshi_weather_data\live_trading_system\vm_logs"
-TRADES_FILE = os.path.join(VM_LOGS_DIR, "trades.csv")
-TRADER_LOG = os.path.join(VM_LOGS_DIR, "live_trader_v4.log")
-OUTPUT_CHART = r"c:\Users\jetpa\OneDrive - UW\Google_Grav_Onedrive\kalshi_weather_data\backtest_charts\real_portfolio_performance.html"
+TRADER_LOG = os.path.join("server_mirror", "output.log")
+FILLS_FILE = os.path.join("vm_logs", "todays_fills.json")
+OUTPUT_CHART = os.path.join("backtest_charts", "real_portfolio_performance_today.html")
 
 def generate_chart():
-    print("Parsing trades...")
-    if not os.path.exists(TRADES_FILE):
-        print(f"Error: {TRADES_FILE} not found.")
+    print("Parsing fills from Kalshi API output...")
+    if not os.path.exists(FILLS_FILE):
+        print(f"Error: {FILLS_FILE} not found. Run get_todays_trades.py first.")
         return
 
-    df_trades = pd.read_csv(TRADES_FILE)
-    df_trades['timestamp'] = pd.to_datetime(df_trades['timestamp'])
-    
-    # Filter since Dec 24
-    df_trades = df_trades[df_trades['timestamp'] >= '2025-12-24']
-    
-    if df_trades.empty:
-        print("No trades found since Dec 24.")
-        # We might still have equity data in the log even without trades.
+    with open(FILLS_FILE, "r", encoding="utf-16") as f:
+        fills_blob = json.load(f)
+
+    fills = fills_blob.get("fills", [])
+    if not fills:
+        print("No fills found in todays_fills.json.")
     
     print("Parsing trader log for equity curve...")
     equity_history = []
-    
-    # Load trades to help anchor dates
-    df_trades = pd.read_csv(TRADES_FILE)
-    df_trades['timestamp'] = pd.to_datetime(df_trades['timestamp'])
-    trade_dates = df_trades.set_index('timestamp').index.to_series().dt.date.to_dict()
-    
-    current_date = datetime(2025, 12, 23).date() # Log starts on Dec 23
+
+    # Try to anchor the log date from the snapshot filename in output.log
+    anchor_date = None
+    if os.path.exists(TRADER_LOG):
+        with open(TRADER_LOG, "r", encoding="utf-8", errors="ignore") as f:
+            for line in f:
+                snap_match = re.search(r"snapshot_(\d{4}-\d{2}-\d{2})", line)
+                if snap_match:
+                    anchor_date = datetime.strptime(snap_match.group(1), "%Y-%m-%d").date()
+    if anchor_date is None:
+        # Fallback to local date from fills file
+        today_str = fills_blob.get("date_local")
+        anchor_date = datetime.strptime(today_str, "%Y-%m-%d").date() if today_str else datetime.now().date()
+
+    current_date = anchor_date
     last_time = None
     
     if os.path.exists(TRADER_LOG):
@@ -82,11 +88,14 @@ def generate_chart():
 
     df_equity = pd.DataFrame(equity_history)
     
-    # Filter since Dec 24
-    df_equity = df_equity[df_equity['timestamp'] >= '2025-12-24']
+    # Filter to today's date (local)
+    today_str = fills_blob.get("date_local")
+    if today_str:
+        today_date = datetime.strptime(today_str, "%Y-%m-%d").date()
+        df_equity = df_equity[df_equity["timestamp"].dt.date == today_date]
     
     if df_equity.empty:
-        print("No equity data found since Dec 24.")
+        print("No equity data found for today.")
         return
 
     # Downsample to hourly or just keep all if not too many
@@ -107,21 +116,39 @@ def generate_chart():
         fillcolor='rgba(0, 255, 0, 0.1)'
     ))
     
-    # Add trade markers
-    for _, trade in df_trades.iterrows():
-        color = 'blue' if 'BUY_YES' in trade['action'] else 'red'
+    # Add fill markers
+    for fill in fills:
+        ts = fill.get("ts")
+        if ts is None:
+            continue
+        tstamp = datetime.fromtimestamp(ts)
+        if today_str and tstamp.date() != today_date:
+            continue
+        side = fill.get("side", "").upper()
+        action = fill.get("action", "").upper()
+        color = "blue" if side == "YES" else "red"
+        price = fill.get("yes_price") if side == "YES" else fill.get("no_price")
+        qty = fill.get("count")
+        ticker = fill.get("market_ticker") or fill.get("ticker")
+
+        # Snap marker to nearest equity point for a clean overlay
+        nearest_idx = (df_equity["timestamp"] - tstamp).abs().argsort()[:1]
+        if len(nearest_idx) == 0:
+            continue
+        y_val = df_equity.iloc[nearest_idx]["equity"].values[0]
+
         fig.add_trace(go.Scatter(
-            x=[trade['timestamp']],
-            y=[df_equity.iloc[(df_equity['timestamp']-trade['timestamp']).abs().argsort()[:1]]['equity'].values[0]],
-            mode='markers',
-            marker=dict(color=color, size=8, symbol='diamond'),
-            name=f"{trade['action']} {trade['ticker']}",
-            hovertext=f"{trade['action']} {trade['ticker']}<br>Price: {trade['price']}c<br>Qty: {trade['qty']}<br>Cost: ${trade['cost']:.2f}",
-            showlegend=False
+            x=[tstamp],
+            y=[y_val],
+            mode="markers",
+            marker=dict(color=color, size=8, symbol="diamond"),
+            name=f"{action}_{side} {ticker}",
+            hovertext=f"{action} {side} {ticker}<br>Price: {price}c<br>Qty: {qty}",
+            showlegend=False,
         ))
 
     fig.update_layout(
-        title="Real Kalshi Portfolio Performance (Since Dec 24)",
+        title="Real Kalshi Portfolio Performance (Today)",
         xaxis_title="Date/Time",
         yaxis_title="Portfolio Value ($)",
         hovermode="x unified",

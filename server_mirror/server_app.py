@@ -107,21 +107,6 @@ def control_trader():
                 f.write("false")
             return jsonify({"success": True, "message": "Trading Disabled"})
         else:
-            return jsonify({"success": False, "message": "Invalid action"}), 400
-    except Exception as e:
-        return jsonify({"success": False, "message": str(e)}), 500
-
-@app.route('/api/trades')
-def get_trades():
-    try:
-        trades_file = "trades.csv"
-        if not os.path.exists(trades_file):
-            return jsonify([])
-        
-        trades = []
-        # Read CSV and get last 10 lines
-        with open(trades_file, 'r') as f:
-            # Skip header if exists
             lines = f.readlines()
             if len(lines) > 1:
                 # Parse headers from first line
@@ -133,6 +118,35 @@ def get_trades():
                     parts = line.strip().split(',')
                     if len(parts) == len(headers):
                         trade = dict(zip(headers, parts))
+                        trades.append(trade)
+        return jsonify(trades)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/trades', methods=['GET'])
+def get_trades():
+    try:
+        trades_file = os.path.join("unified_engine_out", "trades.csv")
+        if not os.path.exists(trades_file):
+            # Fallback to root trades.csv if not found in subfolder
+            trades_file = "trades.csv"
+            
+        if not os.path.exists(trades_file):
+            return jsonify([])
+
+        trades = []
+        with open(trades_file, 'r') as f:
+            lines = f.readlines()
+            if len(lines) > 1:
+                headers = lines[0].strip().split(',')
+                # Map 'time' to 'timestamp' for frontend compatibility
+                
+                for line in reversed(lines[1:]): # Show newest first
+                    parts = line.strip().split(',')
+                    if len(parts) == len(headers):
+                        trade = dict(zip(headers, parts))
+                        if 'time' in trade:
+                            trade['timestamp'] = trade['time']
                         trades.append(trade)
         return jsonify(trades)
     except Exception as e:
@@ -165,12 +179,28 @@ def serve_manifest():
 def get_health():
     max_age_s = float(request.args.get("max_age_s", 30))
     trader_log = _latest_trader_log()
-    logger_log = "logger.log" if os.path.exists("logger.log") else os.path.join(LOG_DIR, "manifest.json")
+
+    # Prefer the newest market_data_*.csv mtime for logger health.
+    logger_target = None
+    try:
+        if os.path.isdir(LOG_DIR):
+            csv_candidates = [
+                os.path.join(LOG_DIR, name)
+                for name in os.listdir(LOG_DIR)
+                if name.startswith("market_data_") and name.endswith(".csv")
+            ]
+            if csv_candidates:
+                logger_target = max(csv_candidates, key=os.path.getmtime)
+    except OSError:
+        logger_target = None
+
+    if not logger_target:
+        logger_target = "logger.log" if os.path.exists("logger.log") else os.path.join(LOG_DIR, "manifest.json")
 
     return jsonify({
         "max_age_s": max_age_s,
         "checks": {
-            "logger": _file_status(logger_log, max_age_s),
+            "logger": _file_status(logger_target, max_age_s),
             "live_trader": _file_status(trader_log or "", max_age_s),
             "shadow": _file_status("unified_engine.log", max_age_s),
             "observer": _file_status("observer_status.json", max_age_s),

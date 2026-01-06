@@ -95,12 +95,51 @@ def main() -> int:
     parser.add_argument("--diag-log", action="store_true", help="Emit per-tick diagnostic lines")
     parser.add_argument("--diag-every", type=int, default=1, help="Ticks between diagnostics")
     parser.add_argument("--diag-heartbeat-s", type=float, default=30.0, help="Seconds between follow heartbeats")
+    parser.add_argument("--live", action="store_true", help="Run in LIVE trading mode (real money)")
+    parser.add_argument("--key-file", default="kalshi_prod_private_key.pem", help="Path to private key for live trading")
     args = parser.parse_args()
 
     diag_log = _build_diag_logger(args.diag_log)
 
     strategy = _load_strategy(args.strategy)
-    adapter = SimAdapter(initial_cash=float(args.initial_cash), diag_log=diag_log)
+    
+    if args.live:
+        from unified_engine.adapters import LiveAdapter
+        print("!!! WARNING: RUNNING IN LIVE TRADING MODE !!!")
+        adapter = LiveAdapter(key_path=args.key_file, diag_log=diag_log)
+        
+        # --- SNAPSHOT ON LAUNCH ---
+        try:
+            snapshot_dir = os.path.expanduser("~/snapshots")
+            os.makedirs(snapshot_dir, exist_ok=True)
+            timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
+            snapshot_file = os.path.join(snapshot_dir, f"snapshot_{timestamp}.json")
+            
+            # Sync state to ensure we have latest data
+            cash = adapter.get_cash()
+            positions = adapter.get_positions()
+            portfolio_val = getattr(adapter, "get_portfolio_value", lambda: 0.0)()
+            equity = cash + portfolio_val
+            
+            snapshot_data = {
+                "timestamp": timestamp,
+                "daily_start_equity": equity, # Use Total Equity, not just Cash
+                "balance": cash,
+                "positions": positions,
+                "strategy_config": {
+                    "name": strategy.name,
+                    "risk_pct": getattr(strategy, "risk_pct", 0.5)
+                }
+            }
+            
+            with open(snapshot_file, "w") as f:
+                json.dump(snapshot_data, f, indent=2)
+            print(f"Saved launch snapshot to: {snapshot_file}")
+        except Exception as e:
+            print(f"Failed to save launch snapshot: {e}")
+            
+    else:
+        adapter = SimAdapter(initial_cash=float(args.initial_cash), diag_log=diag_log)
 
     if args.snapshot:
         _seed_from_snapshot(adapter, strategy, args.snapshot)
@@ -146,24 +185,162 @@ def main() -> int:
         diag_log=diag_log,
         diag_every=args.diag_every,
     )
-    engine.run(filtered_ticks)
 
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    trades_df = pd.DataFrame(adapter.trades)
-    trades_df.to_csv(out_dir / "unified_trades.csv", index=False)
+    # Initialize daily start equity
+    daily_start_equity = 0.0
+    try:
+        # Try to load from snapshot if available
+        snapshot_dir = os.path.expanduser("~/snapshots")
+        if os.path.exists(snapshot_dir):
+            snapshots = sorted([f for f in os.listdir(snapshot_dir) if f.startswith("snapshot_")])
+            if snapshots:
+                latest = os.path.join(snapshot_dir, snapshots[-1])
+                with open(latest, "r") as f:
+                    data = json.load(f)
+                    # Only use if from today
+                    if data.get("timestamp", "").startswith(datetime.now().strftime("%Y-%m-%d")):
+                        daily_start_equity = data.get("daily_start_equity", 0.0)
+    except Exception:
+        pass
+        
+    if daily_start_equity == 0.0:
+        daily_start_equity = adapter.get_cash() + getattr(adapter, "get_portfolio_value", lambda: 0.0)()
 
+    def _write_status():
+        # 1. Trades
+        trades_df = pd.DataFrame(adapter.trades)
+        trades_df.to_csv(out_dir / "trades.csv", index=False)
+        
+        # 2. Positions
+        positions_out = {k: v for k, v in adapter.get_positions().items() if (v.get("yes") or 0) > 0 or (v.get("no") or 0) > 0}
+        with open(out_dir / "unified_positions.json", "w", encoding="utf-8") as f:
+            json.dump({"cash": adapter.get_cash(), "positions": positions_out}, f, indent=2)
+
+        # 3. Dashboard Compatibility (trader_status.json)
+        try:
+            cash = adapter.get_cash()
+            portfolio_val = getattr(adapter, "get_portfolio_value", lambda: 0.0)()
+            equity = cash + portfolio_val
+            risk_pct = getattr(strategy, "risk_pct", 0.5)
+            budget = daily_start_equity * risk_pct
+            
+            # Calculate exposure (sum of cost of positions)
+            exposure = sum(p.get("cost", 0.0) for p in positions_out.values())
+            
+            # --- Trading Window Logic ---
+            def get_window_status():
+                now = datetime.now()
+                h = now.hour
+                # Windows: 5-8, 13-17, 21-23
+                windows = [(5, 8), (13, 17), (21, 23)]
+                
+                is_open = False
+                current_window = None
+                
+                for start, end in windows:
+                    if start <= h <= end:
+                        is_open = True
+                        current_window = (start, end)
+                        break
+                        
+                if is_open:
+                    # Time until close (end of the 'end' hour)
+                    target_hour = current_window[1] + 1
+                    if target_hour >= 24:
+                         target = now.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
+                    else:
+                         target = now.replace(hour=target_hour, minute=0, second=0, microsecond=0)
+                    diff = target - now
+                    # Format HH:MM:SS
+                    s = int(diff.total_seconds())
+                    return {
+                        "state": "OPEN",
+                        "message": f"Closes in {s//3600:02}:{(s%3600)//60:02}:{s%60:02}",
+                        "color": "#10B981" # Green
+                    }
+                else:
+                    # Time until next open
+                    next_start = None
+                    for start, end in windows:
+                        if start > h:
+                            next_start = start
+                            break
+                    
+                    if next_start is not None:
+                        target = now.replace(hour=next_start, minute=0, second=0, microsecond=0)
+                    else:
+                        # Next day first window
+                        target = now.replace(hour=windows[0][0], minute=0, second=0, microsecond=0) + timedelta(days=1)
+                        
+                    diff = target - now
+                    s = int(diff.total_seconds())
+                    return {
+                        "state": "CLOSED",
+                        "message": f"Opens in {s//3600:02}:{(s%3600)//60:02}:{s%60:02}",
+                        "color": "#EF4444" # Red
+                    }
+            
+            window_status = get_window_status()
+            # ---------------------------
+
+            status_data = {
+                "status": "RUNNING",
+                "last_update": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "strategy": getattr(strategy, "name", "UnifiedStrategy"),
+                "equity": equity,
+                "cash": cash,
+                "portfolio_value": portfolio_val,
+                "pnl_today": equity - daily_start_equity,
+                "trades_today": len(adapter.trades),
+                "daily_budget": budget,
+                "daily_start_equity": daily_start_equity,
+                "current_exposure": exposure,
+                "spent_today": exposure, # Approx
+                "spent_pct": (exposure / budget * 100) if budget > 0 else 0.0,
+                "positions": positions_out,
+                "target_date": "Unified",
+                "last_decision": getattr(strategy, "last_decision", {}),
+                "window_status": window_status
+            }
+            with open("trader_status.json", "w") as f:
+                json.dump(status_data, f)
+            
+            # Print to stdout for log parsing (compatibility with generate_live_vs_backtest_graph.py)
+            print(f"--- Status @ {datetime.now().strftime('%H:%M:%S')} ---")
+            print(f"Equity: ${equity:.2f}")
+            print(f"Cash: ${cash:.2f}")
+            print(f"Portfolio Value: ${portfolio_val:.2f}")
+            print(f"Daily Budget: ${budget:.2f}")
+            print(f"Exposure: ${exposure:.2f}")
+            
+        except Exception as e:
+            print(f"Failed to write trader_status.json: {e}")
+
+    # Run loop with periodic updates
+    count = 0
+    for tick in filtered_ticks:
+        count += 1
+        if diag_log and (count % args.diag_every == 0):
+            diag_log("TICK_IN", tick_ts=tick["time"], ticker=tick["ticker"])
+        
+        engine.on_tick(
+            ticker=tick["ticker"],
+            market_state=tick["market_state"],
+            current_time=tick["time"],
+        )
+        
+        # Update status every 10 ticks or so to keep dashboard fresh
+        if count % 10 == 0:
+            _write_status()
+
+    # Final write
+    _write_status()
+    
     orders_df = pd.DataFrame(adapter.order_history)
     orders_df.to_csv(out_dir / "unified_orders.csv", index=False)
-
-    positions_out = {k: v for k, v in adapter.positions.items() if (v.get("yes") or 0) > 0 or (v.get("no") or 0) > 0}
-    with open(out_dir / "unified_positions.json", "w", encoding="utf-8") as f:
-        json.dump(
-            {"cash": adapter.cash, "positions": positions_out},
-            f,
-            indent=2,
-        )
 
     print("Wrote:", out_dir / "unified_trades.csv")
     print("Wrote:", out_dir / "unified_orders.csv")
@@ -172,4 +349,6 @@ def main() -> int:
 
 
 if __name__ == "__main__":
+    import sys
+    sys.path.append(os.getcwd()) # Ensure current directory is in path for module imports
     raise SystemExit(main())

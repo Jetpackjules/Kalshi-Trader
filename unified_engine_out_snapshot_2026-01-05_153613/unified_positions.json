@@ -1,0 +1,25 @@
+{
+  "cash": 66.90999999999997,
+  "positions": {
+    "KXHIGHNY-26JAN05-B37.5": {
+      "yes": 18,
+      "no": 0,
+      "cost": 13.6
+    },
+    "KXHIGHNY-26JAN05-B35.5": {
+      "yes": 0,
+      "no": 4,
+      "cost": 2.8600000000000003
+    },
+    "KXHIGHNY-26JAN05-B39.5": {
+      "yes": 0,
+      "no": 10,
+      "cost": 8.5
+    },
+    "KXHIGHNY-26JAN06-B39.5": {
+      "yes": 37,
+      "no": 0,
+      "cost": 8.13
+    }
+  }
+}

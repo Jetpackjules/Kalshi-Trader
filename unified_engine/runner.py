@@ -100,7 +100,7 @@ def main() -> int:
     diag_log = _build_diag_logger(args.diag_log)
 
     strategy = _load_strategy(args.strategy)
-    adapter = SimAdapter(initial_cash=float(args.initial_cash), diag_log=diag_log)
+    adapter = SimAdapter(initial_cash=float(args.initial_cash), diag_log=diag_log, out_dir=args.out_dir)
 
     if args.snapshot:
         _seed_from_snapshot(adapter, strategy, args.snapshot)

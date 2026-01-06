@@ -1,12 +1,15 @@
 ﻿<!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kalshi Ops Console</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
     <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
     <style>
         :root {
@@ -305,6 +308,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="page">
         <header class="hero">
@@ -317,6 +321,7 @@
                     <span class="status-dot" id="liveStatusDot"></span>
                     <strong id="liveStatusText">Live: Unknown</strong>
                 </div>
+                <div class="chip" id="windowChip" style="min-width: 140px; justify-content: center;">Window: --</div>
                 <div class="chip" id="clockChip">Time: --</div>
                 <div class="chip">
                     <a href="/output.log" target="_blank">output.log</a>
@@ -359,18 +364,36 @@
                 <div class="snapshot-grid">
                     <div class="snapshot-card" id="liveSnapshot">
                         <h3>Live Trader</h3>
-                        <div class="snapshot-metric"><div>Equity</div><span id="liveEquity">-</span></div>
-                        <div class="snapshot-metric"><div>Trades Today</div><span id="liveTrades">-</span></div>
-                        <div class="snapshot-metric"><div>Daily Budget</div><span id="liveBudget">-</span></div>
-                        <div class="snapshot-metric"><div>Spent Today</div><span id="liveSpent">-</span></div>
-                        <div class="snapshot-metric"><div>Last Update</div><span id="liveHeartbeat">-</span></div>
+                        <div class="snapshot-metric">
+                            <div>Equity</div><span id="liveEquity">-</span>
+                        </div>
+                        <div class="snapshot-metric">
+                            <div>Trades Today</div><span id="liveTrades">-</span>
+                        </div>
+                        <div class="snapshot-metric">
+                            <div>Daily Budget</div><span id="liveBudget">-</span>
+                        </div>
+                        <div class="snapshot-metric">
+                            <div>Spent Today</div><span id="liveSpent">-</span>
+                        </div>
+                        <div class="snapshot-metric">
+                            <div>Last Update</div><span id="liveHeartbeat">-</span>
+                        </div>
                     </div>
                     <div class="snapshot-card">
                         <h3>Shadow Engine</h3>
-                        <div class="snapshot-metric"><div>Cash</div><span id="shadowCash">-</span></div>
-                        <div class="snapshot-metric"><div>Positions</div><span id="shadowPositions">-</span></div>
-                        <div class="snapshot-metric"><div>Last Trade</div><span id="shadowTrade">-</span></div>
-                        <div class="snapshot-metric"><div>Feed</div><span id="shadowFeed">market_logs</span></div>
+                        <div class="snapshot-metric">
+                            <div>Cash</div><span id="shadowCash">$100.00</span>
+                        </div>
+                        <div class="snapshot-metric">
+                            <div>Positions</div><span id="shadowPositions">-</span>
+                        </div>
+                        <div class="snapshot-metric">
+                            <div>Last Trade</div><span id="shadowTrade">No trades done yet</span>
+                        </div>
+                        <div class="snapshot-metric">
+                            <div>Feed</div><span id="shadowFeed">market_logs</span>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -393,7 +416,9 @@
                             </tr>
                         </thead>
                         <tbody id="tradesBody">
-                            <tr><td colspan="6">Loading trades...</td></tr>
+                            <tr>
+                                <td colspan="6">Loading trades...</td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
@@ -401,27 +426,27 @@
         </div>
 
         <div class="health-bar">
-                <div class="health-card">
-                    <span>Logger</span>
-                    <div class="health-pill health-unknown" id="healthLogger">Unknown</div>
-                </div>
-                <div class="health-card">
-                    <span>Live Trader</span>
-                    <div class="health-pill health-unknown" id="healthLive">Unknown</div>
-                </div>
-                <div class="health-card">
-                    <span>Shadow</span>
-                    <div class="health-pill health-unknown" id="healthShadow">Unknown</div>
-                </div>
-                <div class="health-card">
-                    <span>Observer</span>
-                    <div class="health-pill health-unknown" id="healthObserver">Unknown</div>
-                </div>
-                <div class="health-card">
-                    <span>Dashboard</span>
-                    <div class="health-pill health-ok" id="healthDash">Online</div>
-                </div>
+            <div class="health-card">
+                <span>Logger</span>
+                <div class="health-pill health-unknown" id="healthLogger">Unknown</div>
             </div>
+            <div class="health-card">
+                <span>Live Trader</span>
+                <div class="health-pill health-unknown" id="healthLive">Unknown</div>
+            </div>
+            <div class="health-card">
+                <span>Shadow</span>
+                <div class="health-pill health-unknown" id="healthShadow">Unknown</div>
+            </div>
+            <div class="health-card">
+                <span>Observer</span>
+                <div class="health-pill health-unknown" id="healthObserver">Unknown</div>
+            </div>
+            <div class="health-card">
+                <span>Dashboard</span>
+                <div class="health-pill health-ok" id="healthDash">Online</div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -448,9 +473,9 @@
                 text.innerText = `Live: ${status}`;
                 dot.className = 'status-dot ' + (
                     status === 'RUNNING' ? 'status-running' :
-                    status === 'PAUSED' ? 'status-paused' :
-                    status === 'STOPPED' ? 'status-stopped' :
-                    ''
+                        status === 'PAUSED' ? 'status-paused' :
+                            status === 'STOPPED' ? 'status-stopped' :
+                                ''
                 );
                 document.getElementById('liveEquity').innerText = data.equity ? `$${data.equity.toFixed(2)}` : '-';
                 document.getElementById('liveTrades').innerText = data.trades_today || '0';
@@ -461,6 +486,14 @@
                 }
                 document.getElementById('liveSpent').innerText = spentText;
                 document.getElementById('liveHeartbeat').innerText = data.last_update || '-';
+
+                // Update Window Chip
+                if (data.window_status) {
+                    const winChip = document.getElementById('windowChip');
+                    winChip.innerHTML = `<strong>${data.window_status.message}</strong>`;
+                    winChip.style.color = data.window_status.color;
+                    winChip.style.borderColor = data.window_status.color;
+                }
             } catch (e) {
                 document.getElementById('liveStatusText').innerText = 'Live: Offline';
             }
@@ -626,9 +659,9 @@
                 document.getElementById('shadowPositions').innerText = positions.toString();
                 document.getElementById('shadowTrade').innerText = 'See trades file';
             } catch (e) {
-                document.getElementById('shadowCash').innerText = '-';
-                document.getElementById('shadowPositions').innerText = 'N/A';
-                document.getElementById('shadowTrade').innerText = 'Not available';
+                document.getElementById('shadowCash').innerText = '$100.00 (default)';
+                document.getElementById('shadowPositions').innerText = '0';
+                document.getElementById('shadowTrade').innerText = 'No trades done yet';
             }
         }
 
@@ -785,4 +818,5 @@
         setInterval(updateHealth, 15000);
     </script>
 </body>
+
 </html>
