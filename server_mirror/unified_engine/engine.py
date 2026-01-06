@@ -17,11 +17,21 @@ class Order:
 
 
 class UnifiedEngine:
-    def __init__(self, *, strategy, adapter, min_requote_interval: float = 2.0):
+    def __init__(
+        self,
+        *,
+        strategy,
+        adapter,
+        min_requote_interval: float = 2.0,
+        diag_log=None,
+        diag_every: int = 1,
+    ):
         self.strategy = strategy
         self.adapter = adapter
         self.min_requote_interval = float(min_requote_interval)
         self.last_requote_time: dict[str, float] = {}
+        self.diag_log = diag_log
+        self.diag_every = max(int(diag_every), 1)
 
     def on_tick(self, *, ticker: str, market_state: dict, current_time: datetime) -> None:
         self.adapter.process_tick(ticker, market_state, current_time)
@@ -79,6 +89,17 @@ class UnifiedEngine:
             self.adapter.get_cash(),
         )
 
+        if self.diag_log:
+            if desired_orders is None:
+                self.diag_log("DECISION", tick_ts=current_time, ticker=ticker, desired="keep")
+            else:
+                self.diag_log(
+                    "DECISION",
+                    tick_ts=current_time,
+                    ticker=ticker,
+                    desired=len(desired_orders),
+                )
+
         if desired_orders is None:
             return
 
@@ -112,7 +133,11 @@ class UnifiedEngine:
             self.adapter.place_order(order, market_state, current_time)
 
     def run(self, ticks: Iterable[dict]) -> None:
+        count = 0
         for tick in ticks:
+            count += 1
+            if self.diag_log and (count % self.diag_every == 0):
+                self.diag_log("TICK_IN", tick_ts=tick["time"], ticker=tick["ticker"])
             self.on_tick(
                 ticker=tick["ticker"],
                 market_state=tick["market_state"],

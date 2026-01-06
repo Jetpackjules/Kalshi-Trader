@@ -1,0 +1,10 @@
+{
+  "snapshot_time": "2026-01-05_15:36:13",
+  "daily_start_equity": 100.0,
+  "balance": 100.0,
+  "positions": {},
+  "strategy_config": {
+    "risk_pct": 0.8,
+    "tightness_percentile": 20
+  }
+}

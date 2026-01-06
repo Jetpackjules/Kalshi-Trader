@@ -64,6 +64,21 @@ def _filter_ticks(
         yield tick
 
 
+def _build_diag_logger(enabled: bool):
+    if not enabled:
+        return None
+
+    def _log(event: str, *, tick_ts: datetime | None = None, **fields) -> None:
+        log_ts = datetime.now().isoformat()
+        tick_value = tick_ts.isoformat() if tick_ts else "NONE"
+        parts = [f"event={event}", f"log_ts={log_ts}", f"tick_ts={tick_value}"]
+        for key, value in fields.items():
+            parts.append(f"{key}={value}")
+        print("[DIAG] " + " ".join(parts))
+
+    return _log
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Unified engine prototype runner.")
     parser.add_argument("--strategy", default="backtesting.strategies.v3_variants:hb_notional_010")
@@ -77,18 +92,34 @@ def main() -> int:
     parser.add_argument("--start-ts", default="", help="YYYY-mm-dd HH:MM:SS[.fff]")
     parser.add_argument("--end-ts", default="", help="YYYY-mm-dd HH:MM:SS[.fff]")
     parser.add_argument("--out-dir", default="unified_engine_out")
+    parser.add_argument("--diag-log", action="store_true", help="Emit per-tick diagnostic lines")
+    parser.add_argument("--diag-every", type=int, default=1, help="Ticks between diagnostics")
+    parser.add_argument("--diag-heartbeat-s", type=float, default=30.0, help="Seconds between follow heartbeats")
     args = parser.parse_args()
 
+    diag_log = _build_diag_logger(args.diag_log)
+
     strategy = _load_strategy(args.strategy)
-    adapter = SimAdapter(initial_cash=float(args.initial_cash))
+    adapter = SimAdapter(initial_cash=float(args.initial_cash), diag_log=diag_log)
 
     if args.snapshot:
         _seed_from_snapshot(adapter, strategy, args.snapshot)
 
     if args.tick_log:
-        ticks = iter_ticks_from_live_log(args.tick_log, use_ingest=args.use_ingest, follow=args.follow)
+        ticks = iter_ticks_from_live_log(
+            args.tick_log,
+            use_ingest=args.use_ingest,
+            follow=args.follow,
+            diag_log=diag_log,
+            heartbeat_s=args.diag_heartbeat_s,
+        )
     else:
-        ticks = iter_ticks_from_market_logs(args.log_dir, follow=args.follow)
+        ticks = iter_ticks_from_market_logs(
+            args.log_dir,
+            follow=args.follow,
+            diag_log=diag_log,
+            heartbeat_s=args.diag_heartbeat_s,
+        )
 
     start_ts = None
     if args.start_ts:
@@ -106,8 +137,16 @@ def main() -> int:
         except ValueError:
             end_ts = datetime.strptime(end_raw, "%Y-%m-%d %H:%M:%S")
 
-    engine = UnifiedEngine(strategy=strategy, adapter=adapter, min_requote_interval=args.min_requote_interval)
-    engine.run(_filter_ticks(ticks, start_ts, end_ts))
+    filtered_ticks = _filter_ticks(ticks, start_ts, end_ts)
+
+    engine = UnifiedEngine(
+        strategy=strategy,
+        adapter=adapter,
+        min_requote_interval=args.min_requote_interval,
+        diag_log=diag_log,
+        diag_every=args.diag_every,
+    )
+    engine.run(filtered_ticks)
 
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)

@@ -41,13 +41,14 @@ class BaseAdapter:
 
 
 class SimAdapter(BaseAdapter):
-    def __init__(self, *, initial_cash: float = 0.0):
+    def __init__(self, *, initial_cash: float = 0.0, diag_log=None):
         self.cash = float(initial_cash)
         self.positions: dict[str, dict[str, Any]] = {}
         self.open_orders: list[dict[str, Any]] = []
         self.trades: list[dict[str, Any]] = []
         self.order_history: list[dict[str, Any]] = []
         self._order_id = 0
+        self._diag_log = diag_log
 
     def _next_id(self) -> str:
         self._order_id += 1
@@ -87,6 +88,16 @@ class SimAdapter(BaseAdapter):
 
         filled = self._maybe_fill(new_order, market_state, current_time)
         if filled:
+            if self._diag_log:
+                self._diag_log(
+                    "TRADE",
+                    tick_ts=current_time,
+                    ticker=order.ticker,
+                    side=side,
+                    price=price,
+                    qty=qty,
+                    status="executed",
+                )
             self.order_history.append(
                 {
                     "time": current_time,
@@ -101,6 +112,16 @@ class SimAdapter(BaseAdapter):
             return OrderResult(ok=True, filled=filled, status="executed")
 
         self.open_orders.append(new_order)
+        if self._diag_log:
+            self._diag_log(
+                "ORDER",
+                tick_ts=current_time,
+                ticker=order.ticker,
+                side=side,
+                price=price,
+                qty=qty,
+                status="resting",
+            )
         self.order_history.append(
             {
                 "time": current_time,
@@ -136,6 +157,18 @@ class SimAdapter(BaseAdapter):
         fee = calculate_convex_fee(price, qty)
         cost = qty * (price / 100.0) + fee
         if self.cash < cost:
+            if self._diag_log:
+                self._diag_log(
+                    "TRADE",
+                    tick_ts=current_time,
+                    ticker=ticker,
+                    side=side,
+                    price=price,
+                    qty=qty,
+                    fee=fee,
+                    cost=cost,
+                    status="rejected_cash",
+                )
             return
 
         pos = self.positions.setdefault(ticker, {"yes": 0, "no": 0, "cost": 0.0})
@@ -161,6 +194,18 @@ class SimAdapter(BaseAdapter):
                 "source": "SIM",
             }
         )
+        if self._diag_log:
+            self._diag_log(
+                "TRADE",
+                tick_ts=current_time,
+                ticker=ticker,
+                side=side,
+                price=price,
+                qty=qty,
+                fee=fee,
+                cost=cost,
+                status="filled",
+            )
 
     def _fill_resting_orders(self, ticker: str, market_state: dict, current_time: datetime) -> None:
         remaining = []

@@ -2,6 +2,7 @@ from flask import Flask, jsonify, request, send_from_directory
 import os
 import json
 import time
+from datetime import datetime
 
 app = Flask(__name__)
 
@@ -9,6 +10,35 @@ app = Flask(__name__)
 LOG_DIR = r"market_logs" # Relative path on server
 TRADER_STATUS_FILE = "trader_status.json"
 CONTROL_FILE = "trading_enabled.txt"
+
+def _latest_trader_log():
+    if os.path.exists("output.log"):
+        return "output.log"
+    candidates = []
+    for name in os.listdir("."):
+        if name.startswith("live_trader_v") and name.endswith(".log"):
+            try:
+                candidates.append((os.path.getmtime(name), name))
+            except OSError:
+                continue
+    if not candidates:
+        return None
+    _, latest_name = max(candidates)
+    return latest_name
+
+
+def _file_status(path: str, max_age_s: float) -> dict:
+    if not path or not os.path.exists(path):
+        return {"state": "missing", "age_s": None, "last_modified": None, "path": path}
+    mtime = os.path.getmtime(path)
+    age_s = time.time() - mtime
+    state = "ok" if age_s <= max_age_s else "stale"
+    return {
+        "state": state,
+        "age_s": round(age_s, 1),
+        "last_modified": datetime.fromtimestamp(mtime).isoformat(),
+        "path": path,
+    }
 
 @app.route('/')
 def index():
@@ -130,6 +160,39 @@ def serve_manifest():
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+@app.route('/api/health')
+def get_health():
+    max_age_s = float(request.args.get("max_age_s", 30))
+    trader_log = _latest_trader_log()
+    logger_log = "logger.log" if os.path.exists("logger.log") else os.path.join(LOG_DIR, "manifest.json")
+
+    return jsonify({
+        "max_age_s": max_age_s,
+        "checks": {
+            "logger": _file_status(logger_log, max_age_s),
+            "live_trader": _file_status(trader_log or "", max_age_s),
+            "shadow": _file_status("unified_engine.log", max_age_s),
+            "observer": _file_status("observer_status.json", max_age_s),
+        }
+    })
+
+@app.route('/unified_engine.log')
+def serve_unified_log():
+    if os.path.exists('unified_engine.log'):
+        return send_from_directory('.', 'unified_engine.log')
+    return "unified_engine.log not found in server directory", 404
+
+@app.route('/observer_status.json')
+def serve_observer_status():
+    if os.path.exists('observer_status.json'):
+        return send_from_directory('.', 'observer_status.json')
+    return "observer_status.json not found in server directory", 404
+
+@app.route('/unified_engine_out/<path:filename>')
+def serve_unified_outputs(filename):
+    out_dir = "unified_engine_out"
+    return send_from_directory(out_dir, filename)
 
 if __name__ == '__main__':
     # Ensure log dir exists

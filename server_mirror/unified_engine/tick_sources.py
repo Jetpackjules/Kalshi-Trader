@@ -56,7 +56,12 @@ def _row_to_tick(row: dict, ts_col: str) -> dict | None:
 
 
 def iter_ticks_from_market_logs(
-    log_dir: str, *, follow: bool = False, poll_s: float = 0.5
+    log_dir: str,
+    *,
+    follow: bool = False,
+    poll_s: float = 0.5,
+    diag_log=None,
+    heartbeat_s: float = 30.0,
 ) -> Iterable[dict]:
     log_path = Path(log_dir)
     if not follow:
@@ -101,6 +106,8 @@ def iter_ticks_from_market_logs(
 
     file_offsets: dict[Path, int] = {}
     file_headers: dict[Path, list[str]] = {}
+    last_tick_ts: datetime | None = None
+    last_heartbeat = time.time()
 
     def _init_file(path: Path) -> None:
         with path.open("r", newline="") as handle:
@@ -131,17 +138,33 @@ def iter_ticks_from_market_logs(
                     }
                     tick = _row_to_tick(normalized, "timestamp")
                     if tick:
+                        last_tick_ts = tick["time"]
                         yield tick
                 file_offsets[path] = handle.tell()
+        now = time.time()
+        if diag_log and (now - last_heartbeat) >= heartbeat_s:
+            diag_log("FOLLOW_WAIT", tick_ts=last_tick_ts, source="market_logs")
+            last_heartbeat = now
         time.sleep(poll_s)
 
 
 def iter_ticks_from_live_log(
-    path: str, *, use_ingest: bool = False, follow: bool = False, poll_s: float = 0.5
+    path: str,
+    *,
+    use_ingest: bool = False,
+    follow: bool = False,
+    poll_s: float = 0.5,
+    diag_log=None,
+    heartbeat_s: float = 30.0,
 ) -> Iterable[dict]:
     if follow:
         log_path = Path(path)
+        last_tick_ts: datetime | None = None
+        last_heartbeat = time.time()
         while not log_path.exists():
+            if diag_log and (time.time() - last_heartbeat) >= heartbeat_s:
+                diag_log("FOLLOW_WAIT", tick_ts=last_tick_ts, source="live_log")
+                last_heartbeat = time.time()
             time.sleep(poll_s)
 
         with log_path.open("r", newline="") as handle:
@@ -157,12 +180,17 @@ def iter_ticks_from_live_log(
             for row in reader:
                 tick = _row_to_tick(row, ts_col)
                 if tick:
+                    last_tick_ts = tick["time"]
                     yield tick
 
             while True:
                 position = handle.tell()
                 line = handle.readline()
                 if not line:
+                    now = time.time()
+                    if diag_log and (now - last_heartbeat) >= heartbeat_s:
+                        diag_log("FOLLOW_WAIT", tick_ts=last_tick_ts, source="live_log")
+                        last_heartbeat = now
                     time.sleep(poll_s)
                     handle.seek(position)
                     continue
@@ -171,6 +199,7 @@ def iter_ticks_from_live_log(
                     continue
                 tick = _row_to_tick(row, ts_col)
                 if tick:
+                    last_tick_ts = tick["time"]
                     yield tick
         return []
 
