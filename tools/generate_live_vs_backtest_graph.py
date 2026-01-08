@@ -1,11 +1,13 @@
 import argparse
 import csv
 import json
+import math
 import os
 import re
 import subprocess
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta, time as dt_time
+import bisect
 
 
 def _parse_timestamp(value: str) -> datetime | None:
@@ -59,8 +61,6 @@ def _latest_market_timestamp(market_dir: str, target_date: datetime) -> datetime
                     try:
                         dt = datetime.fromisoformat(ts)
                     except Exception:
-                        continue
-                    if dt.date() != target_date.date():
                         continue
                     if max_dt is None or dt > max_dt:
                         max_dt = dt
@@ -167,17 +167,89 @@ def _load_market_rows(market_dir: str, start_dt: datetime, end_dt: datetime) -> 
     return rows
 
 
+def _resample_to_timestamps(source: list[dict], target: list[dict]) -> list[dict]:
+    if not source or not target:
+        return []
+    src_times = [datetime.fromisoformat(p["time"]) for p in source]
+    src_vals = [p["equity"] for p in source]
+    resampled = []
+    for tp in target:
+        t = datetime.fromisoformat(tp["time"])
+        idx = bisect.bisect_left(src_times, t)
+        if idx == 0:
+            val = src_vals[0]
+        elif idx >= len(src_times):
+            val = src_vals[-1]
+        else:
+            before = src_times[idx - 1]
+            after = src_times[idx]
+            val = src_vals[idx - 1] if (t - before) <= (after - t) else src_vals[idx]
+        resampled.append({"time": tp["time"], "equity": val})
+    return resampled
+
+
+def _last_mid_prices_at_timestamp(snapshot_path: str, market_dir: str, cutoff_dt: datetime) -> dict[str, float]:
+    snap = json.load(open(snapshot_path, "r", encoding="utf-8"))
+    positions = snap.get("positions") or {}
+    if not positions:
+        return {}
+    last_mid: dict[str, float] = {}
+    for path in [p for p in os.listdir(market_dir) if p.startswith("market_data_") and p.endswith(".csv")]:
+        full = os.path.join(market_dir, path)
+        with open(full, "r", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            for r in reader:
+                ts = r.get("timestamp")
+                if not ts:
+                    continue
+                try:
+                    dt = datetime.fromisoformat(ts)
+                except Exception:
+                    continue
+                if dt > cutoff_dt:
+                    continue
+                ticker = r.get("market_ticker")
+                if ticker not in positions:
+                    continue
+                try:
+                    yb = float(r.get("best_yes_bid")) if r.get("best_yes_bid") not in (None, "") else None
+                    na = float(r.get("implied_no_ask")) if r.get("implied_no_ask") not in (None, "") else None
+                    ya = float(r.get("implied_yes_ask")) if r.get("implied_yes_ask") not in (None, "") else None
+                except Exception:
+                    yb = na = ya = None
+                if yb is None and na is not None:
+                    yb = 100.0 - na
+                if yb is None or ya is None:
+                    continue
+                last_mid[ticker] = (yb + ya) / 2.0
+    return last_mid
+
+
+def _mtm_positions_at_timestamp(snapshot_path: str, market_dir: str, cutoff_dt: datetime) -> float:
+    snap = json.load(open(snapshot_path, "r", encoding="utf-8"))
+    positions = snap.get("positions") or {}
+    if not positions:
+        return 0.0
+    last_mid = _last_mid_prices_at_timestamp(snapshot_path, market_dir, cutoff_dt)
+    holdings = 0.0
+    for ticker, pos in positions.items():
+        mid = last_mid.get(ticker)
+        if mid is None:
+            continue
+        yes_qty = int(pos.get("yes") or 0)
+        no_qty = int(pos.get("no") or 0)
+        holdings += yes_qty * (mid / 100.0)
+        holdings += no_qty * ((100.0 - mid) / 100.0)
+    return holdings
+
+
 def _snapshot_start_equity(snapshot_path: str) -> float:
     snap = json.load(open(snapshot_path, "r", encoding="utf-8"))
-    cash = float(snap.get("balance") or snap.get("daily_start_equity") or 0.0)
-    positions = snap.get("positions") or {}
-    total_cost = 0.0
-    for info in positions.values():
-        try:
-            total_cost += float(info.get("cost") or 0.0)
-        except (TypeError, ValueError):
-            continue
-    return cash + total_cost
+    # Disregard daily_start_equity; use cash only for baseline.
+    try:
+        return float(snap.get("balance") or 0.0)
+    except (TypeError, ValueError):
+        return 0.0
 
 
 def _compute_local_equity(trades_path: str, snapshot_path: str, market_dir: str, start_dt: datetime, end_dt: datetime):
@@ -206,17 +278,16 @@ def _compute_local_equity(trades_path: str, snapshot_path: str, market_dir: str,
     pos_yes = {k: int(v.get("yes") or 0) for k, v in positions.items()}
     pos_no = {k: int(v.get("no") or 0) for k, v in positions.items()}
     last_prices = {}
-    # Seed mid prices from snapshot cost basis so starting equity reflects cash + position cost.
+
+    # Seed mid prices from snapshot cost basis
     for ticker, info in positions.items():
         yes_qty = int(info.get("yes") or 0)
         no_qty = int(info.get("no") or 0)
         cost = info.get("cost")
-        if cost is None:
-            continue
-        try:
-            cost = float(cost)
-        except (TypeError, ValueError):
-            continue
+        if cost is None: continue
+        try: cost = float(cost)
+        except: continue
+        
         if yes_qty > 0 and no_qty == 0:
             last_prices[ticker] = (cost / yes_qty) * 100.0
         elif no_qty > 0 and yes_qty == 0:
@@ -225,6 +296,10 @@ def _compute_local_equity(trades_path: str, snapshot_path: str, market_dir: str,
             mid = (cost * 100.0 - (no_qty * 100.0)) / (yes_qty - no_qty)
             if 0.0 <= mid <= 100.0:
                 last_prices[ticker] = mid
+
+    print(f"DEBUG: Initial Cash: {cash}")
+    print(f"DEBUG: Initial Positions: YES={pos_yes}, NO={pos_no}")
+    print(f"DEBUG: Initial Last Prices: {last_prices}")
 
     local = []
     local_trades = []
@@ -264,6 +339,9 @@ def _compute_local_equity(trades_path: str, snapshot_path: str, market_dir: str,
         return cash + holdings
 
     rows = _load_market_rows(market_dir, start_dt, end_dt)
+    print(f"DEBUG: Loaded {len(rows)} market rows and {len(trades)} backtest trades.")
+    
+    first_row = True
     for r in rows:
         t = r["_dt"]
         while trade_idx < len(trades) and trades[trade_idx]["time"] <= t:
@@ -287,7 +365,9 @@ def _compute_local_equity(trades_path: str, snapshot_path: str, market_dir: str,
         ya = yes_ask
         if yb == yb and ya == ya:
             last_prices[r.get("market_ticker")] = (yb + ya) / 2.0
-    local.append({"time": t.isoformat(), "equity": compute_equity()})
+        
+        eq = compute_equity()
+        local.append({"time": t.isoformat(), "equity": eq})
 
     while trade_idx < len(trades):
         tr = trades[trade_idx]
@@ -332,10 +412,11 @@ def _compute_live_equity_from_fills(
     positions = snap.get("positions") or {}
     pos_yes = {k: int(v.get("yes") or 0) for k, v in positions.items()}
     pos_no = {k: int(v.get("no") or 0) for k, v in positions.items()}
-    last_prices = {}
+    last_prices = _last_mid_prices_at_timestamp(snapshot_path, market_dir, start_dt)
 
     live = []
     live_trades = []
+    live_portfolio = []
     fill_idx = 0
 
     def convex_fee(price_cents: float, qty: int) -> float:
@@ -362,7 +443,7 @@ def _compute_live_equity_from_fills(
             else:
                 pos_no[ticker] = pos_no.get(ticker, 0) - tr["qty"]
 
-    def compute_equity():
+    def compute_holdings():
         holdings = 0.0
         for t, q in pos_yes.items():
             mid = last_prices.get(t)
@@ -374,7 +455,10 @@ def _compute_live_equity_from_fills(
             if mid is None:
                 continue
             holdings += q * ((100.0 - mid) / 100.0)
-        return cash + holdings
+        return holdings
+
+    def compute_equity():
+        return cash + compute_holdings()
 
     rows = _load_market_rows(market_dir, start_dt, end_dt)
     for r in rows:
@@ -401,6 +485,7 @@ def _compute_live_equity_from_fills(
         if yb == yb and ya == ya:
             last_prices[r.get("market_ticker")] = (yb + ya) / 2.0
         live.append({"time": t.isoformat(), "equity": compute_equity()})
+        live_portfolio.append({"time": t.isoformat(), "value": compute_holdings()})
 
     while fill_idx < len(fills):
         tr = fills[fill_idx]
@@ -408,7 +493,155 @@ def _compute_live_equity_from_fills(
         live_trades.append({"time": tr["time"].isoformat(), "equity": compute_equity()})
         fill_idx += 1
 
-    return live, live_trades
+    return live, live_trades, live_portfolio
+
+
+def _compute_live_equity_from_csv(
+    csv_path: str, snapshot_path: str, market_dir: str, start_dt: datetime, end_dt: datetime
+):
+    trades = []
+    with open(csv_path, "r", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            # Format: time,action,ticker,price,qty,fee,cost,source,order_id
+            # OR legacy: timestamp,strategy,ticker,action,price,qty,cost,fee,position_id,market_id
+            
+            ts_str = row.get("time") or row.get("timestamp")
+            if not ts_str:
+                continue
+                
+            try:
+                # Try standard ISO format first
+                dt = datetime.fromisoformat(ts_str)
+            except ValueError:
+                try:
+                    # Try space-separated format often used in logs
+                    dt = datetime.strptime(ts_str, "%Y-%m-%d %H:%M:%S.%f")
+                except ValueError:
+                    continue
+
+            if dt < start_dt or dt > end_dt:
+                # print(f"Dropping trade at {dt} (outside range)")
+                continue
+
+            action = row.get("action", "").upper()
+            ticker = row.get("ticker", "")
+            try:
+                price = float(row.get("price", 0))
+                qty = int(row.get("qty", 0))
+                fee = float(row.get("fee", 0))
+            except ValueError:
+                continue
+
+            trades.append({
+                "time": dt,
+                "action": action,
+                "ticker": ticker,
+                "price": price,
+                "qty": qty,
+                "fee": fee
+            })
+
+    trades.sort(key=lambda x: x["time"])
+
+    snap = json.load(open(snapshot_path, "r", encoding="utf-8"))
+    cash = float(snap.get("balance") or snap.get("daily_start_equity") or 0.0)
+    positions = snap.get("positions") or {}
+    pos_yes = {k: int(v.get("yes") or 0) for k, v in positions.items()}
+    pos_no = {k: int(v.get("no") or 0) for k, v in positions.items()}
+    last_prices = {}
+    # Seed mid prices from snapshot cost basis
+    for ticker, info in positions.items():
+        yes_qty = int(info.get("yes") or 0)
+        no_qty = int(info.get("no") or 0)
+        cost = info.get("cost")
+        if cost is None: continue
+        try: cost = float(cost)
+        except: continue
+        
+        if yes_qty > 0 and no_qty == 0:
+            last_prices[ticker] = (cost / yes_qty) * 100.0
+        elif no_qty > 0 and yes_qty == 0:
+            last_prices[ticker] = 100.0 - ((cost / no_qty) * 100.0)
+        elif yes_qty > 0 and no_qty > 0 and yes_qty != no_qty:
+            mid = (cost * 100.0 - (no_qty * 100.0)) / (yes_qty - no_qty)
+            if 0.0 <= mid <= 100.0:
+                last_prices[ticker] = mid
+
+    live = []
+    live_trades = []
+    live_portfolio = []
+    trade_idx = 0
+
+    def apply_trade(tr):
+        nonlocal cash
+        notional = (tr["price"] / 100.0) * tr["qty"]
+        fee = tr["fee"]
+        ticker = tr["ticker"]
+        action = tr["action"] # BUY_YES, SELL_NO, etc.
+        
+        if action == "BUY_YES":
+            cash -= (notional + fee)
+            pos_yes[ticker] = pos_yes.get(ticker, 0) + tr["qty"]
+        elif action == "BUY_NO":
+            cash -= (notional + fee)
+            pos_no[ticker] = pos_no.get(ticker, 0) + tr["qty"]
+        elif action == "SELL_YES":
+            cash += (notional - fee)
+            pos_yes[ticker] = pos_yes.get(ticker, 0) - tr["qty"]
+        elif action == "SELL_NO":
+            cash += (notional - fee)
+            pos_no[ticker] = pos_no.get(ticker, 0) - tr["qty"]
+
+    def compute_holdings():
+        holdings = 0.0
+        for t, q in pos_yes.items():
+            mid = last_prices.get(t)
+            if mid is None: continue
+            holdings += q * (mid / 100.0)
+        for t, q in pos_no.items():
+            mid = last_prices.get(t)
+            if mid is None: continue
+            holdings += q * ((100.0 - mid) / 100.0)
+        return holdings
+
+    def compute_equity():
+        return cash + compute_holdings()
+
+    rows = _load_market_rows(market_dir, start_dt, end_dt)
+    for r in rows:
+        t = r["_dt"]
+        while trade_idx < len(trades) and trades[trade_idx]["time"] <= t:
+            tr = trades[trade_idx]
+            apply_trade(tr)
+            live_trades.append({"time": tr["time"].isoformat(), "equity": compute_equity()})
+            trade_idx += 1
+
+        try:
+            yes_bid = float(r.get("best_yes_bid")) if r.get("best_yes_bid") not in (None, "") else float("nan")
+            no_ask = float(r.get("implied_no_ask")) if r.get("implied_no_ask") not in (None, "") else float("nan")
+            yes_ask = float(r.get("implied_yes_ask")) if r.get("implied_yes_ask") not in (None, "") else float("nan")
+        except Exception:
+            yes_bid = float("nan")
+            no_ask = float("nan")
+            yes_ask = float("nan")
+
+        yb = yes_bid
+        if yb != yb and no_ask == no_ask:
+            yb = 100.0 - no_ask
+        ya = yes_ask
+        if yb == yb and ya == ya:
+            last_prices[r.get("market_ticker")] = (yb + ya) / 2.0
+        live.append({"time": t.isoformat(), "equity": compute_equity()})
+        live_portfolio.append({"time": t.isoformat(), "value": compute_holdings()})
+
+    while trade_idx < len(trades):
+        tr = trades[trade_idx]
+        apply_trade(tr)
+        live_trades.append({"time": tr["time"].isoformat(), "equity": compute_equity()})
+        trade_idx += 1
+
+    return live, live_trades, live_portfolio
 
 
 def main() -> int:
@@ -418,6 +651,7 @@ def main() -> int:
     parser.add_argument("--market-dir", default=os.path.join("vm_logs", "market_logs"))
     parser.add_argument("--output-log", default=os.path.join("server_mirror", "output.log"))
     parser.add_argument("--fills", default=os.path.join("vm_logs", "todays_fills.json"))
+    parser.add_argument("--live-trades", default=os.path.join("vm_logs", "trades.csv"))
     parser.add_argument("--status-dir", default=os.path.join("vm_logs", "snapshots"))
     parser.add_argument("--strategy", default="backtesting.strategies.v3_variants:hb_notional_010")
     parser.add_argument("--min-requote-interval", type=float, default=0.0)
@@ -426,6 +660,8 @@ def main() -> int:
     parser.add_argument("--start-ts", default="")
     parser.add_argument("--end-ts", default="")
     parser.add_argument("--skip-backtest", action="store_true")
+    parser.add_argument("--backtest-start-equity", type=float, default=None)
+    parser.add_argument("--backtest-start-equity-from-reported", action="store_true")
     args = parser.parse_args()
 
     snapshot_path = args.snapshot or _latest_snapshot(args.snapshot_dir)
@@ -442,6 +678,38 @@ def main() -> int:
     if not end_dt:
         raise SystemExit("Could not determine end timestamp from market logs.")
 
+    print(f"Time Range: {start_dt} -> {end_dt}")
+
+    # Optional: adjust backtest snapshot start equity to match reported baseline.
+    backtest_snapshot_path = snapshot_path
+    reported_baseline = None
+    if args.backtest_start_equity_from_reported:
+        reported_points = _parse_live_status_from_output(args.output_log, start_dt, end_dt)
+        if reported_points:
+            reported_baseline = reported_points[0]["equity"]
+    if args.backtest_start_equity is not None:
+        reported_baseline = args.backtest_start_equity
+
+    if reported_baseline is not None:
+        snap = json.load(open(snapshot_path, "r", encoding="utf-8"))
+        mtm_positions = _mtm_positions_at_timestamp(snapshot_path, args.market_dir, start_dt)
+        try:
+            snap["daily_start_equity"] = float(reported_baseline)
+        except (TypeError, ValueError):
+            pass
+        try:
+            snap["balance"] = float(reported_baseline) - float(mtm_positions)
+        except (TypeError, ValueError):
+            pass
+        os.makedirs(args.out_dir, exist_ok=True)
+        backtest_snapshot_path = os.path.join(args.out_dir, "snapshot_adjusted.json")
+        with open(backtest_snapshot_path, "w", encoding="utf-8") as f:
+            json.dump(snap, f, indent=2)
+        print(
+            f"Using adjusted snapshot for backtest: {backtest_snapshot_path} "
+            f"(start_equity={reported_baseline:.2f} mtm_positions={mtm_positions:.2f})"
+        )
+
     if not args.skip_backtest:
         cmd = [
             sys.executable,
@@ -452,7 +720,7 @@ def main() -> int:
             "--log-dir",
             args.market_dir,
             "--snapshot",
-            snapshot_path,
+            backtest_snapshot_path,
             "--min-requote-interval",
             str(args.min_requote_interval),
             "--start-ts",
@@ -474,22 +742,44 @@ def main() -> int:
 
     live = []
     live_trade_points = []
-    if os.path.exists(args.fills):
-        live, live_trade_points = _compute_live_equity_from_fills(
+    live_portfolio = []
+    
+    # Priority 1: trades.csv (New Standard)
+    if os.path.exists(args.live_trades):
+        print(f"Using live trades from: {args.live_trades}")
+        live, live_trade_points, live_portfolio = _compute_live_equity_from_csv(
+            args.live_trades, snapshot_path, args.market_dir, start_dt, end_dt
+        )
+
+    # Priority 2: todays_fills.json (Legacy)
+    if not live and os.path.exists(args.fills):
+        print(f"Using live fills from: {args.fills}")
+        live, live_trade_points, live_portfolio = _compute_live_equity_from_fills(
             args.fills, snapshot_path, args.market_dir, start_dt, end_dt
         )
     if not live:
         live = _parse_live_status_from_output(args.output_log, start_dt, end_dt)
     if not live:
         live = _parse_live_status_from_snapshots(args.status_dir, start_dt, end_dt)
-    # Ensure live line starts at snapshot equity (cash + position cost).
-    start_equity = _snapshot_start_equity(snapshot_path)
+    # Ensure live line has at least one point (cash-only baseline if no ticks).
     if not live:
-        live = [{"time": start_dt.isoformat(), "equity": start_equity}]
-    else:
-        first_time = datetime.fromisoformat(live[0]["time"])
-        if first_time > start_dt:
-            live.insert(0, {"time": start_dt.isoformat(), "equity": start_equity})
+        live = [{"time": start_dt.isoformat(), "equity": _snapshot_start_equity(snapshot_path)}]
+
+    # Additional line: reported equity from output.log, if available.
+    reported = _parse_live_status_from_output(args.output_log, start_dt, end_dt)
+    if reported:
+        first_rep = datetime.fromisoformat(reported[0]["time"])
+        if first_rep > start_dt:
+            reported.insert(0, {"time": start_dt.isoformat(), "equity": _snapshot_start_equity(snapshot_path)})
+    live_resampled = _resample_to_timestamps(live, reported) if reported else []
+    # Offset backtest series to match reported baseline.
+    local_aligned = []
+    if local and reported:
+        offset = reported[0]["equity"] - local[0]["equity"]
+        local_aligned = [{"time": p["time"], "equity": p["equity"] + offset} for p in local]
+    elif local:
+        local_aligned = list(local)
+    live_aligned = list(live)
 
     html = f"""<!doctype html>
 <html>
@@ -507,13 +797,13 @@ def main() -> int:
   <h2>Live Unified vs Backtest ({start_dt.isoformat()} → {end_dt.isoformat()})</h2>
   <div id="chart"></div>
   <script>
-    const live = {json.dumps(live)};
-    const local = {json.dumps(local)};
+    const reported = {json.dumps(reported)};
+    const local = {json.dumps(local_aligned)};
     const liveTrades = {json.dumps(live_trade_points)};
     const localTrades = {json.dumps(local_trades)};
 
     const traces = [
-      {{ x: live.map(p => p.time), y: live.map(p => p.equity), mode: 'lines', name: 'Live trader', line: {{ color: '#222222', width: 3 }} }},
+      ...(reported.length ? [{{ x: reported.map(p => p.time), y: reported.map(p => p.equity), mode: 'lines', name: 'Live (reported)', line: {{ color: '#2f6bff', width: 2 }} }}] : []),
       {{ x: local.map(p => p.time), y: local.map(p => p.equity), mode: 'lines', name: 'Backtest (replay)', line: {{ color: '#d46a3b' }} }},
       {{ x: liveTrades.map(p => p.time), y: liveTrades.map(p => p.equity), mode: 'markers', name: 'Live trades', marker: {{ size: 7, color: '#f5b700', symbol: 'circle' }} }},
       {{ x: localTrades.map(p => p.time), y: localTrades.map(p => p.equity), mode: 'markers', name: 'Backtest trades', marker: {{ size: 7, color: '#ff7a1a', symbol: 'circle' }} }}

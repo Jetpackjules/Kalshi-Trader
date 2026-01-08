@@ -133,9 +133,8 @@ def sync_logs():
         os.makedirs(unified_out_dir)
 
     unified_files = [
-        "unified_trades.csv",
-        "unified_orders.csv",
         "unified_positions.json",
+        "trades.csv"
     ]
 
     for filename in unified_files:
@@ -151,6 +150,40 @@ def sync_logs():
             print(f"Successfully downloaded {filename}")
         except subprocess.CalledProcessError as e:
             print(f"Error downloading {filename}: {e}")
+
+    # 1g. Download snapshots (unified + daily)
+    print("Downloading snapshots...")
+    snapshots_dir = os.path.join(LOCAL_LOG_DIR, "snapshots")
+    if not os.path.exists(snapshots_dir):
+        os.makedirs(snapshots_dir)
+
+    cmd_unified_snaps = [
+        "scp",
+        "-i", KEY_FILE,
+        "-o", "StrictHostKeyChecking=no",
+        f"{VM_USER}@{VM_IP}:~/snapshots/snapshot_unified_*.json",
+        f"{snapshots_dir}/"
+    ]
+
+    try:
+        subprocess.run(cmd_unified_snaps, check=True)
+        print("Successfully downloaded unified snapshots")
+    except subprocess.CalledProcessError as e:
+        print(f"Error downloading unified snapshots: {e}")
+
+    cmd_daily_snaps = [
+        "scp",
+        "-i", KEY_FILE,
+        "-o", "StrictHostKeyChecking=no",
+        f"{VM_USER}@{VM_IP}:~/snapshots/snapshot_*.json",
+        f"{snapshots_dir}/"
+    ]
+
+    try:
+        subprocess.run(cmd_daily_snaps, check=True)
+        print("Successfully downloaded daily snapshots")
+    except subprocess.CalledProcessError as e:
+        print(f"Error downloading daily snapshots: {e}")
 
     # 2. Download market_logs directory (selective)
     print("\nSyncing market_logs/...")
