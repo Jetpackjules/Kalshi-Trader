@@ -1,0 +1,31 @@
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "C:\Users\jetpa\OneDrive - UW\Google_Grav_Onedrive\kalshi_weather_data\unified_engine\runner.py", line 263, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "C:\Users\jetpa\OneDrive - UW\Google_Grav_Onedrive\kalshi_weather_data\unified_engine\runner.py", line 238, in main
+    engine.run(filtered_ticks)
+  File "C:\Users\jetpa\OneDrive - UW\Google_Grav_Onedrive\kalshi_weather_data\unified_engine\engine.py", line 241, in run
+    self.on_tick(
+  File "C:\Users\jetpa\OneDrive - UW\Google_Grav_Onedrive\kalshi_weather_data\unified_engine\engine.py", line 153, in on_tick
+    desired_orders = self.strategy.on_market_update(
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\jetpa\OneDrive - UW\Google_Grav_Onedrive\kalshi_weather_data\backtesting\engine.py", line 442, in on_market_update
+    mm_orders = self.mm.on_market_update(ticker, market_state, current_time, mm_inv, mm_active, spendable_cash, idx) if is_active_hour and is_tight else (None if not is_active_hour else [])
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\jetpa\OneDrive - UW\Google_Grav_Onedrive\kalshi_weather_data\backtesting\engine.py", line 295, in on_market_update
+    edge_after_fee = edge_cents - fee_cents - self.margin_cents
+                     ^^^^^^^^^^
+NameError: name 'edge_cents' is not defined. Did you mean: 'edge_yes'?
+Decision log: unified_engine_out_debug_2\decision_intents.csv
+Time Range: 2026-01-08 23:13:06 -> 2026-01-10 10:31:41.553295
+Traceback (most recent call last):
+  File "C:\Users\jetpa\OneDrive - UW\Google_Grav_Onedrive\kalshi_weather_data\tools\generate_live_vs_backtest_graph.py", line 1191, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "C:\Users\jetpa\OneDrive - UW\Google_Grav_Onedrive\kalshi_weather_data\tools\generate_live_vs_backtest_graph.py", line 991, in main
+    subprocess.run(cmd, check=True)
+  File "C:\Python312\Lib\subprocess.py", line 571, in run
+    raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command '['C:\\Python312\\python.exe', '-m', 'unified_engine.runner', '--strategy', 'backtesting.strategies.v3_variants:hb_notional_010', '--log-dir', 'vm_logs\\market_logs', '--snapshot', 'vm_logs\\snapshots\\snapshot_2026-01-08_231306.json', '--min-requote-interval', '2.0', '--start-ts', '2026-01-08 23:13:06', '--end-ts', '2026-01-10 10:31:41.553295', '--out-dir', 'unified_engine_out_debug_2']' returned non-zero exit status 1.

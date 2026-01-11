@@ -35,48 +35,50 @@ def main():
     if not os.path.exists(SNAPSHOT_LOCAL_DIR):
         os.makedirs(SNAPSHOT_LOCAL_DIR)
 
-    # 1. Kill running live_trader processes (but NOT logger)
-    # We use pkill -f live_trader_v to match live_trader_v4.py, live_trader_v6.py, etc.
-    # Logger is usually logger.py or granular_logger.py, so it won't match.
-    kill_cmd = f'ssh -i {KEY_PATH} -o StrictHostKeyChecking=no {SERVER_ADDR} "pkill -f live_trader_v"'
-    run_command(kill_cmd, "Killing running live_trader processes")
+    # 1. Kill running Unified Engine processes (module + script)
+    kill_cmd_module = f'ssh -i {KEY_PATH} -o StrictHostKeyChecking=no {SERVER_ADDR} "pkill -f unified_engine.runner"'
+    run_command(kill_cmd_module, "Killing running Unified Engine (module)")
+
+    kill_cmd_script = f'ssh -i {KEY_PATH} -o StrictHostKeyChecking=no {SERVER_ADDR} "pkill -f runner.py"'
+    run_command(kill_cmd_script, "Killing running Unified Engine (runner.py)")
 
     # 2. Upload Files
-    files_to_upload = ["live_trader_v4.py", "live_trader_v6.py"]
-    for filename in files_to_upload:
-        local_path = os.path.join(LOCAL_MIRROR_DIR, filename)
-        remote_path = f"{REMOTE_HOME}/{filename}"
-        # Check if local file exists
+    # Upload unified_engine sources
+    files_to_upload = [
+        ("server_mirror/unified_engine/runner.py", "unified_engine/runner.py"),
+        ("server_mirror/unified_engine/adapters.py", "unified_engine/adapters.py"),
+        ("server_mirror/unified_engine/engine.py", "unified_engine/engine.py"),
+        ("server_mirror/unified_engine/tick_sources.py", "unified_engine/tick_sources.py"),
+    ]
+    
+    # Ensure remote directory exists
+    mkdir_cmd = f'ssh -i {KEY_PATH} -o StrictHostKeyChecking=no {SERVER_ADDR} "mkdir -p unified_engine"'
+    run_command(mkdir_cmd, "Creating remote unified_engine directory")
+
+    for local_rel, remote_rel in files_to_upload:
+        local_path = local_rel # Relative to CWD
+        remote_path = f"{REMOTE_HOME}/{remote_rel}"
+        
         if not os.path.exists(local_path):
             print(f"WARNING: {local_path} not found. Skipping.")
             continue
             
         scp_cmd = f'scp -i {KEY_PATH} -o StrictHostKeyChecking=no {local_path} {SERVER_ADDR}:{remote_path}'
-        run_command(scp_cmd, f"Uploading {filename}")
+        run_command(scp_cmd, f"Uploading {os.path.basename(local_path)}")
 
-    # 3. Generate Snapshot
-    timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H%M%S")
-    snapshot_filename = f"snapshot_{timestamp}.json"
-    remote_snapshot_path = f"{REMOTE_HOME}/{snapshot_filename}"
-    
-    # Using v6 to take snapshot as requested/implied by instructions
-    snapshot_cmd = f'ssh -i {KEY_PATH} -o StrictHostKeyChecking=no {SERVER_ADDR} "~/venv/bin/python ~/live_trader_v6.py --snapshot --snapshot-out {remote_snapshot_path}"'
-    run_command(snapshot_cmd, "Generating Snapshot on VM")
+    # 3. Start the Unified Engine
+    # Using nohup to keep it running after disconnect.
+    # Append to output.log so the graph keeps its full history.
+    start_cmd = (
+        f'ssh -i {KEY_PATH} -o StrictHostKeyChecking=no {SERVER_ADDR} '
+        f'"nohup ~/venv/bin/python -u -m unified_engine.runner --live --key-file ~/kalshi_prod_private_key.pem '
+        f'--log-dir market_logs --follow --diag-log --status-every-ticks 1 >> ~/output.log 2>&1 &"'
+    )
+    run_command(start_cmd, "Starting Unified Engine (runner.py)")
 
-    # 4. Download Snapshot
-    local_snapshot_path = os.path.join(SNAPSHOT_LOCAL_DIR, snapshot_filename)
-    download_cmd = f'scp -i {KEY_PATH} -o StrictHostKeyChecking=no {SERVER_ADDR}:{remote_snapshot_path} {local_snapshot_path}'
-    run_command(download_cmd, "Downloading Snapshot")
-
-    # 5. Start the Trader
-    # Using nohup to keep it running after disconnect
-    # We use v6 as it's the latest uploaded version
-    start_cmd = f'ssh -i {KEY_PATH} -o StrictHostKeyChecking=no {SERVER_ADDR} "nohup ~/venv/bin/python -u ~/live_trader_v6.py > ~/output.log 2>&1 &"'
-    run_command(start_cmd, "Starting Live Trader V6")
-
-    print("=== Deployment and Snapshot Complete ===")
-    print(f"Snapshot saved to: {local_snapshot_path}")
-    print("Trader V6 has been started on the server.")
+    print("=== Deployment Complete ===")
+    print("Unified Engine has been restarted on the server.")
+    print("(Granular Logger was NOT touched)")
 
 if __name__ == "__main__":
     main()

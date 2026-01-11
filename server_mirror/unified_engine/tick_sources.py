@@ -52,6 +52,9 @@ def _row_to_tick(row: dict, ts_col: str) -> dict | None:
                 "no_bid": _parse_float(row.get("no_bid")),
             }
         ),
+        "seq": None,
+        "source_file": row.get("source_file"),
+        "source_row": row.get("source_row"),
     }
 
 
@@ -66,48 +69,60 @@ def iter_ticks_from_market_logs(
     log_path = Path(log_dir)
     if not follow:
         files = sorted(log_path.glob("market_data_*.csv"))
-        frames = []
-        for path in files:
-            df = pd.read_csv(path)
-            if df.empty:
+        rows = []
+        for file_idx, path in enumerate(files):
+            try:
+                with path.open("r", newline="") as handle:
+                    reader = csv.DictReader(handle)
+                    if not reader.fieldnames:
+                        continue
+                    for row_idx, row in enumerate(reader):
+                        ts = _parse_time(row.get("timestamp"))
+                        if ts is None:
+                            continue
+                        rows.append(
+                            {
+                                "time": ts,
+                                "ticker": row.get("market_ticker"),
+                                "yes_ask": _parse_float(row.get("implied_yes_ask")),
+                                "no_ask": _parse_float(row.get("implied_no_ask")),
+                                "yes_bid": _parse_float(row.get("best_yes_bid")),
+                                "no_bid": _parse_float(row.get("best_no_bid")),
+                                "source_file": path.name,
+                                "source_order": file_idx,
+                                "source_row": row_idx,
+                            }
+                        )
+            except OSError:
                 continue
-            df = df.rename(
-                columns={
-                    "timestamp": "time",
-                    "market_ticker": "ticker",
-                    "implied_yes_ask": "yes_ask",
-                    "implied_no_ask": "no_ask",
-                    "best_yes_bid": "yes_bid",
-                    "best_no_bid": "no_bid",
-                }
-            )
-            frames.append(df[["time", "ticker", "yes_ask", "no_ask", "yes_bid", "no_bid"]])
-        if not frames:
+        if not rows:
             return []
-        data = pd.concat(frames, ignore_index=True)
-        data["time"] = pd.to_datetime(data["time"], errors="coerce", format="mixed")
-        data = data.dropna(subset=["time"])
-        data = data.sort_values("time")
-        for row in data.itertuples(index=False):
+        rows.sort(key=lambda r: (r["time"], r["source_order"], r["source_row"]))
+        for seq, row in enumerate(rows, start=1):
             tick = {
-                "time": row.time,
-                "ticker": row.ticker,
+                "time": row["time"],
+                "ticker": row["ticker"],
                 "market_state": _build_market_state(
                     {
-                        "yes_ask": row.yes_ask,
-                        "no_ask": row.no_ask,
-                        "yes_bid": row.yes_bid,
-                        "no_bid": row.no_bid,
+                        "yes_ask": row["yes_ask"],
+                        "no_ask": row["no_ask"],
+                        "yes_bid": row["yes_bid"],
+                        "no_bid": row["no_bid"],
                     }
                 ),
+                "seq": seq,
+                "source_file": row["source_file"],
+                "source_row": row["source_row"],
             }
             yield tick
         return []
 
     file_offsets: dict[Path, int] = {}
     file_headers: dict[Path, list[str]] = {}
+    file_rows: dict[Path, int] = {}
     last_tick_ts: datetime | None = None
     last_heartbeat = time.time()
+    seq = 0
 
     def _init_file(path: Path) -> None:
         with path.open("r", newline="") as handle:
@@ -117,6 +132,7 @@ def iter_ticks_from_market_logs(
             file_headers[path] = [h.strip() for h in header_line.strip().split(",")]
             handle.seek(0, os.SEEK_END)
             file_offsets[path] = handle.tell()
+            file_rows[path] = 0
 
     while True:
         files = sorted(log_path.glob("market_data_*.csv"))
@@ -138,8 +154,13 @@ def iter_ticks_from_market_logs(
                     }
                     tick = _row_to_tick(normalized, "timestamp")
                     if tick:
+                        seq += 1
+                        tick["seq"] = seq
+                        tick["source_file"] = path.name
+                        tick["source_row"] = file_rows.get(path, 0)
                         last_tick_ts = tick["time"]
                         yield tick
+                    file_rows[path] = file_rows.get(path, 0) + 1
                 file_offsets[path] = handle.tell()
         now = time.time()
         if diag_log and (now - last_heartbeat) >= heartbeat_s:
@@ -161,6 +182,8 @@ def iter_ticks_from_live_log(
         log_path = Path(path)
         last_tick_ts: datetime | None = None
         last_heartbeat = time.time()
+        seq = 0
+        row_idx = 0
         while not log_path.exists():
             if diag_log and (time.time() - last_heartbeat) >= heartbeat_s:
                 diag_log("FOLLOW_WAIT", tick_ts=last_tick_ts, source="live_log")
@@ -180,8 +203,13 @@ def iter_ticks_from_live_log(
             for row in reader:
                 tick = _row_to_tick(row, ts_col)
                 if tick:
+                    seq += 1
+                    tick["seq"] = seq
+                    tick["source_file"] = log_path.name
+                    tick["source_row"] = row_idx
                     last_tick_ts = tick["time"]
                     yield tick
+                row_idx += 1
 
             while True:
                 position = handle.tell()
@@ -199,8 +227,13 @@ def iter_ticks_from_live_log(
                     continue
                 tick = _row_to_tick(row, ts_col)
                 if tick:
+                    seq += 1
+                    tick["seq"] = seq
+                    tick["source_file"] = log_path.name
+                    tick["source_row"] = row_idx
                     last_tick_ts = tick["time"]
                     yield tick
+                row_idx += 1
         return []
 
     df = pd.read_csv(path)
@@ -210,10 +243,11 @@ def iter_ticks_from_live_log(
         ts_col = "ingest_timestamp" if use_ingest else "tick_timestamp"
     else:
         ts_col = "timestamp"
+    df["_source_row"] = range(len(df))
     df = df.rename(columns={ts_col: "time"})
     df["time"] = pd.to_datetime(df["time"])
     df = df.sort_values("time")
-    for row in df.itertuples(index=False):
+    for seq, row in enumerate(df.itertuples(index=False), start=1):
         tick = {
             "time": row.time,
             "ticker": row.ticker,
@@ -225,5 +259,8 @@ def iter_ticks_from_live_log(
                     "no_bid": row.no_bid,
                 }
             ),
+            "seq": seq,
+            "source_file": os.path.basename(path),
+            "source_row": row._source_row,
         }
         yield tick

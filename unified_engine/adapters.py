@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 import csv
 import json
@@ -44,7 +44,15 @@ class BaseAdapter:
 
 
 class SimAdapter(BaseAdapter):
-    def __init__(self, *, initial_cash: float = 0.0, diag_log=None, out_dir: str | None = None):
+    def __init__(
+        self,
+        *,
+        initial_cash: float = 0.0,
+        diag_log=None,
+        out_dir: str | None = None,
+        fill_latency_s: float = 0.0,
+        fill_latency_sampler=None,
+    ):
         self.cash = float(initial_cash)
         self.positions: dict[str, dict[str, Any]] = {}
         self.open_orders: list[dict[str, Any]] = []
@@ -55,6 +63,8 @@ class SimAdapter(BaseAdapter):
         self._out_dir = out_dir
         self._trades_path = None
         self._orders_path = None
+        self._fill_latency_s = max(0.0, float(fill_latency_s))
+        self._fill_latency_sampler = fill_latency_sampler
         if out_dir:
             os.makedirs(out_dir, exist_ok=True)
             self._trades_path = os.path.join(out_dir, "unified_trades.csv")
@@ -67,7 +77,23 @@ class SimAdapter(BaseAdapter):
         with open(self._trades_path, "a", newline="") as f:
             writer = csv.writer(f)
             if not file_exists:
-                writer.writerow(["time", "action", "ticker", "price", "qty", "fee", "cost", "source"])
+                writer.writerow(
+                    [
+                        "time",
+                        "action",
+                        "ticker",
+                        "price",
+                        "qty",
+                        "fee",
+                        "cost",
+                        "source",
+                        "order_id",
+                        "order_time",
+                        "fill_time",
+                        "fill_delay_s",
+                        "place_time",
+                    ]
+                )
             writer.writerow([
                 trade["time"],
                 trade["action"],
@@ -77,6 +103,11 @@ class SimAdapter(BaseAdapter):
                 trade["fee"],
                 trade["cost"],
                 trade["source"],
+                trade.get("order_id", ""),
+                trade.get("order_time", ""),
+                trade.get("fill_time", ""),
+                trade.get("fill_delay_s", ""),
+                trade.get("place_time", ""),
             ])
 
     def _append_order_row(self, order: dict[str, Any]) -> None:
@@ -86,7 +117,19 @@ class SimAdapter(BaseAdapter):
         with open(self._orders_path, "a", newline="") as f:
             writer = csv.writer(f)
             if not file_exists:
-                writer.writerow(["time", "ticker", "side", "price", "qty", "status", "filled"])
+                writer.writerow([
+                    "time",
+                    "ticker",
+                    "side",
+                    "price",
+                    "qty",
+                    "status",
+                    "filled",
+                    "order_id",
+                    "order_time",
+                    "ready_at",
+                    "fill_latency_s",
+                ])
             writer.writerow([
                 order["time"],
                 order["ticker"],
@@ -95,7 +138,19 @@ class SimAdapter(BaseAdapter):
                 order["qty"],
                 order["status"],
                 order.get("filled", 0),
+                order.get("order_id", ""),
+                order.get("order_time", ""),
+                order.get("ready_at", ""),
+                order.get("fill_latency_s", ""),
             ])
+
+    def _sample_fill_latency(self) -> float:
+        if self._fill_latency_sampler:
+            try:
+                return max(0.0, float(self._fill_latency_sampler()))
+            except Exception:
+                return self._fill_latency_s
+        return self._fill_latency_s
 
 
     def _next_id(self) -> str:
@@ -124,6 +179,7 @@ class SimAdapter(BaseAdapter):
         qty = int(order.qty)
         order_id = self._next_id()
 
+        fill_latency_s = self._sample_fill_latency()
         new_order = {
             "order_id": order_id,
             "ticker": order.ticker,
@@ -132,6 +188,9 @@ class SimAdapter(BaseAdapter):
             "no_price": price if side == "no" else None,
             "remaining_count": qty,
             "status": "open",
+            "order_time": current_time,
+            "ready_at": current_time + timedelta(seconds=fill_latency_s),
+            "fill_latency_s": fill_latency_s,
         }
 
         filled = self._maybe_fill(new_order, market_state, current_time)
@@ -155,6 +214,10 @@ class SimAdapter(BaseAdapter):
                     "qty": qty,
                     "status": "executed",
                     "filled": filled,
+                    "order_id": order_id,
+                    "order_time": current_time,
+                    "ready_at": new_order.get("ready_at"),
+                    "fill_latency_s": fill_latency_s,
                 }
             )
             self._append_order_row(self.order_history[-1])
@@ -180,6 +243,10 @@ class SimAdapter(BaseAdapter):
                 "qty": qty,
                 "status": "resting",
                 "filled": 0,
+                "order_id": order_id,
+                "order_time": current_time,
+                "ready_at": new_order.get("ready_at"),
+                "fill_latency_s": fill_latency_s,
             }
         )
         self._append_order_row(self.order_history[-1])
@@ -196,6 +263,9 @@ class SimAdapter(BaseAdapter):
         if ask is None:
             return 0
         if price < float(ask):
+            return 0
+        ready_at = order.get("ready_at")
+        if ready_at and current_time < ready_at:
             return 0
 
         self._fill_order(order, price=float(ask), qty=qty, current_time=current_time)
@@ -232,6 +302,8 @@ class SimAdapter(BaseAdapter):
         order["remaining_count"] = 0
         order["status"] = "executed"
 
+        order_time = order.get("order_time") or current_time
+        fill_delay_s = (current_time - order_time).total_seconds()
         trade = {
             "time": current_time,
             "action": "BUY_YES" if side == "yes" else "BUY_NO",
@@ -241,6 +313,11 @@ class SimAdapter(BaseAdapter):
             "fee": fee,
             "cost": cost,
             "source": "SIM",
+            "order_id": order.get("order_id"),
+            "order_time": order_time,
+            "fill_time": current_time,
+            "fill_delay_s": fill_delay_s,
+            "place_time": None,
         }
         self.trades.append(trade)
         self._append_trade_row(trade)
@@ -267,6 +344,49 @@ class SimAdapter(BaseAdapter):
             if not filled and order.get("remaining_count", 0) > 0:
                 remaining.append(order)
         self.open_orders = remaining
+
+    def settle_market(self, ticker: str, price: float, current_time: datetime) -> None:
+        pos = self.positions.get(ticker)
+        if not pos:
+            return
+
+        yes_qty = pos.get("yes", 0)
+        no_qty = pos.get("no", 0)
+        
+        if yes_qty == 0 and no_qty == 0:
+            return
+
+        payout = 0.0
+        outcome = "VOID"
+        
+        # Infer outcome
+        if price >= 98:
+            outcome = "YES"
+            payout = yes_qty * 1.00
+        elif price <= 2:
+            outcome = "NO"
+            payout = no_qty * 1.00
+        else:
+            outcome = "LIQUIDATION"
+            # Liquidate at current mid price
+            val_yes = yes_qty * (price / 100.0)
+            val_no = no_qty * ((100 - price) / 100.0)
+            payout = val_yes + val_no
+
+        self.cash += payout
+        
+        if self._diag_log:
+             self._diag_log(
+                "SETTLEMENT",
+                tick_ts=current_time,
+                ticker=ticker,
+                outcome=outcome,
+                payout=payout,
+                cash_after=self.cash
+            )
+            
+        # Clear position
+        del self.positions[ticker]
 
     def get_positions(self) -> dict[str, dict[str, Any]]:
         return self.positions

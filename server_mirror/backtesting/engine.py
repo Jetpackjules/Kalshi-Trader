@@ -186,6 +186,9 @@ class InventoryAwareMarketMaker(ComplexStrategy):
         self.last_mid_snapshot = {} 
 
     def on_market_update(self, ticker, market_state, current_time, inventories, active_orders, spendable_cash, idx=0):
+        # Handle UnifiedEngine passing full portfolio dict
+        if "MM" in inventories:
+            inventories = inventories["MM"]
         yes_ask = best_yes_ask(market_state)
         no_ask = market_state.get('no_ask', np.nan)
         yes_bid = best_yes_bid(market_state)

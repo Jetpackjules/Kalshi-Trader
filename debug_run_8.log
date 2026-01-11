@@ -1,0 +1,11 @@
+Decision log: unified_engine_out_debug_3\decision_intents.csv
+Wrote: unified_engine_out_debug_3\unified_trades.csv
+Wrote: unified_engine_out_debug_3\unified_orders.csv
+Wrote: unified_engine_out_debug_3\unified_positions.json
+Time Range: 2026-01-08 23:13:06 -> 2026-01-10 10:31:41.553295
+DEBUG: Initial Cash: 2.12
+DEBUG: Initial Positions: YES={'KXHIGHNY-26JAN08-T46': 6, 'KXHIGHNY-26JAN08-B46.5': 20, 'KXHIGHNY-26JAN08-B48.5': 11, 'KXHIGHNY-26JAN08-B50.5': 10, 'KXHIGHNY-26JAN08-B52.5': 39, 'KXHIGHNY-26JAN09-T49': 8, 'KXHIGHNY-26JAN09-B49.5': 8, 'KXHIGHNY-26JAN09-B55.5': 5, 'KXHIGHNY-26JAN09-T56': 25}, NO={'KXHIGHNY-26JAN08-T46': 0, 'KXHIGHNY-26JAN08-B46.5': 0, 'KXHIGHNY-26JAN08-B48.5': 0, 'KXHIGHNY-26JAN08-B50.5': 0, 'KXHIGHNY-26JAN08-B52.5': 0, 'KXHIGHNY-26JAN09-T49': 0, 'KXHIGHNY-26JAN09-B49.5': 0, 'KXHIGHNY-26JAN09-B55.5': 0, 'KXHIGHNY-26JAN09-T56': 0}
+DEBUG: Initial Last Prices: {'KXHIGHNY-26JAN08-B50.5': 99.0, 'KXHIGHNY-26JAN08-B48.5': 1.0, 'KXHIGHNY-26JAN08-B46.5': 1.0, 'KXHIGHNY-26JAN08-B52.5': 1.0, 'KXHIGHNY-26JAN08-T46': 1.0, 'KXHIGHNY-26JAN09-T49': 2.0, 'KXHIGHNY-26JAN09-B49.5': 20.0, 'KXHIGHNY-26JAN09-B55.5': 9.0, 'KXHIGHNY-26JAN09-T56': 4.0}
+DEBUG: Loaded 87964 market rows and 31 backtest trades.
+Using live trades from: vm_logs/unified_engine_out/trades.csv
+Wrote backtest_charts/debug_graph_3.html (live=87964 local=87965 trades live=99 local=31)

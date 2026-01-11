@@ -26,6 +26,32 @@ def _parse_timestamp(value: str) -> datetime | None:
         return None
 
 
+def _coerce_last_trade(value):
+    if value in (None, ""):
+        return None
+    if isinstance(value, list):
+        if not value:
+            return None
+        value = value[-1]
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _ticker_market_date(ticker: str) -> datetime | None:
+    if not ticker:
+        return None
+    parts = ticker.split("-")
+    if len(parts) < 2:
+        return None
+    raw = parts[1].upper()
+    try:
+        return datetime.strptime(raw, "%y%b%d")
+    except ValueError:
+        return None
+
+
 def _latest_snapshot(snap_dir: str) -> str | None:
     if not os.path.isdir(snap_dir):
         return None
@@ -94,9 +120,11 @@ def _parse_live_status_from_output(output_log: str, start_dt: datetime, end_dt: 
                 m = re.search(r"snapshot_(\d{4}-\d{2}-\d{2})_\d{6}", line)
                 if m:
                     anchor_date = datetime.strptime(m.group(1), "%Y-%m-%d").date()
-            m = re.search(r"--- Status @ (\d{2}:\d{2}:\d{2}) ---", line)
+            m = re.search(r"--- Status @ (\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?) ---", line)
             if m:
-                current_time = datetime.strptime(m.group(1), "%H:%M:%S").time()
+                time_str = m.group(1)
+                fmt = "%H:%M:%S.%f" if "." in time_str else "%H:%M:%S"
+                current_time = datetime.strptime(time_str, fmt).time()
                 if current_date is None:
                     current_date = anchor_date or start_dt.date()
                 elif last_time and current_time < last_time:
@@ -112,6 +140,118 @@ def _parse_live_status_from_output(output_log: str, start_dt: datetime, end_dt: 
                 current_time = None
 
     return status
+
+
+def _load_decision_intents(path: str, start_dt: datetime, end_dt: datetime) -> list[dict]:
+    if not path or not os.path.exists(path):
+        return []
+    points = []
+    with open(path, "r", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            decision_type = (row.get("decision_type") or "").strip().lower()
+            action = (row.get("action") or "").strip().upper()
+            if decision_type != "desired" or not action:
+                continue
+            tick_ts = _parse_timestamp(row.get("tick_time") or row.get("decision_time") or "")
+            if not tick_ts:
+                continue
+            if tick_ts < start_dt or tick_ts > end_dt:
+                continue
+            points.append({"time": tick_ts.isoformat(), "action": action})
+    return points
+
+
+def _load_decision_rows(path: str, start_dt: datetime, end_dt: datetime) -> list[dict]:
+    if not path or not os.path.exists(path):
+        return []
+    rows = []
+    with open(path, "r", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            tick_ts = _parse_timestamp(row.get("tick_time") or row.get("decision_time") or "")
+            if not tick_ts:
+                continue
+            if tick_ts < start_dt or tick_ts > end_dt:
+                continue
+            decision_type = (row.get("decision_type") or "").strip().lower()
+            action = (row.get("action") or "").strip().upper()
+            price = row.get("price")
+            qty = row.get("qty")
+            rows.append(
+                {
+                    "tick_time": tick_ts,
+                    "ticker": (row.get("ticker") or "").strip(),
+                    "decision_type": decision_type,
+                    "action": action,
+                    "price": price if price not in (None, "") else None,
+                    "qty": qty if qty not in (None, "") else None,
+                }
+            )
+    rows.sort(key=lambda r: (r["tick_time"], r["ticker"]))
+    return rows
+
+
+def _find_first_decision_divergence(
+    live_path: str, back_path: str, start_dt: datetime, end_dt: datetime
+) -> dict | None:
+    live_rows = _load_decision_rows(live_path, start_dt, end_dt)
+    back_rows = _load_decision_rows(back_path, start_dt, end_dt)
+    if not live_rows or not back_rows:
+        return None
+
+    live_min = live_rows[0]["tick_time"]
+    live_max = live_rows[-1]["tick_time"]
+    back_min = back_rows[0]["tick_time"]
+    back_max = back_rows[-1]["tick_time"]
+
+    overlap_start = max(live_min, back_min, start_dt)
+    overlap_end = min(live_max, back_max, end_dt)
+    if overlap_start > overlap_end:
+        return None
+
+    live_rows = [r for r in live_rows if overlap_start <= r["tick_time"] <= overlap_end]
+    back_rows = [r for r in back_rows if overlap_start <= r["tick_time"] <= overlap_end]
+    if not live_rows or not back_rows:
+        return None
+
+    live_index = {(r["tick_time"], r["ticker"]): r for r in live_rows}
+    for b in back_rows:
+        key = (b["tick_time"], b["ticker"])
+        l = live_index.get(key)
+        if not l:
+            return {
+                "time": b["tick_time"].isoformat(),
+                "label": f"Decision divergence: {b['ticker']} missing live",
+                "color": "#7a3fb3",
+            }
+        if (
+            b["decision_type"] != l["decision_type"]
+            or b["action"] != l["action"]
+            or b["price"] != l["price"]
+            or b["qty"] != l["qty"]
+        ):
+            label = (
+                f"Decision divergence: {b['ticker']} "
+                f"back={b['decision_type']} live={l['decision_type']}"
+            )
+            return {
+                "time": b["tick_time"].isoformat(),
+                "label": label,
+                "color": "#7a3fb3",
+            }
+    return None
+
+
+def _align_points_to_series(points: list[dict], series: list[dict]) -> list[dict]:
+    if not points or not series:
+        return []
+    targets = [{"time": p["time"], "equity": 0.0} for p in points]
+    resampled = _resample_to_timestamps(series, targets)
+    return [
+        {"time": p["time"], "equity": r["equity"], "action": p["action"]}
+        for p, r in zip(points, resampled)
+    ]
 
 
 def _parse_live_status_from_snapshots(status_dir: str, start_dt: datetime, end_dt: datetime) -> list[dict]:
@@ -162,6 +302,13 @@ def _load_market_rows(market_dir: str, start_dt: datetime, end_dt: datetime) -> 
                 if dt < start_dt or dt > end_dt:
                     continue
                 r["_dt"] = dt
+                last_trade = r.get("last_trade_price")
+                # Handle unlabeled trailing last_trade_price column.
+                if last_trade in (None, ""):
+                    extras = r.get(None)
+                    if extras:
+                        last_trade = extras[-1] if isinstance(extras, list) else extras
+                r["_last_trade"] = _coerce_last_trade(last_trade)
                 rows.append(r)
     rows.sort(key=lambda r: r["_dt"])
     return rows
@@ -210,6 +357,15 @@ def _last_mid_prices_at_timestamp(snapshot_path: str, market_dir: str, cutoff_dt
                     continue
                 ticker = r.get("market_ticker")
                 if ticker not in positions:
+                    continue
+                last_trade = r.get("last_trade_price")
+                if last_trade in (None, ""):
+                    extras = r.get(None)
+                    if extras:
+                        last_trade = extras[-1] if isinstance(extras, list) else extras
+                last_trade = _coerce_last_trade(last_trade)
+                if last_trade is not None:
+                    last_mid[ticker] = last_trade
                     continue
                 try:
                     yb = float(r.get("best_yes_bid")) if r.get("best_yes_bid") not in (None, "") else None
@@ -277,10 +433,20 @@ def _compute_local_equity(trades_path: str, snapshot_path: str, market_dir: str,
     positions = snap.get("positions") or {}
     pos_yes = {k: int(v.get("yes") or 0) for k, v in positions.items()}
     pos_no = {k: int(v.get("no") or 0) for k, v in positions.items()}
-    last_prices = {}
+    last_prices = _last_mid_prices_at_timestamp(snapshot_path, market_dir, start_dt)
+    last_ask_prices = dict(last_prices)
+    settle_times = {}
+    for ticker in set(list(positions.keys()) + [t["ticker"] for t in trades]):
+        market_dt = _ticker_market_date(ticker)
+        if market_dt is None:
+            continue
+        settle_times[ticker] = datetime.combine(market_dt.date() + timedelta(days=1), dt_time(5, 0, 0))
+    settled = set()
 
-    # Seed mid prices from snapshot cost basis
+    # Seed missing mid prices from snapshot cost basis
     for ticker, info in positions.items():
+        if ticker in last_prices:
+            continue
         yes_qty = int(info.get("yes") or 0)
         no_qty = int(info.get("no") or 0)
         cost = info.get("cost")
@@ -302,6 +468,7 @@ def _compute_local_equity(trades_path: str, snapshot_path: str, market_dir: str,
     print(f"DEBUG: Initial Last Prices: {last_prices}")
 
     local = []
+    local_ask = []
     local_trades = []
     trade_idx = 0
 
@@ -338,6 +505,20 @@ def _compute_local_equity(trades_path: str, snapshot_path: str, market_dir: str,
             holdings += q * ((100.0 - mid) / 100.0)
         return cash + holdings
 
+    def compute_equity_ask():
+        holdings = 0.0
+        for t, q in pos_yes.items():
+            ask = last_ask_prices.get(t)
+            if ask is None:
+                continue
+            holdings += q * (ask / 100.0)
+        for t, q in pos_no.items():
+            ask = last_ask_prices.get(t)
+            if ask is None:
+                continue
+            holdings += q * ((100.0 - ask) / 100.0)
+        return cash + holdings
+
     rows = _load_market_rows(market_dir, start_dt, end_dt)
     print(f"DEBUG: Loaded {len(rows)} market rows and {len(trades)} backtest trades.")
     
@@ -359,15 +540,47 @@ def _compute_local_equity(trades_path: str, snapshot_path: str, market_dir: str,
             no_ask = float("nan")
             yes_ask = float("nan")
 
-        yb = yes_bid
-        if yb != yb and no_ask == no_ask:
-            yb = 100.0 - no_ask
-        ya = yes_ask
-        if yb == yb and ya == ya:
-            last_prices[r.get("market_ticker")] = (yb + ya) / 2.0
-        
+        if yes_ask == yes_ask:
+            last_ask_prices[r.get("market_ticker")] = yes_ask
+
+        last_trade = r.get("_last_trade")
+        source = "quote"
+        if last_trade is not None:
+            try:
+                last_prices[r.get("market_ticker")] = float(last_trade)
+                source = "last_trade"
+            except Exception:
+                pass
+        else:
+            yb = yes_bid
+            if yb != yb and no_ask == no_ask:
+                yb = 100.0 - no_ask
+            ya = yes_ask
+            if yb == yb and ya == ya:
+                last_prices[r.get("market_ticker")] = (yb + ya) / 2.0
+
+        # Apply settlements once the market day has passed (5am next day).
+        for ticker, settle_dt in settle_times.items():
+            if ticker in settled:
+                continue
+            if t < settle_dt:
+                continue
+            price = last_prices.get(ticker)
+            if price is None:
+                continue
+            settle_price = 100.0 if price >= 50.0 else 0.0
+            cash += pos_yes.get(ticker, 0) * (settle_price / 100.0)
+            cash += pos_no.get(ticker, 0) * ((100.0 - settle_price) / 100.0)
+            pos_yes[ticker] = 0
+            pos_no[ticker] = 0
+            last_prices.pop(ticker, None)
+            last_ask_prices.pop(ticker, None)
+            settled.add(ticker)
+
+        local_ask.append({"time": t.isoformat(), "equity": compute_equity_ask(), "source": "implied_yes_ask"})
+
         eq = compute_equity()
-        local.append({"time": t.isoformat(), "equity": eq})
+        local.append({"time": t.isoformat(), "equity": eq, "source": source})
 
     while trade_idx < len(trades):
         tr = trades[trade_idx]
@@ -375,7 +588,7 @@ def _compute_local_equity(trades_path: str, snapshot_path: str, market_dir: str,
         local_trades.append({"time": tr["time"].isoformat(), "equity": compute_equity()})
         trade_idx += 1
 
-    return local, local_trades
+    return local, local_trades, local_ask
 
 
 def _compute_live_equity_from_fills(
@@ -478,13 +691,23 @@ def _compute_live_equity_from_fills(
             no_ask = float("nan")
             yes_ask = float("nan")
 
+        last_trade = r.get("_last_trade")
+        if last_trade is not None:
+            try:
+                last_prices[r.get("market_ticker")] = float(last_trade)
+                live.append({"time": t.isoformat(), "equity": compute_equity(), "source": "last_trade"})
+                live_portfolio.append({"time": t.isoformat(), "value": compute_holdings()})
+                continue
+            except Exception:
+                pass
+
         yb = yes_bid
         if yb != yb and no_ask == no_ask:
             yb = 100.0 - no_ask
         ya = yes_ask
         if yb == yb and ya == ya:
             last_prices[r.get("market_ticker")] = (yb + ya) / 2.0
-        live.append({"time": t.isoformat(), "equity": compute_equity()})
+        live.append({"time": t.isoformat(), "equity": compute_equity(), "source": "quote"})
         live_portfolio.append({"time": t.isoformat(), "value": compute_holdings()})
 
     while fill_idx < len(fills):
@@ -497,7 +720,12 @@ def _compute_live_equity_from_fills(
 
 
 def _compute_live_equity_from_csv(
-    csv_path: str, snapshot_path: str, market_dir: str, start_dt: datetime, end_dt: datetime
+    csv_path: str,
+    snapshot_path: str,
+    market_dir: str,
+    start_dt: datetime,
+    end_dt: datetime,
+    prefer_mtm_seed: bool = True,
 ):
     trades = []
     with open(csv_path, "r", encoding="utf-8") as f:
@@ -549,9 +777,11 @@ def _compute_live_equity_from_csv(
     positions = snap.get("positions") or {}
     pos_yes = {k: int(v.get("yes") or 0) for k, v in positions.items()}
     pos_no = {k: int(v.get("no") or 0) for k, v in positions.items()}
-    last_prices = {}
-    # Seed mid prices from snapshot cost basis
+    last_prices = _last_mid_prices_at_timestamp(snapshot_path, market_dir, start_dt) if prefer_mtm_seed else {}
+    # Seed missing mid prices from snapshot cost basis
     for ticker, info in positions.items():
+        if prefer_mtm_seed and ticker in last_prices:
+            continue
         yes_qty = int(info.get("yes") or 0)
         no_qty = int(info.get("no") or 0)
         cost = info.get("cost")
@@ -626,13 +856,23 @@ def _compute_live_equity_from_csv(
             no_ask = float("nan")
             yes_ask = float("nan")
 
+        last_trade = r.get("_last_trade")
+        if last_trade is not None:
+            try:
+                last_prices[r.get("market_ticker")] = float(last_trade)
+                live.append({"time": t.isoformat(), "equity": compute_equity(), "source": "last_trade"})
+                live_portfolio.append({"time": t.isoformat(), "value": compute_holdings()})
+                continue
+            except Exception:
+                pass
+
         yb = yes_bid
         if yb != yb and no_ask == no_ask:
             yb = 100.0 - no_ask
         ya = yes_ask
         if yb == yb and ya == ya:
             last_prices[r.get("market_ticker")] = (yb + ya) / 2.0
-        live.append({"time": t.isoformat(), "equity": compute_equity()})
+        live.append({"time": t.isoformat(), "equity": compute_equity(), "source": "quote"})
         live_portfolio.append({"time": t.isoformat(), "value": compute_holdings()})
 
     while trade_idx < len(trades):
@@ -652,9 +892,11 @@ def main() -> int:
     parser.add_argument("--output-log", default=os.path.join("server_mirror", "output.log"))
     parser.add_argument("--fills", default=os.path.join("vm_logs", "todays_fills.json"))
     parser.add_argument("--live-trades", default=os.path.join("vm_logs", "trades.csv"))
+    parser.add_argument("--live-decisions", default=os.path.join("vm_logs", "unified_engine_out", "decision_intents.csv"))
+    parser.add_argument("--backtest-decisions", default="")
     parser.add_argument("--status-dir", default=os.path.join("vm_logs", "snapshots"))
     parser.add_argument("--strategy", default="backtesting.strategies.v3_variants:hb_notional_010")
-    parser.add_argument("--min-requote-interval", type=float, default=0.0)
+    parser.add_argument("--min-requote-interval", type=float, default=2.0)
     parser.add_argument("--out-dir", default="unified_engine_out_snapshot_live")
     parser.add_argument("--graph", default=os.path.join("backtest_charts", "shadow_vs_local_roi_timeline.html"))
     parser.add_argument("--start-ts", default="")
@@ -662,6 +904,16 @@ def main() -> int:
     parser.add_argument("--skip-backtest", action="store_true")
     parser.add_argument("--backtest-start-equity", type=float, default=None)
     parser.add_argument("--backtest-start-equity-from-reported", action="store_true")
+    parser.add_argument(
+        "--live-seed-cost-basis",
+        action="store_true",
+        help="Seed live CSV equity from snapshot cost basis (override MTM seed).",
+    )
+    parser.add_argument(
+        "--replay-live-trades",
+        action="store_true",
+        help="Replay live trades against market logs instead of running the backtest.",
+    )
     args = parser.parse_args()
 
     snapshot_path = args.snapshot or _latest_snapshot(args.snapshot_dir)
@@ -710,7 +962,13 @@ def main() -> int:
             f"(start_equity={reported_baseline:.2f} mtm_positions={mtm_positions:.2f})"
         )
 
-    if not args.skip_backtest:
+    if args.replay_live_trades and not os.path.exists(args.live_trades):
+        raise SystemExit(f"Missing live trades for replay: {args.live_trades}")
+
+    if not args.skip_backtest and not args.replay_live_trades:
+        decision_log_path = os.path.join(args.out_dir, "decision_intents.csv")
+        if os.path.exists(decision_log_path):
+            os.remove(decision_log_path)
         cmd = [
             sys.executable,
             "-m",
@@ -732,12 +990,12 @@ def main() -> int:
         ]
         subprocess.run(cmd, check=True)
 
-    trades_path = os.path.join(args.out_dir, "unified_trades.csv")
+    trades_path = args.live_trades if args.replay_live_trades else os.path.join(args.out_dir, "unified_trades.csv")
     if not os.path.exists(trades_path):
         raise SystemExit(f"Missing backtest trades: {trades_path}")
 
-    local, local_trades = _compute_local_equity(
-        trades_path, snapshot_path, args.market_dir, start_dt, end_dt
+    local, local_trades, local_ask = _compute_local_equity(
+        trades_path, backtest_snapshot_path, args.market_dir, start_dt, end_dt
     )
 
     live = []
@@ -748,7 +1006,12 @@ def main() -> int:
     if os.path.exists(args.live_trades):
         print(f"Using live trades from: {args.live_trades}")
         live, live_trade_points, live_portfolio = _compute_live_equity_from_csv(
-            args.live_trades, snapshot_path, args.market_dir, start_dt, end_dt
+            args.live_trades,
+            snapshot_path,
+            args.market_dir,
+            start_dt,
+            end_dt,
+            prefer_mtm_seed=not args.live_seed_cost_basis,
         )
 
     # Priority 2: todays_fills.json (Legacy)
@@ -765,21 +1028,75 @@ def main() -> int:
     if not live:
         live = [{"time": start_dt.isoformat(), "equity": _snapshot_start_equity(snapshot_path)}]
 
+    baseline_equity = _snapshot_start_equity(snapshot_path) + _mtm_positions_at_timestamp(
+        snapshot_path, args.market_dir, start_dt
+    )
+
     # Additional line: reported equity from output.log, if available.
     reported = _parse_live_status_from_output(args.output_log, start_dt, end_dt)
     if reported:
         first_rep = datetime.fromisoformat(reported[0]["time"])
         if first_rep > start_dt:
-            reported.insert(0, {"time": start_dt.isoformat(), "equity": _snapshot_start_equity(snapshot_path)})
+            reported.insert(0, {"time": start_dt.isoformat(), "equity": baseline_equity})
+    if local:
+        first_local = datetime.fromisoformat(local[0]["time"])
+        if first_local > start_dt:
+            local.insert(0, {"time": start_dt.isoformat(), "equity": baseline_equity, "source": "baseline"})
+    reported_on_ticks = []
+    if reported and local:
+        reported_on_ticks = _resample_to_timestamps(reported, local)
+    elif reported:
+        reported_on_ticks = list(reported)
     live_resampled = _resample_to_timestamps(live, reported) if reported else []
     # Offset backtest series to match reported baseline.
     local_aligned = []
+    local_ask_aligned = []
+    local_trades_aligned = []
+    live_trade_points_aligned = []
     if local and reported:
         offset = reported[0]["equity"] - local[0]["equity"]
-        local_aligned = [{"time": p["time"], "equity": p["equity"] + offset} for p in local]
+        local_aligned = [
+            {"time": p["time"], "equity": p["equity"] + offset, "source": p.get("source")}
+            for p in local
+        ]
+        if local_ask:
+            local_ask_aligned = [
+                {"time": p["time"], "equity": p["equity"] + offset, "source": p.get("source")}
+                for p in local_ask
+            ]
+        if local_trades:
+            local_trades_aligned = [
+                {"time": p["time"], "equity": p["equity"] + offset} for p in local_trades
+            ]
     elif local:
         local_aligned = list(local)
+        if local_ask:
+            local_ask_aligned = list(local_ask)
+        if local_trades:
+            local_trades_aligned = list(local_trades)
     live_aligned = list(live)
+    if reported and live_trade_points:
+        trade_targets = [{"time": p["time"], "equity": 0.0} for p in live_trade_points]
+        resampled = _resample_to_timestamps(reported, trade_targets)
+        live_trade_points_aligned = [
+            {"time": p["time"], "equity": r["equity"]} for p, r in zip(live_trade_points, resampled)
+        ]
+    elif live_trade_points:
+        live_trade_points_aligned = list(live_trade_points)
+
+    backtest_decision_path = args.backtest_decisions or os.path.join(args.out_dir, "decision_intents.csv")
+    live_decisions = _load_decision_intents(args.live_decisions, start_dt, end_dt)
+    backtest_decisions = _load_decision_intents(backtest_decision_path, start_dt, end_dt)
+    divergence_marker = _find_first_decision_divergence(
+        args.live_decisions, backtest_decision_path, start_dt, end_dt
+    )
+
+    live_decisions_aligned = _align_points_to_series(
+        live_decisions, reported if reported else live
+    )
+    backtest_decisions_aligned = _align_points_to_series(
+        backtest_decisions, local_aligned if local_aligned else local
+    )
 
     html = f"""<!doctype html>
 <html>
@@ -797,24 +1114,65 @@ def main() -> int:
   <h2>Live Unified vs Backtest ({start_dt.isoformat()} → {end_dt.isoformat()})</h2>
   <div id="chart"></div>
   <script>
-    const reported = {json.dumps(reported)};
+      const reported = {json.dumps(reported_on_ticks)};
     const local = {json.dumps(local_aligned)};
-    const liveTrades = {json.dumps(live_trade_points)};
-    const localTrades = {json.dumps(local_trades)};
+    const localAsk = {json.dumps(local_ask_aligned)};
+    const liveTrades = {json.dumps(live_trade_points_aligned)};
+    const localTrades = {json.dumps(local_trades_aligned)};
+      const liveDecisions = {json.dumps(live_decisions_aligned)};
+      const backtestDecisions = {json.dumps(backtest_decisions_aligned)};
+      const markers = {json.dumps([divergence_marker] if divergence_marker else [])};
 
-    const traces = [
-      ...(reported.length ? [{{ x: reported.map(p => p.time), y: reported.map(p => p.equity), mode: 'lines', name: 'Live (reported)', line: {{ color: '#2f6bff', width: 2 }} }}] : []),
+    const localTickColors = local.map(p => (
+      p.source === 'last_trade' ? '#1f9e8a' :
+      p.source === 'quote' ? '#d46a3b' :
+      '#888888'
+    ));
+
+      const markerShapes = markers.map(m => ({{
+        type: 'line',
+        x0: m.time,
+        x1: m.time,
+        y0: 0,
+        y1: 1,
+        xref: 'x',
+        yref: 'paper',
+        line: {{ color: m.color, width: 1, dash: 'dot' }}
+      }}));
+
+      const markerAnnotations = markers.map(m => ({{
+        x: m.time,
+        y: 1,
+        xref: 'x',
+        yref: 'paper',
+        text: m.label,
+        showarrow: false,
+        xanchor: 'left',
+        yanchor: 'bottom',
+        font: {{ size: 11, color: m.color }},
+        bgcolor: 'rgba(255,255,255,0.7)',
+        bordercolor: m.color,
+        borderwidth: 1
+      }}));
+
+      const traces = [
+        ...(reported.length ? [{{ x: reported.map(p => p.time), y: reported.map(p => p.equity), mode: 'lines', name: 'Live (reported, tick-time)', line: {{ color: '#2f6bff', width: 2 }} }}] : []),
       {{ x: local.map(p => p.time), y: local.map(p => p.equity), mode: 'lines', name: 'Backtest (replay)', line: {{ color: '#d46a3b' }} }},
+      ...(localAsk.length ? [{{ x: localAsk.map(p => p.time), y: localAsk.map(p => p.equity), mode: 'lines', name: 'Backtest (implied yes ask)', line: {{ color: '#2aa876', dash: 'dot' }} }}] : []),
       {{ x: liveTrades.map(p => p.time), y: liveTrades.map(p => p.equity), mode: 'markers', name: 'Live trades', marker: {{ size: 7, color: '#f5b700', symbol: 'circle' }} }},
-      {{ x: localTrades.map(p => p.time), y: localTrades.map(p => p.equity), mode: 'markers', name: 'Backtest trades', marker: {{ size: 7, color: '#ff7a1a', symbol: 'circle' }} }}
+      {{ x: localTrades.map(p => p.time), y: localTrades.map(p => p.equity), mode: 'markers', name: 'Backtest trades', marker: {{ size: 7, color: '#ff7a1a', symbol: 'circle' }} }},
+      {{ x: liveDecisions.map(p => p.time), y: liveDecisions.map(p => p.equity), mode: 'markers', name: 'Live decisions', marker: {{ size: 6, color: '#1f9e8a', symbol: 'diamond' }} }},
+      {{ x: backtestDecisions.map(p => p.time), y: backtestDecisions.map(p => p.equity), mode: 'markers', name: 'Backtest decisions', marker: {{ size: 6, color: '#7a3fb3', symbol: 'diamond' }} }}
     ];
 
-    const layout = {{
-      xaxis: {{ title: 'Time' }},
-      yaxis: {{ title: 'Equity ($)' }},
-      margin: {{ l: 60, r: 20, t: 20, b: 40 }},
-      hovermode: 'closest'
-    }};
+      const layout = {{
+        xaxis: {{ title: 'Time' }},
+        yaxis: {{ title: 'Equity ($)' }},
+        margin: {{ l: 60, r: 20, t: 20, b: 40 }},
+        hovermode: 'closest',
+        shapes: markerShapes,
+        annotations: markerAnnotations
+      }};
 
     Plotly.newPlot('chart', traces, layout, {{ displayModeBar: false }});
   </script>

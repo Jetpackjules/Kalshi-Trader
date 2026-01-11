@@ -25,6 +25,7 @@ class UnifiedEngine:
         min_requote_interval: float = 2.0,
         diag_log=None,
         diag_every: int = 1,
+        decision_log=None,
     ):
         self.strategy = strategy
         self.adapter = adapter
@@ -32,8 +33,73 @@ class UnifiedEngine:
         self.last_requote_time: dict[str, float] = {}
         self.diag_log = diag_log
         self.diag_every = max(int(diag_every), 1)
+        self.decision_log = decision_log
+        self._decision_seq = 0
 
-    def on_tick(self, *, ticker: str, market_state: dict, current_time: datetime) -> None:
+    def _emit_decision(
+        self,
+        *,
+        tick_time: datetime,
+        tick_seq: int | None,
+        tick_source: str | None,
+        tick_row: int | None,
+        ticker: str,
+        decision_type: str,
+        orders: list[Order] | None,
+        cash: float,
+        pos_yes: int,
+        pos_no: int,
+        pending_yes: int,
+        pending_no: int,
+    ) -> None:
+        if not self.decision_log:
+            return
+        self._decision_seq += 1
+        base = {
+            "decision_id": self._decision_seq,
+            "decision_time": datetime.now().isoformat(),
+            "tick_time": tick_time.isoformat(),
+            "tick_seq": tick_seq,
+            "tick_source": tick_source,
+            "tick_row": tick_row,
+            "ticker": ticker,
+            "decision_type": decision_type,
+            "cash": cash,
+            "pos_yes": pos_yes,
+            "pos_no": pos_no,
+            "pending_yes": pending_yes,
+            "pending_no": pending_no,
+        }
+        if decision_type == "keep":
+            self.decision_log(base)
+            return
+        if not orders:
+            base["decision_type"] = "empty"
+            self.decision_log(base)
+            return
+        for idx, order in enumerate(orders):
+            row = dict(base)
+            row.update(
+                {
+                    "order_index": idx,
+                    "action": order.action,
+                    "price": order.price,
+                    "qty": order.qty,
+                    "source": order.source,
+                }
+            )
+            self.decision_log(row)
+
+    def on_tick(
+        self,
+        *,
+        ticker: str,
+        market_state: dict,
+        current_time: datetime,
+        tick_seq: int | None = None,
+        tick_source: str | None = None,
+        tick_row: int | None = None,
+    ) -> None:
         self.adapter.process_tick(ticker, market_state, current_time)
 
         open_orders = self.adapter.get_open_orders(ticker, market_state, current_time)
@@ -78,15 +144,18 @@ class UnifiedEngine:
             last_req = self.last_requote_time.get(ticker, 0.0)
             now = current_time.timestamp()
             if now - last_req < self.min_requote_interval:
+                if "KXHIGHNY-26JAN09-B49.5" in ticker and "05:05:26" in str(current_time):
+                    print(f"DEBUG: THROTTLED: {ticker} at {current_time}. Last req: {last_req}, Now: {now}, Diff: {now-last_req}")
                 return
 
+        cash = float(self.adapter.get_cash())
         desired_orders = self.strategy.on_market_update(
             ticker,
             market_state,
             current_time,
             portfolios_inventories,
             active_orders,
-            self.adapter.get_cash(),
+            cash,
         )
 
         if self.diag_log:
@@ -100,12 +169,42 @@ class UnifiedEngine:
                     desired=len(desired_orders),
                 )
 
+        pos_yes = int(pos.get("yes") or 0)
+        pos_no = int(pos.get("no") or 0)
         if desired_orders is None:
+            self._emit_decision(
+                tick_time=current_time,
+                tick_seq=tick_seq,
+                tick_source=tick_source,
+                tick_row=tick_row,
+                ticker=ticker,
+                decision_type="keep",
+                orders=None,
+                cash=cash,
+                pos_yes=pos_yes,
+                pos_no=pos_no,
+                pending_yes=pending_yes,
+                pending_no=pending_no,
+            )
             return
 
         self.last_requote_time[ticker] = current_time.timestamp()
 
         desired = [Order(**o) if isinstance(o, dict) else o for o in desired_orders]
+        self._emit_decision(
+            tick_time=current_time,
+            tick_seq=tick_seq,
+            tick_source=tick_source,
+            tick_row=tick_row,
+            ticker=ticker,
+            decision_type="desired",
+            orders=desired,
+            cash=cash,
+            pos_yes=pos_yes,
+            pos_no=pos_no,
+            pending_yes=pending_yes,
+            pending_no=pending_no,
+        )
 
         kept_ids = set()
         unsatisfied: list[Order] = []
@@ -142,4 +241,7 @@ class UnifiedEngine:
                 ticker=tick["ticker"],
                 market_state=tick["market_state"],
                 current_time=tick["time"],
+                tick_seq=tick.get("seq"),
+                tick_source=tick.get("source_file"),
+                tick_row=tick.get("source_row"),
             )

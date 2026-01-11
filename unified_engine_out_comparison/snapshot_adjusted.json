@@ -1,0 +1,11 @@
+{
+  "balance": 42.49,
+  "positions": {
+    "KXHIGHNY-26JAN08": {
+      "yes": 0,
+      "no": 100,
+      "cost": 5000.0
+    }
+  },
+  "daily_start_equity": 42.49
+}

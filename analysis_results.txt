@@ -1,0 +1,21 @@
+Analyzing file: c:\Users\jetpa\OneDrive - UW\Google_Grav_Onedrive\kalshi_weather_data\backtest_charts\shadow_vs_local_roi_timeline.html
+Extracting data...
+Data extracted. Live points: 87965, Backtest points: 87965
+
+1. Trade Counts:
+   Live Trades: 0
+   Backtest Trades: 37
+   [MISMATCH] Difference of 37 trades.
+
+2. Equity Performance:
+   Live:     Start=$15.99 -> End=$7.20 (P&L: $-8.79)
+   Backtest: Start=$15.99 -> End=$10.86 (P&L: $-5.13)
+   Final Difference: $-3.66
+
+Calculating divergence...
+
+3. Divergence:
+   Max Intraday Divergence: $17.78
+   First significant divergence (> $1.0) at 2026-01-08 23:16:14.722735
+   Live: $15.13 vs Backtest: $16.15
+   Diff: $-1.02

@@ -177,6 +177,48 @@ class InventoryAwareMarketMaker(ComplexStrategy):
         
         # New configurable params
         self.margin_cents = margin_cents
+
+# --- Complex Strategy Base Class ---
+class ComplexStrategy:
+    def __init__(self, name, risk_pct=0.5):
+        self.name = name
+        self.risk_pct = risk_pct
+        
+    def on_market_update(self, ticker, market_state, current_time, inventory, active_orders, spendable_cash, idx=0):
+        """
+        Returns: 
+           list of dicts: New state (Replace current active orders)
+           None: Keep current orders (Persistence)
+        """
+        return None
+
+# --- Implementation of Strategy 2.5 (V2 Refined) ---
+
+class InventoryAwareMarketMaker(ComplexStrategy):
+    def __init__(
+        self,
+        name,
+        risk_pct=0.5,
+        max_inventory=50,
+        hmax_inventory=None,
+        inventory_penalty=0.5,
+        max_offset=2,
+        alpha=0.1,
+        margin_cents=4.0,
+        scaling_factor=4.0,
+        max_notional_pct=0.05,
+        max_loss_pct=0.02,
+    ):
+        super().__init__(name, risk_pct)
+        if hmax_inventory is not None and max_inventory == 50:
+            max_inventory = hmax_inventory
+        self.max_inventory = max_inventory
+        self.inventory_penalty = inventory_penalty
+        self.max_offset = max_offset
+        self.alpha = alpha
+        
+        # New configurable params
+        self.margin_cents = margin_cents
         self.scaling_factor = scaling_factor
         self.max_notional_pct = max_notional_pct
         self.max_loss_pct = max_loss_pct
@@ -184,8 +226,13 @@ class InventoryAwareMarketMaker(ComplexStrategy):
         self.fair_prices = {} 
         self.last_quote_time = {} 
         self.last_mid_snapshot = {} 
+        self.last_debug = {} # Added for debugging
 
     def on_market_update(self, ticker, market_state, current_time, inventories, active_orders, spendable_cash, idx=0):
+        # Handle UnifiedEngine passing full portfolio dict
+        if "MM" in inventories:
+            inventories = inventories["MM"]
+        self.last_debug = {} # Reset debug
         yes_ask = best_yes_ask(market_state)
         no_ask = market_state.get('no_ask', np.nan)
         yes_bid = best_yes_bid(market_state)
@@ -204,7 +251,7 @@ class InventoryAwareMarketMaker(ComplexStrategy):
         if len(hist) > 20: hist.pop(0)
         self.fair_prices[ticker] = hist
         
-        if len(hist) < 20: return None # Warmup
+        # if len(hist) < 20: return None # Warmup
         
         mean_price = np.mean(hist)
         
@@ -236,28 +283,34 @@ class InventoryAwareMarketMaker(ComplexStrategy):
             action = 'BUY_NO'
             price_to_pay = price_to_pay_no
             
-        if action is None: return None
+        if action is None:
+            self.last_decision = {"reason": "no_edge", "edge_yes": edge_yes, "edge_no": edge_no, "fair_prob": fair_prob, "mid": mid}
+            return None
         
         # --- PHASE 8 FIX: FEE/SPREAD GATE ---
         dummy_qty = 10
         fee_est = calculate_convex_fee(price_to_pay, dummy_qty) / dummy_qty # $ per contract
-        fee_cents = fee_est * 100
-        
-        required_edge_cents = fee_cents + self.margin_cents # Fee + Margin
-        
-        if (edge * 100) < required_edge_cents: return None
-        
-        # --- PHASE 9: SCALABLE SIZING (Smart Sizing) ---
-        
-        edge_cents = edge * 100.0
-
         # use continuous per-contract fee estimate (no rounding artifacts)
         p = price_to_pay / 100.0
         fee_per_contract = 0.07 * p * (1 - p)   # dollars per contract (approx)
         fee_cents = fee_per_contract * 100.0
+        
+        required_edge_cents = fee_cents + self.margin_cents
+        if (edge * 100) < required_edge_cents:
+            self.last_decision = {
+                "reason": "min_edge_fee_gate", 
+                "edge_cents": edge * 100, 
+                "required": required_edge_cents,
+                "fair_prob": fair_prob,
+                "mid": mid
+            }
+            return None
+
+        edge_cents = edge * 100.0
 
         edge_after_fee = edge_cents - fee_cents - self.margin_cents
         if edge_after_fee <= 0:
+            self.last_decision = {"reason": "edge_after_fee_negative", "edge_cents": edge_cents, "fee_cents": fee_cents, "margin": self.margin_cents, "mid": mid}
             return None
 
         scale = min(1.0, edge_after_fee / self.scaling_factor)
@@ -297,6 +350,7 @@ class InventoryAwareMarketMaker(ComplexStrategy):
         
         edge_after_fee_real = edge_cents - fee_cents_real - self.margin_cents
         if edge_after_fee_real <= 0:
+            self.last_decision = {"reason": "real_fee_gate", "edge_after_fee_real": edge_after_fee_real, "mid": mid}
             return None
         
         orders = []
@@ -314,6 +368,9 @@ class InventoryAwareMarketMaker(ComplexStrategy):
             
             orders.append({'action': 'BUY_NO', 'ticker': ticker, 'qty': qty, 'price': no_ask, 'expiry': current_time + timedelta(seconds=15), 'source': 'MM', 'time': current_time})
             
+            orders.append({'action': 'BUY_NO', 'ticker': ticker, 'qty': qty, 'price': no_ask, 'expiry': current_time + timedelta(seconds=15), 'source': 'MM', 'time': current_time})
+            
+        self.last_debug = {"reason": "desired", "action": action, "qty": qty, "price": price_to_pay, "edge": edge}
         return orders
 
 class MicroScalper(ComplexStrategy):
@@ -367,8 +424,11 @@ class RegimeSwitcher(ComplexStrategy):
         # Shadow Inventories for attribution/logic
         self.mm_inventory = defaultdict(int) 
         self.sc_inventory = defaultdict(int)
+        self.last_decision = {} # Added for debugging
         
     def on_market_update(self, ticker, market_state, current_time, portfolios_inventories, active_orders, spendable_cash, idx=0):
+        if "KXHIGHNY-26JAN09-B49.5" in ticker and "05:05:26" in str(current_time):
+            print(f"DEBUG: RegimeSwitcher ENTERED for {ticker} at {current_time}")
         # portfolios_inventories is dict { 'MM': {'YES': qty, 'NO': qty}, 'Scalper': {'YES': qty, 'NO': qty} }
         
         yes_ask = best_yes_ask(market_state)
@@ -409,6 +469,15 @@ class RegimeSwitcher(ComplexStrategy):
         if scalper_orders is not None: combined.extend(scalper_orders)
         else: combined.extend(sc_active)
         
+        if scalper_orders is not None: combined.extend(scalper_orders)
+        else: combined.extend(sc_active)
+        
+        # Capture debug info from MM
+        if hasattr(self.mm, "last_debug") and self.mm.last_debug:
+            self.last_decision = self.mm.last_debug
+        else:
+            self.last_decision = {"reason": "no_mm_debug"}
+
         return combined
 
 # --- Complex Backtester ---
@@ -1234,3 +1303,6 @@ class ComplexBacktester:
 
 if __name__ == "__main__":
     ComplexBacktester().run()
+
+def make_strategy():
+    return InventoryAwareMarketMaker(name="test_strat")

@@ -10,6 +10,7 @@ VM_IP = "34.56.193.18"
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 KEY_FILE = os.path.join(SCRIPT_DIR, "keys", "gcp_key")  # Absolute path to SSH key
 LOCAL_LOG_DIR = "vm_logs"
+LOCAL_MIRROR_DIR = "server_mirror"
 
 def sync_logs():
     """Downloads logger.log and market_logs from the VM."""
@@ -36,6 +37,24 @@ def sync_logs():
         print("Successfully downloaded logger.log")
     except subprocess.CalledProcessError as e:
         print(f"Error downloading logger.log: {e}")
+
+    # 1a. Download output.log into server_mirror/ for live status parsing
+    if not os.path.exists(LOCAL_MIRROR_DIR):
+        os.makedirs(LOCAL_MIRROR_DIR)
+    print("Downloading output.log...")
+    cmd_output = [
+        "scp",
+        "-i", KEY_FILE,
+        "-o", "StrictHostKeyChecking=no",
+        f"{VM_USER}@{VM_IP}:~/output.log",
+        f"{LOCAL_MIRROR_DIR}/"
+    ]
+
+    try:
+        subprocess.run(cmd_output, check=True)
+        print("Successfully downloaded output.log")
+    except subprocess.CalledProcessError as e:
+        print(f"Error downloading output.log: {e}")
 
     # 1b. Download trades.csv
     print("Downloading trades.csv...")
@@ -134,7 +153,9 @@ def sync_logs():
 
     unified_files = [
         "unified_positions.json",
-        "trades.csv"
+        "trades.csv",
+        "decision_intents.csv",
+        "unified_orders.csv",
     ]
 
     for filename in unified_files:

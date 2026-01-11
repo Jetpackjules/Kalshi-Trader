@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 
 import math
@@ -73,7 +73,14 @@ class BaseAdapter:
 
 
 class SimAdapter(BaseAdapter):
-    def __init__(self, *, initial_cash: float = 0.0, diag_log=None):
+    def __init__(
+        self,
+        *,
+        initial_cash: float = 0.0,
+        diag_log=None,
+        fill_latency_s: float = 0.0,
+        fill_latency_sampler=None,
+    ):
         self.cash = float(initial_cash)
         self.positions: dict[str, dict[str, Any]] = {}
         self.open_orders: list[dict[str, Any]] = []
@@ -81,6 +88,16 @@ class SimAdapter(BaseAdapter):
         self.order_history: list[dict[str, Any]] = []
         self._order_id = 0
         self._diag_log = diag_log
+        self._fill_latency_s = max(0.0, float(fill_latency_s))
+        self._fill_latency_sampler = fill_latency_sampler
+
+    def _sample_fill_latency(self) -> float:
+        if self._fill_latency_sampler:
+            try:
+                return max(0.0, float(self._fill_latency_sampler()))
+            except Exception:
+                return self._fill_latency_s
+        return self._fill_latency_s
 
     def _next_id(self) -> str:
         self._order_id += 1
@@ -108,6 +125,7 @@ class SimAdapter(BaseAdapter):
         qty = int(order.qty)
         order_id = self._next_id()
 
+        fill_latency_s = self._sample_fill_latency()
         new_order = {
             "order_id": order_id,
             "ticker": order.ticker,
@@ -116,6 +134,9 @@ class SimAdapter(BaseAdapter):
             "no_price": price if side == "no" else None,
             "remaining_count": qty,
             "status": "open",
+            "order_time": current_time,
+            "ready_at": current_time + timedelta(seconds=fill_latency_s),
+            "fill_latency_s": fill_latency_s,
         }
 
         filled = self._maybe_fill(new_order, market_state, current_time)
@@ -139,6 +160,10 @@ class SimAdapter(BaseAdapter):
                     "qty": qty,
                     "status": "executed",
                     "filled": filled,
+                    "order_id": order_id,
+                    "order_time": current_time,
+                    "ready_at": new_order.get("ready_at"),
+                    "fill_latency_s": fill_latency_s,
                 }
             )
             return OrderResult(ok=True, filled=filled, status="executed")
@@ -163,6 +188,10 @@ class SimAdapter(BaseAdapter):
                 "qty": qty,
                 "status": "resting",
                 "filled": 0,
+                "order_id": order_id,
+                "order_time": current_time,
+                "ready_at": new_order.get("ready_at"),
+                "fill_latency_s": fill_latency_s,
             }
         )
         return OrderResult(ok=True, filled=0, status="resting")
@@ -178,6 +207,9 @@ class SimAdapter(BaseAdapter):
         if ask is None:
             return 0
         if price < float(ask):
+            return 0
+        ready_at = order.get("ready_at")
+        if ready_at and current_time < ready_at:
             return 0
 
         self._fill_order(order, price=float(ask), qty=qty, current_time=current_time)
@@ -214,6 +246,8 @@ class SimAdapter(BaseAdapter):
         order["remaining_count"] = 0
         order["status"] = "executed"
 
+        order_time = order.get("order_time") or current_time
+        fill_delay_s = (current_time - order_time).total_seconds()
         self.trades.append(
             {
                 "time": current_time,
@@ -224,6 +258,11 @@ class SimAdapter(BaseAdapter):
                 "fee": fee,
                 "cost": cost,
                 "source": "SIM",
+                "order_id": order.get("order_id"),
+                "order_time": order_time,
+                "fill_time": current_time,
+                "fill_delay_s": fill_delay_s,
+                "place_time": None,
             }
         )
         if self._diag_log:
@@ -437,7 +476,11 @@ class LiveAdapter(BaseAdapter):
                     cost = (int(order.qty) * (price / 100.0)) + fee
                     
                     trade_record = {
-                        "time": datetime.now(), # Wall clock time of placement
+                        "time": current_time,
+                        "order_time": current_time,
+                        "fill_time": None,
+                        "fill_delay_s": None,
+                        "place_time": datetime.now(),
                         "action": order.action,
                         "ticker": order.ticker,
                         "price": price,

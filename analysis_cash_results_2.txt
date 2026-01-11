@@ -1,0 +1,22 @@
+Analyzing file: backtest_charts/shadow_vs_local_cash_timeline_corrected.html
+Extracting data...
+Warning: Could not find data for 'reported'
+Warning: Could not find data for 'local'
+Warning: Could not find data for 'liveTrades'
+Warning: Could not find data for 'localTrades'
+Data extracted. Live points: 183836, Backtest points: 183836
+
+1. Trade Counts: [N/A] No trade data found in this graph.
+
+2. Performance (cash):
+   Live:     Start=$14.41 -> End=$6.24 (Change: $-8.17)
+   Backtest: Start=$2.12 -> End=$10.44 (Change: $8.32)
+   Final Difference: $-4.20
+
+Calculating divergence...
+
+3. Divergence:
+   Max Intraday Divergence: $18.98
+   First significant divergence (> $1.0) at 2026-01-06 09:39:58.173823
+   Live: $14.41 vs Backtest: $2.12
+   Diff: $12.29

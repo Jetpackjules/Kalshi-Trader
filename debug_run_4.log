@@ -1,0 +1,33 @@
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "C:\Users\jetpa\OneDrive - UW\Google_Grav_Onedrive\kalshi_weather_data\unified_engine\runner.py", line 252, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "C:\Users\jetpa\OneDrive - UW\Google_Grav_Onedrive\kalshi_weather_data\unified_engine\runner.py", line 227, in main
+    engine.run(filtered_ticks)
+  File "C:\Users\jetpa\OneDrive - UW\Google_Grav_Onedrive\kalshi_weather_data\unified_engine\engine.py", line 241, in run
+    self.on_tick(
+  File "C:\Users\jetpa\OneDrive - UW\Google_Grav_Onedrive\kalshi_weather_data\unified_engine\engine.py", line 195, in on_tick
+    self._emit_decision(
+  File "C:\Users\jetpa\OneDrive - UW\Google_Grav_Onedrive\kalshi_weather_data\unified_engine\engine.py", line 81, in _emit_decision
+    self.decision_log(base)
+  File "C:\Users\jetpa\OneDrive - UW\Google_Grav_Onedrive\kalshi_weather_data\unified_engine\runner.py", line 120, in _log
+    writer.writerow(record)
+  File "C:\Python312\Lib\csv.py", line 164, in writerow
+    return self.writer.writerow(self._dict_to_list(rowdict))
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\csv.py", line 159, in _dict_to_list
+    raise ValueError("dict contains fields not in fieldnames: "
+ValueError: dict contains fields not in fieldnames: 'reason'
+Decision log: unified_engine_out_debug\decision_intents.csv
+Time Range: 2026-01-08 23:13:06 -> 2026-01-10 10:31:41.553295
+Traceback (most recent call last):
+  File "C:\Users\jetpa\OneDrive - UW\Google_Grav_Onedrive\kalshi_weather_data\tools\generate_live_vs_backtest_graph.py", line 1191, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "C:\Users\jetpa\OneDrive - UW\Google_Grav_Onedrive\kalshi_weather_data\tools\generate_live_vs_backtest_graph.py", line 991, in main
+    subprocess.run(cmd, check=True)
+  File "C:\Python312\Lib\subprocess.py", line 571, in run
+    raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command '['C:\\Python312\\python.exe', '-m', 'unified_engine.runner', '--strategy', 'backtesting.strategies.v3_variants:hb_notional_010', '--log-dir', 'vm_logs\\market_logs', '--snapshot', 'vm_logs\\snapshots\\snapshot_2026-01-08_231306.json', '--min-requote-interval', '2.0', '--start-ts', '2026-01-08 23:13:06', '--end-ts', '2026-01-10 10:31:41.553295', '--out-dir', 'unified_engine_out_debug']' returned non-zero exit status 1.

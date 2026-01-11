@@ -16,11 +16,11 @@ from cryptography.hazmat.primitives.asymmetric import padding
 # TODO: Update these paths for your Google VM
 KEY_ID = "ab739236-261e-4130-bd46-2c0330d0bf57"
 # Assuming the key file is in the same directory as this script on the VM
-PRIVATE_KEY_PATH = "kalshi_prod_private_key.pem" 
+PRIVATE_KEY_PATH = os.environ.get("KALSHI_PRIVATE_KEY", "kalshi_prod_private_key.pem")
 
 WS_URL = "wss://api.elections.kalshi.com/trade-api/ws/v2"
 API_URL = "https://api.elections.kalshi.com/trade-api/v2"
-LOG_DIR = "market_logs" # Directory to store CSVs
+LOG_DIR = os.environ.get("KALSHI_LOG_DIR", "market_logs") # Directory to store CSVs
 
 # ==========================================
 # AUTHENTICATION
@@ -52,6 +52,7 @@ class GranularLogger:
     def __init__(self):
         self.books = {} # {ticker: {'yes': {price: qty}, 'no': {price: qty}}}
         self.last_logged_state = {} # {ticker: (best_yes_bid, best_no_bid)}
+        self.last_trade_price = {} # {ticker: last_trade_price_cents}
         
         if not os.path.exists(LOG_DIR):
             os.makedirs(LOG_DIR)
@@ -88,7 +89,8 @@ class GranularLogger:
                     "best_yes_bid", 
                     "best_no_bid", 
                     "implied_no_ask", # 100 - best_yes_bid
-                    "implied_yes_ask" # 100 - best_no_bid
+                    "implied_yes_ask", # 100 - best_no_bid
+                    "last_trade_price"
                 ])
             print(f"Created new log file: {filename}")
 
@@ -138,17 +140,29 @@ class GranularLogger:
             with open(filename, 'a', newline='') as f:
                 writer = csv.writer(f)
                 timestamp = datetime.now().isoformat()
+                last_trade = self.last_trade_price.get(ticker)
                 writer.writerow([
                     timestamp,
                     ticker,
                     best_yes_bid,
                     best_no_bid,
                     implied_no_ask,
-                    implied_yes_ask
+                    implied_yes_ask,
+                    last_trade
                 ])
             # print(f"Logged {ticker}: YesBid={best_yes_bid}, NoBid={best_no_bid}")
         except Exception as e:
             print(f"Error writing to CSV: {e}")
+
+    def update_last_trade_prices(self, market_info: dict):
+        """Cache last trade prices (in cents) from the markets endpoint."""
+        for ticker, last_price in market_info.items():
+            if last_price is None:
+                continue
+            try:
+                self.last_trade_price[ticker] = int(last_price)
+            except (TypeError, ValueError):
+                continue
 
     def update_book(self, ticker, side, price, qty):
         """Update the internal order book."""
@@ -202,9 +216,9 @@ class GranularLogger:
 # ==========================================
 # MAIN LOOP
 # ==========================================
-def get_active_markets():
-    """Fetch ALL active KXHIGHNY market tickers."""
-    tickers = set()
+def fetch_active_markets():
+    """Fetch ALL active KXHIGHNY market tickers and their last trade prices."""
+    markets_out = {}
     try:
         print("Fetching active KXHIGHNY markets...")
         response = requests.get(f"{API_URL}/markets", params={"series_ticker": "KXHIGHNY", "status": "open"})
@@ -212,13 +226,16 @@ def get_active_markets():
             data = response.json()
             markets = data.get("markets", [])
             for market in markets:
-                tickers.add(market['ticker'])
-            print(f"Found {len(tickers)} active markets.")
+                ticker = market.get("ticker")
+                if not ticker:
+                    continue
+                markets_out[ticker] = market.get("last_price")
+            print(f"Found {len(markets_out)} active markets.")
         else:
             print(f"Error fetching markets: {response.status_code}")
     except Exception as e:
         print(f"Error fetching markets: {e}")
-    return tickers
+    return markets_out
 
 async def subscribe_to_tickers(websocket, tickers):
     if not tickers: return
@@ -282,7 +299,9 @@ async def run_logger():
                 print("Connected to WebSocket.")
                 
                 # Initial Subscription
-                subscribed_tickers = get_active_markets()
+                market_info = fetch_active_markets()
+                subscribed_tickers = set(market_info)
+                logger.update_last_trade_prices(market_info)
                 await subscribe_to_tickers(websocket, subscribed_tickers)
                 
                 # Monitor Loop
@@ -302,7 +321,9 @@ async def run_logger():
                         # Periodically check for new markets (every 5 mins)
                         if time.time() - last_check_time > 300:
                             print("Checking for new markets...")
-                            current_tickers = get_active_markets()
+                            market_info = fetch_active_markets()
+                            current_tickers = set(market_info)
+                            logger.update_last_trade_prices(market_info)
                             new_tickers = current_tickers - subscribed_tickers
                             if new_tickers:
                                 print(f"New markets found: {new_tickers}")

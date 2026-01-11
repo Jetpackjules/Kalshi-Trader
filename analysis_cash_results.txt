@@ -1,0 +1,14 @@
+Analyzing file: backtest_charts/shadow_vs_local_cash_timeline_corrected.html
+Extracting data...
+Warning: Could not find data for 'reported'
+Warning: Could not find data for 'local'
+Warning: Could not find data for 'liveTrades'
+Warning: Could not find data for 'localTrades'
+Data extracted. Live points: 0, Backtest points: 0
+
+1. Trade Counts:
+   Live Trades: 0
+   Backtest Trades: 0
+   [MATCH] Trade counts are identical.
+
+[ERROR] Missing equity data series (reported or local is empty).

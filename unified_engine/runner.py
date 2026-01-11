@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import argparse
+import csv
 import importlib
 import json
 import os
-from datetime import datetime
+import random
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Iterable
 
@@ -79,6 +81,60 @@ def _build_diag_logger(enabled: bool):
     return _log
 
 
+def _build_decision_logger(path: str | None):
+    if not path or path.strip().lower() in {"none", "off"}:
+        return None
+    dir_name = os.path.dirname(path)
+    if dir_name:
+        os.makedirs(dir_name, exist_ok=True)
+    fieldnames = [
+        "decision_id",
+        "decision_time",
+        "tick_time",
+        "tick_seq",
+        "tick_source",
+        "tick_row",
+        "ticker",
+        "decision_type",
+        "cash",
+        "pos_yes",
+        "pos_no",
+        "pending_yes",
+        "pending_no",
+        "order_index",
+        "action",
+        "price",
+        "qty",
+        "source",
+        "reason",
+        "edge",
+        "edge_yes",
+        "edge_no",
+        "fair_prob",
+        "mid",
+        "edge_cents",
+        "required",
+        "fee_cents",
+        "margin",
+        "edge_after_fee_real",
+        "edge_after_fee",
+    ]
+    file_exists = os.path.isfile(path)
+    handle = open(path, "a", newline="", encoding="utf-8")
+    writer = csv.DictWriter(handle, fieldnames=fieldnames)
+    if not file_exists:
+        writer.writeheader()
+        handle.flush()
+
+    def _log(row: dict) -> None:
+        record = {k: "" for k in fieldnames}
+        record.update(row)
+        writer.writerow(record)
+        handle.flush()
+
+    return _log
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Unified engine prototype runner.")
     parser.add_argument("--strategy", default="backtesting.strategies.v3_variants:hb_notional_010")
@@ -92,15 +148,48 @@ def main() -> int:
     parser.add_argument("--start-ts", default="", help="YYYY-mm-dd HH:MM:SS[.fff]")
     parser.add_argument("--end-ts", default="", help="YYYY-mm-dd HH:MM:SS[.fff]")
     parser.add_argument("--out-dir", default="unified_engine_out")
+    parser.add_argument("--decision-log", default="", help="CSV path for decision intents (blank = out_dir/decision_intents.csv)")
     parser.add_argument("--diag-log", action="store_true", help="Emit per-tick diagnostic lines")
     parser.add_argument("--diag-every", type=int, default=1, help="Ticks between diagnostics")
     parser.add_argument("--diag-heartbeat-s", type=float, default=30.0, help="Seconds between follow heartbeats")
+    parser.add_argument("--fill-latency-s", type=float, default=0.0, help="Constant fill latency for sim fills")
+    parser.add_argument("--fill-latency-model", default="", help="Latency model JSON with delays_seconds/clamped_delays")
+    parser.add_argument("--fill-latency-seed", type=int, default=0, help="Seed for latency sampling")
     args = parser.parse_args()
 
     diag_log = _build_diag_logger(args.diag_log)
 
     strategy = _load_strategy(args.strategy)
-    adapter = SimAdapter(initial_cash=float(args.initial_cash), diag_log=diag_log, out_dir=args.out_dir)
+    out_dir = Path(args.out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    decision_log_path = args.decision_log or os.path.join(args.out_dir, "decision_intents.csv")
+    print(f"Decision log: {decision_log_path}")
+    decision_log = _build_decision_logger(decision_log_path)
+
+    latency_sampler = None
+    fill_latency_s = float(args.fill_latency_s)
+    if args.fill_latency_model:
+        with open(args.fill_latency_model, "r", encoding="utf-8") as f:
+            model = json.load(f)
+        delays = (
+            model.get("clamped_delays")
+            or model.get("delays_seconds")
+            or model.get("matched_delays")
+            or []
+        )
+        if not delays:
+            raise ValueError(f"No delays found in latency model: {args.fill_latency_model}")
+        rng = random.Random(args.fill_latency_seed)
+        latency_sampler = lambda: rng.choice(delays)
+
+    adapter = SimAdapter(
+        initial_cash=float(args.initial_cash),
+        diag_log=diag_log,
+        out_dir=args.out_dir,
+        fill_latency_s=fill_latency_s,
+        fill_latency_sampler=latency_sampler,
+    )
 
     if args.snapshot:
         _seed_from_snapshot(adapter, strategy, args.snapshot)
@@ -145,11 +234,11 @@ def main() -> int:
         min_requote_interval=args.min_requote_interval,
         diag_log=diag_log,
         diag_every=args.diag_every,
+        decision_log=decision_log,
     )
     engine.run(filtered_ticks)
 
     out_dir = Path(args.out_dir)
-    out_dir.mkdir(parents=True, exist_ok=True)
 
     trades_df = pd.DataFrame(adapter.trades)
     trades_df.to_csv(out_dir / "unified_trades.csv", index=False)
