@@ -38,6 +38,11 @@ if not os.path.exists(CHARTS_DIR):
 MARKET_END_HOUR = 0      # 00:00 next day
 PAYOUT_HOUR = 1          # 01:00 next day
 
+
+def _verbose_enabled() -> bool:
+    value = os.environ.get("BT_VERBOSE", "").strip().lower()
+    return value not in ("", "0", "false", "no")
+
 @lru_cache(maxsize=None)
 def parse_market_date_from_ticker(ticker: str):
     parts = ticker.strip().split('-')

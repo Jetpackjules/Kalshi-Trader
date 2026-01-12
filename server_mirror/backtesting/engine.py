@@ -38,6 +38,11 @@ if not os.path.exists(CHARTS_DIR):
 MARKET_END_HOUR = 0      # 00:00 next day
 PAYOUT_HOUR = 1          # 01:00 next day
 
+
+def _verbose_enabled() -> bool:
+    value = os.environ.get("BT_VERBOSE", "").strip().lower()
+    return value not in ("", "0", "false", "no")
+
 @lru_cache(maxsize=None)
 def parse_market_date_from_ticker(ticker: str):
     parts = ticker.strip().split('-')
@@ -297,7 +302,11 @@ class InventoryAwareMarketMaker(ComplexStrategy):
             
         self.tick_count += 1
         if self.tick_count % 1000 == 0: # Throttle debug prints slightly
-             print(f"DEBUG: MM {ticker} {current_time} Cash={spendable_cash:.2f} Edge={edge:.4f} Qty={qty} BaseQty={base_qty} Scale={scale:.2f} Room={room}")
+            if _verbose_enabled():
+                print(
+                    f"DEBUG: MM {ticker} {current_time} Cash={spendable_cash:.2f} "
+                    f"Edge={edge:.4f} Qty={qty} BaseQty={base_qty} Scale={scale:.2f} Room={room}"
+                )
         
         # Re-gate with actual fee (rounding check)
         fee_real = calculate_convex_fee(price_to_pay, qty)
@@ -409,8 +418,11 @@ class RegimeSwitcher(ComplexStrategy):
         mm_inv = portfolios_inventories.get('MM', {'YES': 0, 'NO': 0})
         
         self.tick_count += 1
-        if self.tick_count % 1000 == 0: # Throttle debug prints slightly
-             print(f"DEBUG: RS {ticker} {current_time} Spread={spread} Thresh={tight_threshold:.2f} Tight={is_tight} Active={is_active_hour}")
+        if self.tick_count % 1000 == 0 and _verbose_enabled(): # Throttle debug prints slightly
+            print(
+                f"DEBUG: RS {ticker} {current_time} Spread={spread} "
+                f"Thresh={tight_threshold:.2f} Tight={is_tight} Active={is_active_hour}"
+            )
 
         mm_orders = self.mm.on_market_update(ticker, market_state, current_time, mm_inv, mm_active, spendable_cash, idx) if is_active_hour and is_tight else (None if not is_active_hour else [])
         scalper_orders = None 
