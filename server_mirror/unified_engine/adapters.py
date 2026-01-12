@@ -77,12 +77,13 @@ class SimAdapter(BaseAdapter):
         self,
         *,
         initial_cash: float = 0.0,
+        initial_positions: dict[str, dict[str, Any]] | None = None,
         diag_log=None,
         fill_latency_s: float = 0.0,
         fill_latency_sampler=None,
     ):
         self.cash = float(initial_cash)
-        self.positions: dict[str, dict[str, Any]] = {}
+        self.positions: dict[str, dict[str, Any]] = initial_positions or {}
         self.open_orders: list[dict[str, Any]] = []
         self.trades: list[dict[str, Any]] = []
         self.order_history: list[dict[str, Any]] = []
@@ -90,6 +91,7 @@ class SimAdapter(BaseAdapter):
         self._diag_log = diag_log
         self._fill_latency_s = max(0.0, float(fill_latency_s))
         self._fill_latency_sampler = fill_latency_sampler
+        self.last_prices: dict[str, float] = {}
 
     def _sample_fill_latency(self) -> float:
         if self._fill_latency_sampler:
@@ -104,6 +106,16 @@ class SimAdapter(BaseAdapter):
         return f"SIM_{self._order_id}"
 
     def process_tick(self, ticker: str, market_state: dict, current_time: datetime) -> None:
+        # Track last mid price for settlement
+        ya = market_state.get("yes_ask")
+        yb = market_state.get("yes_bid")
+        if ya is not None and yb is not None:
+            self.last_prices[ticker] = (float(ya) + float(yb)) / 2.0
+        elif ya is not None:
+            self.last_prices[ticker] = float(ya)
+        elif yb is not None:
+            self.last_prices[ticker] = float(yb)
+
         self._fill_resting_orders(ticker, market_state, current_time)
 
     def get_open_orders(self, ticker: str, market_state: dict, current_time: datetime) -> list[dict]:
@@ -294,6 +306,45 @@ class SimAdapter(BaseAdapter):
 
     def get_cash(self) -> float:
         return self.cash
+
+    def settle_market(self, ticker: str, settlement_price: float, current_time: datetime) -> float:
+        """
+        Settles a market for the given ticker at the specified settlement price (0 or 100).
+        Returns the total payout amount.
+        """
+        pos = self.positions.get(ticker)
+        if not pos:
+            return 0.0
+
+        yes_qty = int(pos.get("yes", 0))
+        no_qty = int(pos.get("no", 0))
+        
+        # Calculate payout
+        # If settlement_price is 100 (YES wins): YES pays $1, NO pays $0
+        # If settlement_price is 0 (NO wins): YES pays $0, NO pays $1
+        # We assume settlement_price is in cents (0 or 100) or dollars (0 or 1)? 
+        # Kalshi usually uses cents (100 cents = $1). Let's support 0-100 scale.
+        
+        payout_per_yes = settlement_price / 100.0
+        payout_per_no = (100.0 - settlement_price) / 100.0
+        
+        total_payout = (yes_qty * payout_per_yes) + (no_qty * payout_per_no)
+        
+        if total_payout > 0:
+            self.cash += total_payout
+            if self._diag_log:
+                self._diag_log(
+                    "SETTLEMENT",
+                    tick_ts=current_time,
+                    ticker=ticker,
+                    payout=total_payout,
+                    cash_after=self.cash
+                )
+        
+        # Clear position
+        del self.positions[ticker]
+        
+        return total_payout
 
 
 class LiveAdapter(BaseAdapter):

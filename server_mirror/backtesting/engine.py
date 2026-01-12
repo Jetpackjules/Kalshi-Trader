@@ -181,6 +181,7 @@ class InventoryAwareMarketMaker(ComplexStrategy):
         self.max_notional_pct = max_notional_pct
         self.max_loss_pct = max_loss_pct
         
+        self.tick_count = 0
         self.fair_prices = {} 
         self.last_quote_time = {} 
         self.last_mid_snapshot = {} 
@@ -293,6 +294,10 @@ class InventoryAwareMarketMaker(ComplexStrategy):
             qty = max(1, qty)
         else:
             qty = max(1, min(qty, room))
+            
+        self.tick_count += 1
+        if self.tick_count % 1000 == 0: # Throttle debug prints slightly
+             print(f"DEBUG: MM {ticker} {current_time} Cash={spendable_cash:.2f} Edge={edge:.4f} Qty={qty} BaseQty={base_qty} Scale={scale:.2f} Room={room}")
         
         # Re-gate with actual fee (rounding check)
         fee_real = calculate_convex_fee(price_to_pay, qty)
@@ -367,11 +372,14 @@ class RegimeSwitcher(ComplexStrategy):
         self.spread_histories = defaultdict(list)
         self.active_hours = active_hours # list of ints or None
         self.tightness_percentile = tightness_percentile
+        self.tick_count = 0
         # Shadow Inventories for attribution/logic
         self.mm_inventory = defaultdict(int) 
         self.sc_inventory = defaultdict(int)
         
     def on_market_update(self, ticker, market_state, current_time, portfolios_inventories, active_orders, spendable_cash, idx=0):
+        # Removed hardcoded debug filter
+
         # portfolios_inventories is dict { 'MM': {'YES': qty, 'NO': qty}, 'Scalper': {'YES': qty, 'NO': qty} }
         
         yes_ask = best_yes_ask(market_state)
@@ -392,7 +400,7 @@ class RegimeSwitcher(ComplexStrategy):
             is_active_hour = h in self.active_hours
         else:
             is_active_hour = (not ENABLE_TIME_CONSTRAINTS) or (5 <= h <= 8) or (13 <= h <= 17) or (21 <= h <= 23)
-        
+
         # Partition active orders by source
         mm_active = [o for o in active_orders if o.get('source') == 'MM']
         sc_active = [o for o in active_orders if o.get('source') == 'Scalper']
@@ -400,9 +408,13 @@ class RegimeSwitcher(ComplexStrategy):
         # Isolated Routing
         mm_inv = portfolios_inventories.get('MM', {'YES': 0, 'NO': 0})
         
+        self.tick_count += 1
+        if self.tick_count % 1000 == 0: # Throttle debug prints slightly
+             print(f"DEBUG: RS {ticker} {current_time} Spread={spread} Thresh={tight_threshold:.2f} Tight={is_tight} Active={is_active_hour}")
+
         mm_orders = self.mm.on_market_update(ticker, market_state, current_time, mm_inv, mm_active, spendable_cash, idx) if is_active_hour and is_tight else (None if not is_active_hour else [])
         scalper_orders = None 
-
+        
         if mm_orders is None and scalper_orders is None: return None
         
         combined = []
@@ -539,19 +551,34 @@ class ComplexBacktester:
         dfs = []
         for f in filtered_files:
             try:
-                df = pd.read_csv(f)
-                df.columns = [c.strip() for c in df.columns]
+                # Handle variable column counts (some rows have last_trade_price)
+                col_names = ["timestamp", "market_ticker", "best_yes_bid", "best_no_bid", "implied_no_ask", "implied_yes_ask", "last_trade_price"]
+                # Use header=None so pandas doesn't error on row length mismatch, then drop the header row
+                df = pd.read_csv(f, names=col_names, header=None, on_bad_lines='skip')
+                
+                # Drop the header row if it exists (it will be the first row)
+                if len(df) > 0 and str(df.iloc[0]['timestamp']).strip() == 'timestamp':
+                    df = df.iloc[1:]
+                
+                # Convert numeric columns
+                numeric_cols = ["best_yes_bid", "best_no_bid", "implied_no_ask", "implied_yes_ask", "last_trade_price"]
+                for col in numeric_cols:
+                    df[col] = pd.to_numeric(df[col], errors='coerce')
+
+                # df.columns is now col_names
                 df['datetime'] = pd.to_datetime(df['timestamp'], format='mixed', dayfirst=True)
                 # If we're seeding warmup from pre-start history, keep earlier ticks to build
                 # strategy state, but trading will still be gated in run().
                 if self.start_datetime is not None:
                     if self.seed_warmup_from_history:
-                        start_floor = self.start_datetime.replace(hour=0, minute=0, second=0, microsecond=0)
+                        # Look back 48 hours to ensure sufficient warmup data (overnight/weekends)
+                        start_floor = self.start_datetime - timedelta(hours=48)
                         df = df[df['datetime'] >= start_floor]
                     else:
                         df = df[df['datetime'] >= self.start_datetime]
                 if self.end_datetime is not None:
                     df = df[df['datetime'] <= self.end_datetime]
+                
                 dfs.append(df)
             except Exception as e:
                 print(f"Error loading {f}: {e}")
@@ -1053,6 +1080,10 @@ class ComplexBacktester:
                 
                 # Only run strategy if market is live
                 if end_t is None or current_time < end_t:
+                    if "KXHIGHNY-26JAN09-B49.5" in ticker and current_time.day == 9 and current_time.hour >= 6:
+                        print(f"DEBUG: Loop processing {ticker} at {current_time}. EndT={end_t}")
+
+                    # Optional live-parity: throttle strategy evaluation per (strategy,ticker)
                     # Optional live-parity: throttle strategy evaluation per (strategy,ticker)
                     if self.min_requote_interval_seconds > 0:
                         k = (s.name, ticker)
@@ -1097,6 +1128,8 @@ class ComplexBacktester:
             
             if idx % 10000 == 0:
                 print(f"Processed {idx} ticks... Current: {current_time}")
+        
+        print(f"Loop finished. Last tick time: {current_time}")
 
         # Final Day End
         print("Final Day End logic...")

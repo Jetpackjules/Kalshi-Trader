@@ -161,6 +161,11 @@ def main() -> int:
     decision_log = _build_decision_logger(decision_log_path)
 
     strategy = _load_strategy(args.strategy)
+    try:
+        import sys
+        print(f"DEBUG: backtesting.engine imported from: {sys.modules['backtesting.engine'].__file__}")
+    except:
+        print("DEBUG: Could not print backtesting.engine location")
 
     latency_sampler = None
     fill_latency_s = float(args.fill_latency_s)
@@ -257,14 +262,6 @@ def main() -> int:
             end_ts = datetime.strptime(end_raw, "%Y-%m-%d %H:%M:%S.%f")
         except ValueError:
             end_ts = datetime.strptime(end_raw, "%Y-%m-%d %H:%M:%S")
-
-    # DEBUG: Print first few ticks to verify
-    debug_ticks = []
-    for t in ticks:
-        if "KXHIGHNY-26JAN09-B49.5" in t['ticker'] and "05:05:26" in str(t['time']):
-            print(f"DEBUG: FOUND TICK: {t['time']}")
-        debug_ticks.append(t)
-    ticks = debug_ticks
 
     filtered_ticks = _filter_ticks(ticks, start_ts, end_ts)
 

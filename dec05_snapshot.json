@@ -1,0 +1,9 @@
+{
+    "timestamp": "2025-12-05_000000",
+    "balance": 100.0,
+    "positions": {},
+    "strategy_config": {
+        "name": "hb_notional_010",
+        "risk_pct": 0.8
+    }
+}

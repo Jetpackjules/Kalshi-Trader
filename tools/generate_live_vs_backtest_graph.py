@@ -14,16 +14,12 @@ def _parse_timestamp(value: str) -> datetime | None:
     if not value:
         return None
     raw = value.replace("T", " ").replace("_", " ")
-    for fmt in ("%Y-%m-%d %H:%M:%S.%f", "%Y-%m-%d %H:%M:%S"):
+    for fmt in ("%Y-%m-%d %H:%M:%S.%f", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H%M%S"):
         try:
             return datetime.strptime(raw, fmt)
         except ValueError:
             continue
-    # Snapshot timestamp format: YYYY-MM-DD_HHMMSS
-    try:
-        return datetime.strptime(value, "%Y-%m-%d_%H%M%S")
-    except ValueError:
-        return None
+    return None
 
 
 def _coerce_last_trade(value):
@@ -69,30 +65,45 @@ def _latest_snapshot(snap_dir: str) -> str | None:
     return max(candidates)[1]
 
 
-def _latest_market_timestamp(market_dir: str, target_date: datetime) -> datetime | None:
-    max_dt = None
+def _latest_market_timestamp(market_dir: str) -> datetime | None:
     if not os.path.isdir(market_dir):
         return None
+    
+    # Get all market data files and sort them by date (from filename)
+    files = []
     for name in os.listdir(market_dir):
-        if not (name.startswith("market_data_") and name.endswith(".csv")):
-            continue
+        if name.startswith("market_data_") and name.endswith(".csv"):
+            files.append(name)
+    
+    if not files:
+        return None
+        
+    # Sort files by the date in the filename (e.g., 26JAN10)
+    # This is a bit tricky but since they are all 26JANxx, alphabetical sort works for now
+    # or we can just sort by mtime as a proxy.
+    files.sort() 
+    
+    # Check the last file first
+    for name in reversed(files):
         path = os.path.join(market_dir, name)
         try:
-            with open(path, "r", encoding="utf-8") as f:
-                reader = csv.DictReader(f)
-                for row in reader:
-                    ts = row.get("timestamp")
-                    if not ts:
-                        continue
-                    try:
-                        dt = datetime.fromisoformat(ts)
-                    except Exception:
-                        continue
-                    if max_dt is None or dt > max_dt:
-                        max_dt = dt
-        except OSError:
+            # Efficiently read the last line
+            with open(path, "rb") as f:
+                try:
+                    f.seek(-2048, os.SEEK_END)
+                except OSError:
+                    pass # File smaller than 2kb
+                last_lines = f.read().decode("utf-8", errors="ignore").splitlines()
+                if not last_lines:
+                    continue
+                # Try the last few lines in case the very last one is incomplete
+                for line in reversed(last_lines):
+                    m = re.search(r"(\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2})", line)
+                    if m:
+                        return datetime.fromisoformat(m.group(1).replace(" ", "T"))
+        except Exception:
             continue
-    return max_dt
+    return None
 
 
 def _load_json(path: str) -> dict:
@@ -921,12 +932,12 @@ def main() -> int:
         raise SystemExit("No snapshot found. Provide --snapshot.")
 
     snap = json.load(open(snapshot_path, "r", encoding="utf-8"))
-    snap_ts = snap.get("timestamp") or snap.get("snapshot_time")
+    snap_ts = snap.get("last_update") or snap.get("timestamp") or snap.get("snapshot_time")
     start_dt = _parse_timestamp(args.start_ts or str(snap_ts))
     if not start_dt:
         raise SystemExit("Could not parse snapshot start timestamp.")
 
-    end_dt = _parse_timestamp(args.end_ts) if args.end_ts else _latest_market_timestamp(args.market_dir, start_dt)
+    end_dt = _parse_timestamp(args.end_ts) if args.end_ts else _latest_market_timestamp(args.market_dir)
     if not end_dt:
         raise SystemExit("Could not determine end timestamp from market logs.")
 

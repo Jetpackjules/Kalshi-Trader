@@ -195,9 +195,7 @@ class UnifiedEngine:
         cash = float(self.adapter.get_cash())
         cash = float(self.adapter.get_cash())
         try:
-            if "KXHIGHNY-26JAN09-B49.5" in ticker and "05:05:26" in str(current_time):
-                print(f"DEBUG: Strategy Type: {type(self.strategy)}")
-        desired_orders = self.strategy.on_market_update(
+            desired_orders = self.strategy.on_market_update(
                 ticker,
                 market_state,
                 current_time,

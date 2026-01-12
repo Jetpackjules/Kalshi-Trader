@@ -1,0 +1,44 @@
+Running shadow backtest with history seeding...
+[ComplexBacktester] Global Loop Mode Starting...
+Loading data from vm_logs\market_logs...
+Processed 0 ticks... Current: 2026-01-06 17:37:51.095160
+[Day End 26JAN06] hb_notional_010 Equity: $2.12 (Cash $2.12)
+Processed 10000 ticks... Current: 2026-01-07 04:46:02.024184
+Processed 20000 ticks... Current: 2026-01-07 08:46:24.085340
+Processed 30000 ticks... Current: 2026-01-07 18:51:20.374050
+[Day End 26JAN07] hb_notional_010 Equity: $2.12 (Cash $2.12)
+Processed 40000 ticks... Current: 2026-01-08 03:27:13.867511
+Processed 50000 ticks... Current: 2026-01-08 06:06:52.944644
+Processed 60000 ticks... Current: 2026-01-08 08:27:32.897569
+Processed 70000 ticks... Current: 2026-01-08 12:15:21.446363
+Processed 80000 ticks... Current: 2026-01-08 23:43:17.717406
+[Day End 26JAN08] hb_notional_010 Equity: $2.12 (Cash $2.12)
+Processed 90000 ticks... Current: 2026-01-09 03:21:40.066258
+DEBUG: RegimeSwitcher ENTERED for KXHIGHNY-26JAN09-B49.5 at 2026-01-09 05:05:26.601875
+DEBUG: RegimeSwitcher ENTERED for KXHIGHNY-26JAN09-B49.5 at 2026-01-09 05:05:26.814880
+Processed 100000 ticks... Current: 2026-01-09 06:09:06.565902
+Processed 110000 ticks... Current: 2026-01-09 08:06:54.950327
+Processed 120000 ticks... Current: 2026-01-09 10:28:27.569569
+Processed 130000 ticks... Current: 2026-01-09 12:46:28.474126
+Processed 140000 ticks... Current: 2026-01-09 15:38:21.077345
+Processed 150000 ticks... Current: 2026-01-09 17:54:28.476648
+[Day End 26JAN09] hb_notional_010 Equity: $1.73 (Cash $0.64)
+Processed 160000 ticks... Current: 2026-01-10 02:48:36.042347
+Loop finished. Last tick time: 2026-01-10 10:31:40.105080
+Final Day End logic...
+FINAL EQUITY [hb_notional_010]: $0.64
+FINAL BREAKDOWN [hb_notional_010]: Cash=$0.64 | Unsettled=$0.00 | Holdings=$0.00 | Trades=31 | Fees=$0.31
+
+=== DAILY PERFORMANCE BREAKDOWN ===
+Date       | Equity     | Daily %  | Cum %    | DD %    
+------------------------------------------------------------
+26JAN06    | $2.12      |    0.00% |    0.00% |    0.00%
+26JAN07    | $2.12      |    0.00% |    0.00% |    0.00%
+26JAN08    | $2.12      |    0.00% |    0.00% |    0.00%
+26JAN09    | $1.73      |  -18.40% |  -18.40% |   18.40%
+26JAN10    | $0.64      |  -63.01% |  -69.81% |   69.81%
+
+=== FINAL PORTFOLIO SNAPSHOT ===
+Strategy: hb_notional_010
+Exporting 31 trades to unified_engine_out_snapshot_live\unified_trades.csv...
+Backtest complete.

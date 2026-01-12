@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from backtesting.engine import RegimeSwitcher
+from server_mirror.backtesting.engine import RegimeSwitcher
 
 
 def meta_regime_switcher_default() -> RegimeSwitcher:

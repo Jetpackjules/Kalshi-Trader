@@ -1,0 +1,18 @@
+Decision log: unified_engine_out_snapshot_live\decision_intents.csv
+DEBUG: RegimeSwitcher ENTERED for KXHIGHNY-26JAN09-B49.5 at 2026-01-09 05:05:26.601875
+DEBUG: STRATEGY RETURNED: None
+DEBUG: EMITTING KEEP DECISION
+DEBUG: on_tick B49.5 row 32953. State: {'yes_ask': 8.0, 'no_ask': 94.0, 'yes_bid': 6.0, 'no_bid': 92.0}
+DEBUG: RegimeSwitcher ENTERED for KXHIGHNY-26JAN09-B49.5 at 2026-01-09 05:05:26.814880
+DEBUG: STRATEGY RETURNED: None
+DEBUG: EMITTING KEEP DECISION
+Wrote: unified_engine_out_snapshot_live\unified_trades.csv
+Wrote: unified_engine_out_snapshot_live\unified_orders.csv
+Wrote: unified_engine_out_snapshot_live\unified_positions.json
+Time Range: 2026-01-05 00:00:00 -> 2026-01-10 00:00:00
+DEBUG: Initial Cash: 45.23
+DEBUG: Initial Positions: YES={'KXHIGHNY-26JAN06-B41.5': 0, 'KXHIGHNY-26JAN06-B43.5': 2, 'KXHIGHNY-26JAN05-B33.5': 20, 'KXHIGHNY-26JAN05-B35.5': 0, 'KXHIGHNY-26JAN05-B37.5': 27}, NO={'KXHIGHNY-26JAN06-B41.5': 3, 'KXHIGHNY-26JAN06-B43.5': 0, 'KXHIGHNY-26JAN05-B33.5': 0, 'KXHIGHNY-26JAN05-B35.5': 9, 'KXHIGHNY-26JAN05-B37.5': 0}
+DEBUG: Initial Last Prices: {'KXHIGHNY-26JAN05-B37.5': 19.5, 'KXHIGHNY-26JAN05-B35.5': 53.5, 'KXHIGHNY-26JAN05-B33.5': 29.5, 'KXHIGHNY-26JAN06-B41.5': 47.0, 'KXHIGHNY-26JAN06-B43.5': 21.5}
+DEBUG: Loaded 268910 market rows and 160 backtest trades.
+Using live trades from: vm_logs\trades.csv
+Wrote backtest_charts/shadow_vs_local_cash_timeline.html (live=268910 local=268911 trades live=0 local=160)

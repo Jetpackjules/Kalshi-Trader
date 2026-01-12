@@ -1,0 +1,158 @@
+unified_engine.engine file: C:\Users\jetpa\OneDrive - UW\Google_Grav_Onedrive\kalshi_weather_data\unified_engine\engine.py
+UnifiedEngine.on_tick source:
+    def on_tick(
+        self,
+        *,
+        ticker: str,
+        market_state: dict,
+        current_time: datetime,
+        tick_seq: int | None = None,
+        tick_source: str | None = None,
+        tick_row: int | None = None,
+    ) -> None:
+        # Update last known price for settlement
+        yes_bid = market_state.get("yes_bid")
+        yes_ask = market_state.get("yes_ask")
+        if yes_bid is not None and yes_ask is not None:
+            mid = (yes_bid + yes_ask) / 2.0
+            self.last_prices[ticker] = mid
+            
+        self._check_settlements(current_time)
+
+        self.adapter.process_tick(ticker, market_state, current_time)
+
+        open_orders = self.adapter.get_open_orders(ticker, market_state, current_time)
+        active_orders = []
+        pending_yes = 0
+        pending_no = 0
+        for o in open_orders:
+            status = (o.get("status") or "").lower()
+            remaining = int(o.get("remaining_count") or 0)
+            if remaining <= 0:
+                continue
+            if status in ("executed", "cancelled", "canceled", "expired", "rejected"):
+                continue
+            side = (o.get("side") or "yes").lower()
+            price = o.get("yes_price") if side == "yes" else o.get("no_price")
+            if price is None:
+                continue
+            if side == "yes":
+                pending_yes += remaining
+            else:
+                pending_no += remaining
+            active_orders.append(
+                {
+                    "action": "BUY_YES" if side == "yes" else "BUY_NO",
+                    "ticker": ticker,
+                    "qty": remaining,
+                    "price": price,
+                    "source": "MM",
+                    "id": o.get("order_id"),
+                }
+            )
+
+        positions = self.adapter.get_positions()
+        pos = positions.get(ticker, {"yes": 0, "no": 0})
+        mm_inv = {
+            "YES": int(pos.get("yes") or 0) + pending_yes,
+            "NO": int(pos.get("no") or 0) + pending_no,
+        }
+        portfolios_inventories = {"MM": mm_inv}
+
+        if self.min_requote_interval > 0:
+            last_req = self.last_requote_time.get(ticker, 0.0)
+            now = current_time.timestamp()
+            if now - last_req < self.min_requote_interval:
+                if "KXHIGHNY-26JAN09-B49.5" in ticker and "05:05:26" in str(current_time):
+                    print(f"DEBUG: THROTTLED: {ticker} at {current_time}. Last req: {last_req}, Now: {now}, Diff: {now-last_req}")
+                return
+
+        cash = float(self.adapter.get_cash())
+        cash = float(self.adapter.get_cash())
+        try:
+            desired_orders = self.strategy.on_market_update(
+                ticker,
+                market_state,
+                current_time,
+                portfolios_inventories,
+                active_orders,
+                cash,
+            )
+        except Exception as e:
+            print(f"ERROR in strategy.on_market_update: {e}")
+            print(f"Ticker: {ticker}")
+            print(f"Inventories: {portfolios_inventories}")
+            raise e
+        if "KXHIGHNY-26JAN09-B49.5" in ticker and "05:05:26" in str(current_time):
+            print(f"DEBUG: STRATEGY RETURNED: {desired_orders}")
+
+        if self.diag_log:
+            if desired_orders is None:
+                self.diag_log("DECISION", tick_ts=current_time, ticker=ticker, desired="keep")
+            else:
+                self.diag_log(
+                    "DECISION",
+                    tick_ts=current_time,
+                    ticker=ticker,
+                    desired=len(desired_orders),
+                )
+
+        pos_yes = int(pos.get("yes") or 0)
+        pos_no = int(pos.get("no") or 0)
+        if desired_orders is None:
+            if "KXHIGHNY-26JAN09-B49.5" in ticker and "05:05:26" in str(current_time):
+                print(f"DEBUG: EMITTING KEEP DECISION")
+            self._emit_decision(
+                decision_type="keep",
+                ticker=ticker,
+                current_time=current_time,
+                market_state=market_state,
+                cash=cash,
+                pending_yes=pending_yes,
+                pending_no=pending_no,
+            )
+            return
+
+        self.last_requote_time[ticker] = current_time.timestamp()
+
+        desired = [Order(**o) if isinstance(o, dict) else o for o in desired_orders]
+        self._emit_decision(
+            tick_time=current_time,
+            tick_seq=tick_seq,
+            tick_source=tick_source,
+            tick_row=tick_row,
+            ticker=ticker,
+            decision_type="desired",
+            orders=desired,
+            cash=cash,
+            pos_yes=pos_yes,
+            pos_no=pos_no,
+            pending_yes=pending_yes,
+            pending_no=pending_no,
+        )
+
+        kept_ids = set()
+        unsatisfied: list[Order] = []
+        for want in desired:
+            matched = False
+            for existing in active_orders:
+                if existing["id"] in kept_ids:
+                    continue
+                if (
+                    existing["action"] == want.action
+                    and existing["price"] == want.price
+                    and existing["qty"] >= want.qty
+                ):
+                    kept_ids.add(existing["id"])
+                    matched = True
+                    break
+            if not matched:
+                unsatisfied.append(want)
+
+        for existing in active_orders:
+            if existing["id"] not in kept_ids:
+                self.adapter.cancel_order(existing["id"])
+
+        for order in unsatisfied:
+            self.adapter.place_order(order, market_state, current_time)
+

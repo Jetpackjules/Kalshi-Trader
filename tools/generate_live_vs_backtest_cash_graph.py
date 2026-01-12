@@ -10,7 +10,7 @@ def _parse_timestamp(value: str) -> datetime | None:
     if not value:
         return None
     raw = value.replace("T", " ").replace("_", " ")
-    for fmt in ("%Y-%m-%d %H:%M:%S.%f", "%Y-%m-%d %H:%M:%S"):
+    for fmt in ("%Y-%m-%d %H:%M:%S.%f", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H%M%S"):
         try:
             return datetime.strptime(raw, fmt)
         except ValueError:
@@ -319,11 +319,16 @@ def main() -> int:
     parser.add_argument("--end-ts", default="")
     args = parser.parse_args()
 
+    # Load Snapshot to get default start time
     snapshot_path = args.snapshot or _latest_snapshot(args.snapshot_dir)
     if not snapshot_path:
         raise SystemExit("No snapshot found.")
+    
+    snap_data = json.load(open(snapshot_path, "r", encoding="utf-8"))
+    snap_ts_str = snap_data.get("timestamp") or snap_data.get("last_update")
+    snap_dt = _parse_timestamp(snap_ts_str) if snap_ts_str else None
 
-    start_dt = _parse_timestamp(args.start_ts) if args.start_ts else None
+    start_dt = _parse_timestamp(args.start_ts) if args.start_ts else snap_dt
     end_dt = _parse_timestamp(args.end_ts) if args.end_ts else None
 
     live_cash_all = _parse_live_cash_from_output(
@@ -331,23 +336,49 @@ def main() -> int:
     )
 
     if not start_dt or not end_dt:
-        if live_cash_all:
-            live_times = [datetime.fromisoformat(p["time"]) for p in live_cash_all]
-            start_dt = start_dt or min(live_times)
-            end_dt = end_dt or max(live_times)
-        else:
-            rows = _load_market_rows(args.market_dir, datetime.min, datetime.max)
-            if not rows:
-                raise SystemExit("No market rows found.")
-            start_dt = start_dt or rows[0]["_dt"]
-            end_dt = end_dt or rows[-1]["_dt"]
+        # If start_dt still missing, fallback to live data or market logs
+        if not start_dt:
+            if live_cash_all:
+                live_times = [datetime.fromisoformat(p["time"]) for p in live_cash_all]
+                start_dt = min(live_times)
+            else:
+                rows = _load_market_rows(args.market_dir, datetime.min, datetime.max)
+                if rows:
+                    start_dt = rows[0]["_dt"]
+
+        # If end_dt missing, find the latest between live data and market logs
+        if not end_dt:
+            candidates = []
+            if live_cash_all:
+                candidates.append(max(datetime.fromisoformat(p["time"]) for p in live_cash_all))
+            
+            # Check market logs for latest tick
+            market_rows = _load_market_rows(args.market_dir, datetime.min, datetime.max)
+            if market_rows:
+                candidates.append(market_rows[-1]["_dt"])
+            
+            if candidates:
+                end_dt = max(candidates)
+            else:
+                raise SystemExit("Could not determine end time (no live data or market logs).")
+
+    if not start_dt:
+        raise SystemExit("Could not determine start time.")
+
+    print(f"Detected Time Range: {start_dt} -> {end_dt}")
 
     trades_path = os.path.join(args.out_dir, "unified_trades.csv")
     if not os.path.exists(trades_path):
         raise SystemExit(f"Missing backtest trades: {trades_path}")
 
     backtest_cash = _compute_backtest_cash(trades_path, snapshot_path, args.market_dir, start_dt, end_dt)
+    
+    # STRICT CLIPPING: Ensure live cash starts exactly at or after start_dt
     live_cash = [p for p in live_cash_all if start_dt <= datetime.fromisoformat(p["time"]) <= end_dt]
+    
+    if not live_cash and live_cash_all:
+        print(f"WARNING: No live cash points found within {start_dt} and {end_dt}")
+        print(f"Live data range: {min(p['time'] for p in live_cash_all)} to {max(p['time'] for p in live_cash_all)}")
 
     # Resample live cash to tick timestamps.
     live_cash_aligned = _resample_to_timestamps(live_cash, backtest_cash) if backtest_cash else []

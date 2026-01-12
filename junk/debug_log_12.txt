@@ -1,0 +1,1396 @@
+Decision log: debug_backtest\decision_intents.csv
+DEBUG: iter_ticks_from_market_logs imported from: unified_engine.tick_sources
+DEBUG: Using log_dir: vm_logs\market_logs
+DEBUG: FOUND TICK: 2026-01-09 05:05:26.601875
+DEBUG: FOUND TICK: 2026-01-09 05:05:26.814880
+DEBUG: UnifiedEngine imported from: C:\Users\jetpa\OneDrive - UW\Google_Grav_Onedrive\kalshi_weather_data\server_mirror\unified_engine\engine.py
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.039060 tick_ts=2026-01-09T05:05:03.715560 ticker=KXHIGHNY-26JAN09-B51.5
+[DIAG] event=DECISION log_ts=2026-01-11T01:01:51.039060 tick_ts=2026-01-09T05:05:03.715560 ticker=KXHIGHNY-26JAN09-B51.5 desired=keep
+--- Status @ 01:01:51.045 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.045149 tick_ts=2026-01-09T05:05:03.860181 ticker=KXHIGHNY-26JAN09-B53.5
+[DIAG] event=DECISION log_ts=2026-01-11T01:01:51.045149 tick_ts=2026-01-09T05:05:03.860181 ticker=KXHIGHNY-26JAN09-B53.5 desired=keep
+--- Status @ 01:01:51.047 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.047680 tick_ts=2026-01-09T05:05:03.878131 ticker=KXHIGHNY-26JAN09-B51.5
+[DIAG] event=DECISION log_ts=2026-01-11T01:01:51.047680 tick_ts=2026-01-09T05:05:03.878131 ticker=KXHIGHNY-26JAN09-B51.5 desired=0
+--- Status @ 01:01:51.051 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.051292 tick_ts=2026-01-09T05:05:03.878293 ticker=KXHIGHNY-26JAN09-B51.5
+--- Status @ 01:01:51.053 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.053815 tick_ts=2026-01-09T05:05:03.974958 ticker=KXHIGHNY-26JAN09-B53.5
+[DIAG] event=DECISION log_ts=2026-01-11T01:01:51.053815 tick_ts=2026-01-09T05:05:03.974958 ticker=KXHIGHNY-26JAN09-B53.5 desired=keep
+--- Status @ 01:01:51.056 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.056372 tick_ts=2026-01-09T05:05:04.042027 ticker=KXHIGHNY-26JAN09-B51.5
+--- Status @ 01:01:51.058 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.058375 tick_ts=2026-01-09T05:05:09.116541 ticker=KXHIGHNY-26JAN09-B51.5
+[DIAG] event=DECISION log_ts=2026-01-11T01:01:51.058375 tick_ts=2026-01-09T05:05:09.116541 ticker=KXHIGHNY-26JAN09-B51.5 desired=0
+--- Status @ 01:01:51.060 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.060373 tick_ts=2026-01-09T05:05:11.854400 ticker=KXHIGHNY-26JAN09-B51.5
+[DIAG] event=DECISION log_ts=2026-01-11T01:01:51.060373 tick_ts=2026-01-09T05:05:11.854400 ticker=KXHIGHNY-26JAN09-B51.5 desired=keep
+--- Status @ 01:01:51.062 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.062877 tick_ts=2026-01-09T05:05:12.262458 ticker=KXHIGHNY-26JAN09-B53.5
+[DIAG] event=DECISION log_ts=2026-01-11T01:01:51.062877 tick_ts=2026-01-09T05:05:12.262458 ticker=KXHIGHNY-26JAN09-B53.5 desired=keep
+--- Status @ 01:01:51.065 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.065382 tick_ts=2026-01-09T05:05:12.268188 ticker=KXHIGHNY-26JAN09-B51.5
+[DIAG] event=DECISION log_ts=2026-01-11T01:01:51.065382 tick_ts=2026-01-09T05:05:12.268188 ticker=KXHIGHNY-26JAN09-B51.5 desired=keep
+--- Status @ 01:01:51.067 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.067897 tick_ts=2026-01-09T05:05:17.992542 ticker=KXHIGHNY-26JAN09-B51.5
+[DIAG] event=DECISION log_ts=2026-01-11T01:01:51.067897 tick_ts=2026-01-09T05:05:17.992542 ticker=KXHIGHNY-26JAN09-B51.5 desired=keep
+--- Status @ 01:01:51.069 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.069899 tick_ts=2026-01-09T05:05:17.992947 ticker=KXHIGHNY-26JAN09-B51.5
+[DIAG] event=DECISION log_ts=2026-01-11T01:01:51.069899 tick_ts=2026-01-09T05:05:17.992947 ticker=KXHIGHNY-26JAN09-B51.5 desired=0
+--- Status @ 01:01:51.072 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.072413 tick_ts=2026-01-09T05:05:18.092919 ticker=KXHIGHNY-26JAN09-B51.5
+--- Status @ 01:01:51.073 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.073418 tick_ts=2026-01-09T05:05:19.192167 ticker=KXHIGHNY-26JAN09-B51.5
+--- Status @ 01:01:51.076 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.076536 tick_ts=2026-01-09T05:05:20.417396 ticker=KXHIGHNY-26JAN09-B53.5
+[DIAG] event=DECISION log_ts=2026-01-11T01:01:51.076536 tick_ts=2026-01-09T05:05:20.417396 ticker=KXHIGHNY-26JAN09-B53.5 desired=keep
+--- Status @ 01:01:51.079 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.079045 tick_ts=2026-01-09T05:05:20.630175 ticker=KXHIGHNY-26JAN09-B53.5
+[DIAG] event=DECISION log_ts=2026-01-11T01:01:51.079045 tick_ts=2026-01-09T05:05:20.630175 ticker=KXHIGHNY-26JAN09-B53.5 desired=keep
+--- Status @ 01:01:51.081 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.081556 tick_ts=2026-01-09T05:05:21.368145 ticker=KXHIGHNY-26JAN09-B53.5
+[DIAG] event=DECISION log_ts=2026-01-11T01:01:51.081556 tick_ts=2026-01-09T05:05:21.368145 ticker=KXHIGHNY-26JAN09-B53.5 desired=keep
+--- Status @ 01:01:51.083 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.083563 tick_ts=2026-01-09T05:05:21.617454 ticker=KXHIGHNY-26JAN09-B53.5
+[DIAG] event=DECISION log_ts=2026-01-11T01:01:51.083563 tick_ts=2026-01-09T05:05:21.617454 ticker=KXHIGHNY-26JAN09-B53.5 desired=0
+--- Status @ 01:01:51.086 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.086078 tick_ts=2026-01-09T05:05:22.129664 ticker=KXHIGHNY-26JAN09-B53.5
+--- Status @ 01:01:51.088 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.088075 tick_ts=2026-01-09T05:05:22.357085 ticker=KXHIGHNY-26JAN09-B53.5
+--- Status @ 01:01:51.089 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.090836 tick_ts=2026-01-09T05:05:22.600018 ticker=KXHIGHNY-26JAN09-B53.5
+--- Status @ 01:01:51.092 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.092842 tick_ts=2026-01-09T05:05:25.821839 ticker=KXHIGHNY-26JAN09-T49
+[DIAG] event=DECISION log_ts=2026-01-11T01:01:51.092842 tick_ts=2026-01-09T05:05:25.821839 ticker=KXHIGHNY-26JAN09-T49 desired=keep
+--- Status @ 01:01:51.094 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.094845 tick_ts=2026-01-09T05:05:25.935478 ticker=KXHIGHNY-26JAN09-B53.5
+[DIAG] event=DECISION log_ts=2026-01-11T01:01:51.094845 tick_ts=2026-01-09T05:05:25.935478 ticker=KXHIGHNY-26JAN09-B53.5 desired=keep
+--- Status @ 01:01:51.096 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.096536 tick_ts=2026-01-09T05:05:26.266037 ticker=KXHIGHNY-26JAN09-B55.5
+[DIAG] event=DECISION log_ts=2026-01-11T01:01:51.096536 tick_ts=2026-01-09T05:05:26.266037 ticker=KXHIGHNY-26JAN09-B55.5 desired=keep
+--- Status @ 01:01:51.099 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+DEBUG: LOOP TICK: 2026-01-09 05:05:26.601875
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.099048 tick_ts=2026-01-09T05:05:26.601875 ticker=KXHIGHNY-26JAN09-B49.5
+[DIAG] event=DECISION log_ts=2026-01-11T01:01:51.099048 tick_ts=2026-01-09T05:05:26.601875 ticker=KXHIGHNY-26JAN09-B49.5 desired=keep
+--- Status @ 01:01:51.101 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.101266 tick_ts=2026-01-09T05:05:26.628189 ticker=KXHIGHNY-26JAN09-B51.5
+[DIAG] event=DECISION log_ts=2026-01-11T01:01:51.101266 tick_ts=2026-01-09T05:05:26.628189 ticker=KXHIGHNY-26JAN09-B51.5 desired=keep
+--- Status @ 01:01:51.103 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.103426 tick_ts=2026-01-09T05:05:26.713367 ticker=KXHIGHNY-26JAN09-B51.5
+[DIAG] event=DECISION log_ts=2026-01-11T01:01:51.103426 tick_ts=2026-01-09T05:05:26.713367 ticker=KXHIGHNY-26JAN09-B51.5 desired=keep
+--- Status @ 01:01:51.105 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+DEBUG: LOOP TICK: 2026-01-09 05:05:26.814880
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.105956 tick_ts=2026-01-09T05:05:26.814880 ticker=KXHIGHNY-26JAN09-B49.5
+[DIAG] event=DECISION log_ts=2026-01-11T01:01:51.105956 tick_ts=2026-01-09T05:05:26.814880 ticker=KXHIGHNY-26JAN09-B49.5 desired=keep
+--- Status @ 01:01:51.107 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.107955 tick_ts=2026-01-09T05:05:26.824011 ticker=KXHIGHNY-26JAN09-B53.5
+[DIAG] event=DECISION log_ts=2026-01-11T01:01:51.107955 tick_ts=2026-01-09T05:05:26.824011 ticker=KXHIGHNY-26JAN09-B53.5 desired=keep
+--- Status @ 01:01:51.109 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.109957 tick_ts=2026-01-09T05:05:27.737827 ticker=KXHIGHNY-26JAN09-B51.5
+[DIAG] event=DECISION log_ts=2026-01-11T01:01:51.109957 tick_ts=2026-01-09T05:05:27.737827 ticker=KXHIGHNY-26JAN09-B51.5 desired=keep
+--- Status @ 01:01:51.112 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.112982 tick_ts=2026-01-09T05:05:27.817538 ticker=KXHIGHNY-26JAN09-T49
+[DIAG] event=DECISION log_ts=2026-01-11T01:01:51.112982 tick_ts=2026-01-09T05:05:27.817538 ticker=KXHIGHNY-26JAN09-T49 desired=keep
+--- Status @ 01:01:51.115 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.115157 tick_ts=2026-01-09T05:05:27.876124 ticker=KXHIGHNY-26JAN09-T49
+[DIAG] event=DECISION log_ts=2026-01-11T01:01:51.115157 tick_ts=2026-01-09T05:05:27.876124 ticker=KXHIGHNY-26JAN09-T49 desired=0
+--- Status @ 01:01:51.117 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.117673 tick_ts=2026-01-09T05:05:27.942908 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.120 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.120673 tick_ts=2026-01-09T05:05:28.037637 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.122 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.122930 tick_ts=2026-01-09T05:05:28.107597 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.125 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.125149 tick_ts=2026-01-09T05:05:28.173148 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.127 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.127653 tick_ts=2026-01-09T05:05:28.293531 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.129 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.129651 tick_ts=2026-01-09T05:05:28.379785 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.132 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.132162 tick_ts=2026-01-09T05:05:28.452590 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.134 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.134671 tick_ts=2026-01-09T05:05:28.606617 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.135 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.136973 tick_ts=2026-01-09T05:05:28.710550 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.139 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.139444 tick_ts=2026-01-09T05:05:28.809207 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.141 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.141885 tick_ts=2026-01-09T05:05:29.024815 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.143 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.143888 tick_ts=2026-01-09T05:05:29.193089 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.145 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.145938 tick_ts=2026-01-09T05:05:29.364677 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.147 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.147438 tick_ts=2026-01-09T05:05:29.568294 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.150 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.150600 tick_ts=2026-01-09T05:05:29.742841 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.152 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.152628 tick_ts=2026-01-09T05:05:29.914905 ticker=KXHIGHNY-26JAN09-T49
+[DIAG] event=DECISION log_ts=2026-01-11T01:01:51.152628 tick_ts=2026-01-09T05:05:29.914905 ticker=KXHIGHNY-26JAN09-T49 desired=0
+--- Status @ 01:01:51.154 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.154624 tick_ts=2026-01-09T05:05:30.057523 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.156 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.156654 tick_ts=2026-01-09T05:05:30.156428 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.159 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.159158 tick_ts=2026-01-09T05:05:30.296268 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.160 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.160163 tick_ts=2026-01-09T05:05:30.435120 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.162 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.162826 tick_ts=2026-01-09T05:05:30.539367 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.164 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.164830 tick_ts=2026-01-09T05:05:30.603246 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.166 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.166370 tick_ts=2026-01-09T05:05:30.722759 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.168 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.168377 tick_ts=2026-01-09T05:05:30.809139 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.169 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.169377 tick_ts=2026-01-09T05:05:30.916477 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.172 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.172526 tick_ts=2026-01-09T05:05:31.022062 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.173 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.175407 tick_ts=2026-01-09T05:05:31.291254 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.176 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.176412 tick_ts=2026-01-09T05:05:31.533879 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.178 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.178921 tick_ts=2026-01-09T05:05:31.671310 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.179 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.179923 tick_ts=2026-01-09T05:05:31.780360 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.181 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.181429 tick_ts=2026-01-09T05:05:31.846253 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.183 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.183588 tick_ts=2026-01-09T05:05:31.955999 ticker=KXHIGHNY-26JAN09-T49
+[DIAG] event=DECISION log_ts=2026-01-11T01:01:51.183588 tick_ts=2026-01-09T05:05:31.955999 ticker=KXHIGHNY-26JAN09-T49 desired=0
+--- Status @ 01:01:51.186 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.186098 tick_ts=2026-01-09T05:05:32.085299 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.188 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.188096 tick_ts=2026-01-09T05:05:32.232137 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.189 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.189097 tick_ts=2026-01-09T05:05:32.294136 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.191 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.191606 tick_ts=2026-01-09T05:05:32.357789 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.192 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.192606 tick_ts=2026-01-09T05:05:32.431995 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.195 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.195115 tick_ts=2026-01-09T05:05:32.542437 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.197 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.197713 tick_ts=2026-01-09T05:05:32.609251 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.199 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.199835 tick_ts=2026-01-09T05:05:32.713167 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.202 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.202389 tick_ts=2026-01-09T05:05:32.848505 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.203 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.203389 tick_ts=2026-01-09T05:05:32.924104 ticker=KXHIGHNY-26JAN09-B51.5
+[DIAG] event=DECISION log_ts=2026-01-11T01:01:51.203389 tick_ts=2026-01-09T05:05:32.924104 ticker=KXHIGHNY-26JAN09-B51.5 desired=keep
+--- Status @ 01:01:51.207 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.207378 tick_ts=2026-01-09T05:05:32.986260 ticker=KXHIGHNY-26JAN09-B51.5
+[DIAG] event=DECISION log_ts=2026-01-11T01:01:51.207378 tick_ts=2026-01-09T05:05:32.986260 ticker=KXHIGHNY-26JAN09-B51.5 desired=keep
+--- Status @ 01:01:51.209 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.209587 tick_ts=2026-01-09T05:05:32.986380 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.212 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.212102 tick_ts=2026-01-09T05:05:33.092180 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.214 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.214109 tick_ts=2026-01-09T05:05:33.259135 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.216 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.216615 tick_ts=2026-01-09T05:05:33.501850 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.219 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.219128 tick_ts=2026-01-09T05:05:33.773741 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.221 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.221637 tick_ts=2026-01-09T05:05:34.018984 ticker=KXHIGHNY-26JAN09-T49
+[DIAG] event=DECISION log_ts=2026-01-11T01:01:51.221637 tick_ts=2026-01-09T05:05:34.018984 ticker=KXHIGHNY-26JAN09-T49 desired=keep
+--- Status @ 01:01:51.223 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.223640 tick_ts=2026-01-09T05:05:34.078790 ticker=KXHIGHNY-26JAN09-B51.5
+[DIAG] event=DECISION log_ts=2026-01-11T01:01:51.223640 tick_ts=2026-01-09T05:05:34.078790 ticker=KXHIGHNY-26JAN09-B51.5 desired=keep
+--- Status @ 01:01:51.225 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.226648 tick_ts=2026-01-09T05:05:34.129970 ticker=KXHIGHNY-26JAN09-B51.5
+[DIAG] event=DECISION log_ts=2026-01-11T01:01:51.226648 tick_ts=2026-01-09T05:05:34.129970 ticker=KXHIGHNY-26JAN09-B51.5 desired=keep
+--- Status @ 01:01:51.227 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.229152 tick_ts=2026-01-09T05:05:34.849747 ticker=KXHIGHNY-26JAN09-T49
+[DIAG] event=DECISION log_ts=2026-01-11T01:01:51.229152 tick_ts=2026-01-09T05:05:34.849747 ticker=KXHIGHNY-26JAN09-T49 desired=0
+--- Status @ 01:01:51.230 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.230158 tick_ts=2026-01-09T05:05:35.089439 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.233 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.233248 tick_ts=2026-01-09T05:05:35.242587 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.235 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.235760 tick_ts=2026-01-09T05:05:35.328276 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.238 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.238756 tick_ts=2026-01-09T05:05:36.154605 ticker=KXHIGHNY-26JAN09-B51.5
+[DIAG] event=DECISION log_ts=2026-01-11T01:01:51.238756 tick_ts=2026-01-09T05:05:36.154605 ticker=KXHIGHNY-26JAN09-B51.5 desired=keep
+--- Status @ 01:01:51.240 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.240757 tick_ts=2026-01-09T05:05:36.493452 ticker=KXHIGHNY-26JAN09-B55.5
+[DIAG] event=DECISION log_ts=2026-01-11T01:01:51.240757 tick_ts=2026-01-09T05:05:36.493452 ticker=KXHIGHNY-26JAN09-B55.5 desired=0
+--- Status @ 01:01:51.242 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.242995 tick_ts=2026-01-09T05:05:36.572308 ticker=KXHIGHNY-26JAN09-B51.5
+[DIAG] event=DECISION log_ts=2026-01-11T01:01:51.242995 tick_ts=2026-01-09T05:05:36.572308 ticker=KXHIGHNY-26JAN09-B51.5 desired=keep
+--- Status @ 01:01:51.244 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.244998 tick_ts=2026-01-09T05:05:36.598075 ticker=KXHIGHNY-26JAN09-B53.5
+[DIAG] event=DECISION log_ts=2026-01-11T01:01:51.244998 tick_ts=2026-01-09T05:05:36.598075 ticker=KXHIGHNY-26JAN09-B53.5 desired=keep
+--- Status @ 01:01:51.247 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.247519 tick_ts=2026-01-09T05:05:36.825977 ticker=KXHIGHNY-26JAN09-B51.5
+[DIAG] event=DECISION log_ts=2026-01-11T01:01:51.247519 tick_ts=2026-01-09T05:05:36.825977 ticker=KXHIGHNY-26JAN09-B51.5 desired=keep
+--- Status @ 01:01:51.250 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.250028 tick_ts=2026-01-09T05:05:36.935186 ticker=KXHIGHNY-26JAN09-B51.5
+[DIAG] event=DECISION log_ts=2026-01-11T01:01:51.250028 tick_ts=2026-01-09T05:05:36.935186 ticker=KXHIGHNY-26JAN09-B51.5 desired=keep
+--- Status @ 01:01:51.251 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.251851 tick_ts=2026-01-09T05:05:37.014554 ticker=KXHIGHNY-26JAN09-B49.5
+[DIAG] event=DECISION log_ts=2026-01-11T01:01:51.251851 tick_ts=2026-01-09T05:05:37.014554 ticker=KXHIGHNY-26JAN09-B49.5 desired=0
+--- Status @ 01:01:51.254 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.254274 tick_ts=2026-01-09T05:05:37.154572 ticker=KXHIGHNY-26JAN09-B53.5
+[DIAG] event=DECISION log_ts=2026-01-11T01:01:51.254274 tick_ts=2026-01-09T05:05:37.154572 ticker=KXHIGHNY-26JAN09-B53.5 desired=keep
+--- Status @ 01:01:51.255 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.255784 tick_ts=2026-01-09T05:05:37.314222 ticker=KXHIGHNY-26JAN09-B49.5
+--- Status @ 01:01:51.257 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.257993 tick_ts=2026-01-09T05:05:40.437223 ticker=KXHIGHNY-26JAN09-T49
+[DIAG] event=DECISION log_ts=2026-01-11T01:01:51.257993 tick_ts=2026-01-09T05:05:40.437223 ticker=KXHIGHNY-26JAN09-T49 desired=0
+--- Status @ 01:01:51.259 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.259996 tick_ts=2026-01-09T05:05:42.241400 ticker=KXHIGHNY-26JAN09-B55.5
+[DIAG] event=DECISION log_ts=2026-01-11T01:01:51.259996 tick_ts=2026-01-09T05:05:42.241400 ticker=KXHIGHNY-26JAN09-B55.5 desired=keep
+--- Status @ 01:01:51.263 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.263240 tick_ts=2026-01-09T05:05:42.335765 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.265 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.265750 tick_ts=2026-01-09T05:05:42.401720 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.267 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.267253 tick_ts=2026-01-09T05:05:42.461110 ticker=KXHIGHNY-26JAN09-T49
+[DIAG] event=DECISION log_ts=2026-01-11T01:01:51.267253 tick_ts=2026-01-09T05:05:42.461110 ticker=KXHIGHNY-26JAN09-T49 desired=keep
+--- Status @ 01:01:51.270 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.270262 tick_ts=2026-01-09T05:05:42.511256 ticker=KXHIGHNY-26JAN09-T49
+[DIAG] event=DECISION log_ts=2026-01-11T01:01:51.270262 tick_ts=2026-01-09T05:05:42.511256 ticker=KXHIGHNY-26JAN09-T49 desired=0
+--- Status @ 01:01:51.272 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.272457 tick_ts=2026-01-09T05:05:42.588007 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.273 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.273463 tick_ts=2026-01-09T05:05:42.641469 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.276 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.276479 tick_ts=2026-01-09T05:05:42.701549 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.277 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.277490 tick_ts=2026-01-09T05:05:42.764635 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.280 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.280002 tick_ts=2026-01-09T05:05:42.820218 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.282 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.282513 tick_ts=2026-01-09T05:05:42.880735 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.285 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.285020 tick_ts=2026-01-09T05:05:42.964590 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.287 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.287026 tick_ts=2026-01-09T05:05:43.088268 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.288 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.288530 tick_ts=2026-01-09T05:05:43.228010 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.291 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.291037 tick_ts=2026-01-09T05:05:43.328543 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.293 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.293040 tick_ts=2026-01-09T05:05:43.382226 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.295 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.295543 tick_ts=2026-01-09T05:05:43.447388 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.297 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.297549 tick_ts=2026-01-09T05:05:43.510532 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.299 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.299053 tick_ts=2026-01-09T05:05:43.566229 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.301 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.301561 tick_ts=2026-01-09T05:05:43.627255 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.303 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.303704 tick_ts=2026-01-09T05:05:43.688918 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.305 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.305210 tick_ts=2026-01-09T05:05:43.846848 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.307 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.307216 tick_ts=2026-01-09T05:05:43.912234 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.309 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.309216 tick_ts=2026-01-09T05:05:43.992221 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.310 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.310215 tick_ts=2026-01-09T05:05:44.575367 ticker=KXHIGHNY-26JAN09-T49
+[DIAG] event=DECISION log_ts=2026-01-11T01:01:51.310215 tick_ts=2026-01-09T05:05:44.575367 ticker=KXHIGHNY-26JAN09-T49 desired=0
+--- Status @ 01:01:51.313 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.313346 tick_ts=2026-01-09T05:05:44.774498 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.314 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.316372 tick_ts=2026-01-09T05:05:44.847567 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.318 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.318376 tick_ts=2026-01-09T05:05:44.918917 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.320 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.320376 tick_ts=2026-01-09T05:05:44.970164 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.321 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.321879 tick_ts=2026-01-09T05:05:45.057355 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.325 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.325134 tick_ts=2026-01-09T05:05:45.196761 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.326 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.326653 tick_ts=2026-01-09T05:05:45.398743 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.329 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.329658 tick_ts=2026-01-09T05:05:45.465519 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.331 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.331662 tick_ts=2026-01-09T05:05:45.521551 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.333 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.333805 tick_ts=2026-01-09T05:05:45.607781 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.335 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.335676 tick_ts=2026-01-09T05:05:45.816668 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.338 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.338185 tick_ts=2026-01-09T05:05:45.874956 ticker=KXHIGHNY-26JAN09-B51.5
+[DIAG] event=DECISION log_ts=2026-01-11T01:01:51.338185 tick_ts=2026-01-09T05:05:45.874956 ticker=KXHIGHNY-26JAN09-B51.5 desired=keep
+--- Status @ 01:01:51.340 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.340694 tick_ts=2026-01-09T05:05:45.938147 ticker=KXHIGHNY-26JAN09-B51.5
+[DIAG] event=DECISION log_ts=2026-01-11T01:01:51.340694 tick_ts=2026-01-09T05:05:45.938147 ticker=KXHIGHNY-26JAN09-B51.5 desired=keep
+--- Status @ 01:01:51.342 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.342698 tick_ts=2026-01-09T05:05:46.053247 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.343 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.343698 tick_ts=2026-01-09T05:05:46.122448 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.345 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.345203 tick_ts=2026-01-09T05:05:46.177880 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.348 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.348219 tick_ts=2026-01-09T05:05:46.262430 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.349 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.349723 tick_ts=2026-01-09T05:05:46.319756 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.352 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.352303 tick_ts=2026-01-09T05:05:46.374942 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.353 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.353300 tick_ts=2026-01-09T05:05:46.509602 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.355 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.355808 tick_ts=2026-01-09T05:05:46.615347 ticker=KXHIGHNY-26JAN09-T49
+[DIAG] event=DECISION log_ts=2026-01-11T01:01:51.355808 tick_ts=2026-01-09T05:05:46.615347 ticker=KXHIGHNY-26JAN09-T49 desired=keep
+--- Status @ 01:01:51.357 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.357808 tick_ts=2026-01-09T05:05:46.669490 ticker=KXHIGHNY-26JAN09-T49
+[DIAG] event=DECISION log_ts=2026-01-11T01:01:51.357808 tick_ts=2026-01-09T05:05:46.669490 ticker=KXHIGHNY-26JAN09-T49 desired=0
+--- Status @ 01:01:51.358 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.360112 tick_ts=2026-01-09T05:05:46.722443 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.361 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.361616 tick_ts=2026-01-09T05:05:46.782201 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.363 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.363245 tick_ts=2026-01-09T05:05:46.839047 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.366 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.366274 tick_ts=2026-01-09T05:05:46.894537 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.368 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.368404 tick_ts=2026-01-09T05:05:46.950879 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.370 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.370404 tick_ts=2026-01-09T05:05:47.005714 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.373 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.373374 tick_ts=2026-01-09T05:05:47.058490 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.374 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.374881 tick_ts=2026-01-09T05:05:47.095027 ticker=KXHIGHNY-26JAN09-B55.5
+[DIAG] event=DECISION log_ts=2026-01-11T01:01:51.374881 tick_ts=2026-01-09T05:05:47.095027 ticker=KXHIGHNY-26JAN09-B55.5 desired=keep
+--- Status @ 01:01:51.376 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.377888 tick_ts=2026-01-09T05:05:47.123155 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.379 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.379888 tick_ts=2026-01-09T05:05:47.264175 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.381 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.381392 tick_ts=2026-01-09T05:05:47.361563 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.383 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.383655 tick_ts=2026-01-09T05:05:47.434287 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.385 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.385160 tick_ts=2026-01-09T05:05:47.502062 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.388 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.388165 tick_ts=2026-01-09T05:05:47.552680 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.389 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.389165 tick_ts=2026-01-09T05:05:47.608413 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.391 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.391674 tick_ts=2026-01-09T05:05:47.677874 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.394 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.394178 tick_ts=2026-01-09T05:05:47.949203 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.394 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.396322 tick_ts=2026-01-09T05:05:48.123040 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.397 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.397846 tick_ts=2026-01-09T05:05:48.467468 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.399 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.399350 tick_ts=2026-01-09T05:05:48.638700 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.401 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.401466 tick_ts=2026-01-09T05:05:48.691048 ticker=KXHIGHNY-26JAN09-T49
+[DIAG] event=DECISION log_ts=2026-01-11T01:01:51.401466 tick_ts=2026-01-09T05:05:48.691048 ticker=KXHIGHNY-26JAN09-T49 desired=0
+--- Status @ 01:01:51.402 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.402470 tick_ts=2026-01-09T05:05:48.744842 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.405 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.405484 tick_ts=2026-01-09T05:05:48.798199 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.406 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.406993 tick_ts=2026-01-09T05:05:48.857581 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.409 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.409500 tick_ts=2026-01-09T05:05:53.875150 ticker=KXHIGHNY-26JAN09-B51.5
+[DIAG] event=DECISION log_ts=2026-01-11T01:01:51.409500 tick_ts=2026-01-09T05:05:53.875150 ticker=KXHIGHNY-26JAN09-B51.5 desired=keep
+--- Status @ 01:01:51.410 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.410501 tick_ts=2026-01-09T05:05:53.930969 ticker=KXHIGHNY-26JAN09-B51.5
+[DIAG] event=DECISION log_ts=2026-01-11T01:01:51.410501 tick_ts=2026-01-09T05:05:53.930969 ticker=KXHIGHNY-26JAN09-B51.5 desired=keep
+--- Status @ 01:01:51.413 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.413012 tick_ts=2026-01-09T05:05:54.158433 ticker=KXHIGHNY-26JAN09-B53.5
+[DIAG] event=DECISION log_ts=2026-01-11T01:01:51.413012 tick_ts=2026-01-09T05:05:54.158433 ticker=KXHIGHNY-26JAN09-B53.5 desired=keep
+--- Status @ 01:01:51.415 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.415012 tick_ts=2026-01-09T05:05:58.918108 ticker=KXHIGHNY-26JAN09-T49
+[DIAG] event=DECISION log_ts=2026-01-11T01:01:51.415012 tick_ts=2026-01-09T05:05:58.918108 ticker=KXHIGHNY-26JAN09-T49 desired=0
+--- Status @ 01:01:51.417 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.417622 tick_ts=2026-01-09T05:05:58.985165 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.418 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.418817 tick_ts=2026-01-09T05:05:59.047541 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.421 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.421326 tick_ts=2026-01-09T05:05:59.110522 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.423 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.423391 tick_ts=2026-01-09T05:05:59.168148 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.425 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.425904 tick_ts=2026-01-09T05:05:59.225022 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.427 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.427902 tick_ts=2026-01-09T05:05:59.287552 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.429 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.429408 tick_ts=2026-01-09T05:05:59.341170 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.432 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.432357 tick_ts=2026-01-09T05:05:59.404260 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.434 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.434921 tick_ts=2026-01-09T05:05:59.462424 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.436 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.436992 tick_ts=2026-01-09T05:05:59.519047 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.438 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.438992 tick_ts=2026-01-09T05:05:59.574514 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.441 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.441009 tick_ts=2026-01-09T05:05:59.632468 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.443 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.443186 tick_ts=2026-01-09T05:05:59.687522 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.445 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.445696 tick_ts=2026-01-09T05:05:59.740025 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.447 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.447781 tick_ts=2026-01-09T05:05:59.824333 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.449 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.449850 tick_ts=2026-01-09T05:05:59.887836 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.451 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+[DIAG] event=TICK_IN log_ts=2026-01-11T01:01:51.451411 tick_ts=2026-01-09T05:05:59.944992 ticker=KXHIGHNY-26JAN09-T49
+--- Status @ 01:01:51.453 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+--- Status @ 01:01:51.455 ---
+Equity: $100.00
+Cash: $100.00
+Portfolio Value: $0.00
+Daily Budget: $80.00
+Exposure: $0.00
+Wrote: debug_backtest\unified_trades.csv
+Wrote: debug_backtest\unified_orders.csv
+Wrote: debug_backtest\unified_positions.json

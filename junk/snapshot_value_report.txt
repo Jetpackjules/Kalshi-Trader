@@ -1,0 +1,16 @@
+Snapshot Timestamp: 2026-01-08 17:37:38
+Snapshot Balance: $2.12
+
+Initial Holdings Value (MTM):
+  KXHIGHNY-26JAN09-T49      | 8 YES    | (Price: 50.0 [EST]) | Value: $  4.00
+  KXHIGHNY-26JAN09-B49.5    | 8 YES    | (Price: 50.0 [EST]) | Value: $  4.00
+  KXHIGHNY-26JAN09-B55.5    | 5 YES    | (Price: 50.0 [EST]) | Value: $  2.50
+  KXHIGHNY-26JAN09-T56      | 25 YES   | (Price: 50.0 [EST]) | Value: $ 12.50
+  KXHIGHNY-26JAN08-T46      | 6 YES    | (Price: 50.0 [EST]) | Value: $  3.00
+  KXHIGHNY-26JAN08-B46.5    | 20 YES   | (Price: 50.0 [EST]) | Value: $ 10.00
+  KXHIGHNY-26JAN08-B48.5    | 11 YES   | (Price: 50.0 [EST]) | Value: $  5.50
+  KXHIGHNY-26JAN08-B50.5    | 10 YES   | (Price: 50.0 [EST]) | Value: $  5.00
+  KXHIGHNY-26JAN08-B52.5    | 39 YES   | (Price: 50.0 [EST]) | Value: $ 19.50
+
+Total MTM Value: $66.00
+Total Starting Equity: $68.12
