@@ -8,3 +8,14 @@ debug_exec_trade.txt
 backtest_report_parametric.txt
 debug_trades.csv
 vm_logs/
+
+# Large Data Files
+*.csv
+*.json
+!manifest.json
+!dec05_snapshot.json
+
+# Output Directories
+unified_engine_out*/
+grid_search_out/
+local_market_logs/

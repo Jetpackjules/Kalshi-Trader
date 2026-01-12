@@ -132,6 +132,19 @@ def main():
         diag_log=None,
     )
 
+    # Seed initial prices from snapshot cost basis to avoid equity spikes
+    for ticker, pos in initial_positions.items():
+        yes_qty = int(pos.get("yes") or 0)
+        no_qty = int(pos.get("no") or 0)
+        cost = float(pos.get("cost") or 0.0)
+        
+        if yes_qty > 0:
+            # Price in cents
+            adapter.last_prices[ticker] = (cost / yes_qty) * 100.0
+        elif no_qty > 0:
+            # Price in cents (implied YES price)
+            adapter.last_prices[ticker] = 100.0 - ((cost / no_qty) * 100.0)
+
     engine = UnifiedEngine(
         strategy=strategy,
         adapter=adapter,
@@ -141,7 +154,8 @@ def main():
     )
 
     log(f"Loading ticks from {log_dir}...")
-    ticks = iter_ticks_from_market_logs(log_dir)
+    ticks = list(iter_ticks_from_market_logs(log_dir))
+    log(f"Loaded {len(ticks)} ticks.")
 
     log(f"Starting Warmup from {warmup_start_ts} to {start_ts}...")
     log(f"Simulation Start: {start_ts}")
@@ -151,41 +165,77 @@ def main():
     sim_start_perf_time = time_module.perf_counter()
     equity_history = []
     equity_breakdowns = []
-    last_history_date = None
+    last_breakdown_date = None
     started = False
 
-    def record_equity(record_date: datetime.date) -> None:
+    def record_equity(record_ts: datetime) -> None:
+        nonlocal last_breakdown_date
         cash_val = adapter.get_cash()
         holdings_val = _compute_holdings(adapter)
         equity_val = cash_val + holdings_val
         equity_history.append(
             {
-                "date": record_date.isoformat(),
+                "date": record_ts.isoformat(),
                 "equity": equity_val,
                 "cash": cash_val,
                 "holdings": holdings_val,
             }
         )
-        positions = adapter.get_positions()
-        for ticker, pos in positions.items():
-            yes_qty = int(pos.get("yes") or 0)
-            no_qty = int(pos.get("no") or 0)
-            last_price = adapter.last_prices.get(ticker, 50.0)
-            value = (yes_qty * (last_price / 100.0)) + (no_qty * ((100.0 - last_price) / 100.0))
-            equity_breakdowns.append(
-                {
-                    "date": record_date.isoformat(),
-                    "ticker": ticker,
-                    "yes_qty": yes_qty,
-                    "no_qty": no_qty,
-                    "last_price": last_price,
-                    "value": value,
-                    "cash": cash_val,
-                    "equity": equity_val,
-                }
-            )
+        # Record breakdown once per day (on the first tick of each day)
+        current_date = record_ts.date()
+        if last_breakdown_date is None or current_date > last_breakdown_date:
+            positions = adapter.get_positions()
+            for ticker, pos in positions.items():
+                yes_qty = int(pos.get("yes") or 0)
+                no_qty = int(pos.get("no") or 0)
+                last_price = adapter.last_prices.get(ticker, 50.0)
+                value = (yes_qty * (last_price / 100.0)) + (no_qty * ((100.0 - last_price) / 100.0))
+                equity_breakdowns.append(
+                    {
+                        "date": current_date.isoformat(),
+                        "ticker": ticker,
+                        "yes_qty": yes_qty,
+                        "no_qty": no_qty,
+                        "last_price": last_price,
+                        "value": value,
+                        "cash": cash_val,
+                        "equity": equity_val,
+                    }
+                )
+            last_breakdown_date = current_date
 
     settled_dates: set[tuple[str, datetime.date]] = set()
+
+    # Look-forward seeder for tickers missing from warmup
+    # Find the first index where t >= start_ts
+    start_idx = 0
+    for i, tick in enumerate(ticks):
+        if tick["time"] >= start_ts:
+            start_idx = i
+            break
+    
+    missing_tickers = [t for t in initial_positions if t not in adapter.last_prices]
+    if missing_tickers:
+        log(f"Looking forward for {len(missing_tickers)} missing ticker prices...")
+        for ticker in missing_tickers:
+            # Search forward from start_idx
+            for i in range(start_idx, len(ticks)):
+                if ticks[i]["ticker"] == ticker:
+                    ms = ticks[i]["market_state"]
+                    ya = ms.get("yes_ask")
+                    yb = ms.get("yes_bid")
+                    price = None
+                    if ya is not None and yb is not None:
+                        price = (float(ya) + float(yb)) / 2.0
+                    elif ya is not None:
+                        price = float(ya)
+                    elif yb is not None:
+                        price = float(yb)
+                    
+                    if price is not None:
+                        adapter.last_prices[ticker] = price
+                        log(f"  Found forward price for {ticker}: {price}")
+                        break
 
     for tick in ticks:
         t = tick["time"]
@@ -206,6 +256,8 @@ def main():
             active_orders = []
             spendable_cash = initial_cash
 
+            adapter.process_tick(tick["ticker"], tick["market_state"], t)
+
             strategy.on_market_update(
                 tick["ticker"],
                 tick["market_state"],
@@ -217,11 +269,9 @@ def main():
             continue
 
         if not started:
-            last_history_date = t.date()
             started = True
-        elif t.date() != last_history_date:
-            record_equity(last_history_date)
-            last_history_date = t.date()
+        
+        record_equity(t)
 
         count += 1
         if count % 10000 == 0:
@@ -310,8 +360,6 @@ def main():
 
     trades_df = pd.DataFrame(adapter.trades)
     trades_df.to_csv(out_dir / "unified_trades.csv", index=False)
-    if last_history_date is not None:
-        record_equity(last_history_date)
     if equity_history:
         equity_df = pd.DataFrame(equity_history)
         equity_df.to_csv(out_dir / "equity_history.csv", index=False)

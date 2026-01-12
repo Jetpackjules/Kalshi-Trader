@@ -1,11 +1,30 @@
 from __future__ import annotations
 
-from server_mirror.backtesting.engine import RegimeSwitcher
+try:
+    from server_mirror.backtesting.engine import RegimeSwitcher
+except ImportError:
+    from backtesting.engine import RegimeSwitcher
 
 
 def meta_regime_switcher_default() -> RegimeSwitcher:
     # Matches the ComplexBacktester() default strategy (no kwargs).
     return RegimeSwitcher("Algo 3: Regime Switcher (Meta)")
+
+
+def recommended_live_strategy() -> RegimeSwitcher:
+    # "The Chosen One": grid_r80_n10_m8_t10_s2
+    # Selected for live trading on Jan 11, 2026.
+    # High return (+980%) with lowest risk settings (80% risk, 10% notional).
+    return RegimeSwitcher(
+        "recommended_live_strategy",
+        risk_pct=0.8,
+        tightness_percentile=10,
+        max_inventory=150,
+        margin_cents=8.0,
+        scaling_factor=2.0,
+        max_notional_pct=0.10,
+        max_loss_pct=0.03,
+    )
 
 
 def meta_regime_switcher_uncapped() -> RegimeSwitcher:
@@ -425,4 +444,46 @@ def smooth_v3(base_margin=2.0, spread_factor=0.5) -> RegimeSwitcher:
         scaling_factor=4.0,
         max_notional_pct=0.10,
         max_loss_pct=0.03,
+    )
+
+
+def generic_v3(**kwargs) -> RegimeSwitcher:
+    """
+    Generic strategy for grid search.
+    Accepts any RegimeSwitcher arguments via kwargs.
+    """
+    name = kwargs.pop("name", "v3_generic")
+    return RegimeSwitcher(name, **kwargs)
+
+
+def aggressive_reinvest_v3() -> RegimeSwitcher:
+    """
+    High-aggression strategy designed to break through plateaus.
+    Uses high notional caps and high daily risk.
+    """
+    return RegimeSwitcher(
+        "v3_aggressive_reinvest",
+        risk_pct=0.95,
+        tightness_percentile=30, # Be less picky about spreads
+        max_inventory=200,       # Large inventory capacity
+        margin_cents=3.0,        # Lower edge requirement
+        scaling_factor=3.0,      # Faster sizing ramp
+        max_notional_pct=0.20,   # High per-trade cap
+        max_loss_pct=0.05,       # Higher daily loss tolerance
+    )
+
+
+def kelly_v3() -> RegimeSwitcher:
+    """
+    Aggressive scaling based on edge, mimicking a fractional Kelly approach.
+    """
+    return RegimeSwitcher(
+        "v3_kelly",
+        risk_pct=0.9,
+        tightness_percentile=20,
+        max_inventory=150,
+        margin_cents=2.0,
+        scaling_factor=2.0,      # Very aggressive scaling with edge
+        max_notional_pct=0.15,
+        max_loss_pct=0.04,
     )

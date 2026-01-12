@@ -73,7 +73,7 @@ def main():
         "--preset",
         type=str,
         default="new-only",
-        choices=["full", "loss-sweep", "new-only"],
+        choices=["full", "loss-sweep", "new-only", "comprehensive", "recommended-hours-check"],
         help="Variant set to run (ignored if --only-strategy is set)",
     )
     parser.add_argument(
@@ -105,6 +105,18 @@ def main():
         action="store_true",
         help="Use snapshot balance for initial cash",
     )
+    parser.add_argument(
+        "--warmup-hours",
+        type=int,
+        default=48,
+        help="Hours of data to feed before start-ts",
+    )
+    parser.add_argument(
+        "--results-dir",
+        type=str,
+        default="unified_engine_comparison",
+        help="Directory to store per-variant backtest results",
+    )
     args = parser.parse_args()
 
     if args.use_snapshot_start or args.use_snapshot_balance or not args.start_ts or args.initial_cash is None:
@@ -130,18 +142,51 @@ def main():
         "bargain_hunter_v3": "v3_bargain_hunter",
         "closer_v3": "v3_closer",
         "hybrid_v3": "v3_hybrid",
+        "aggressive_reinvest_v3": "v3_aggressive",
+        "kelly_v3": "v3_kelly",
     }
 
     # Define variants to run
-    # Format: (strategy_func_name, enable_time_constraints, label, max_loss_pct)
+    # Format: (strategy_func_name, enable_time_constraints, label, max_loss_pct, strategy_kwargs)
     only_strategies = [s.strip() for s in args.only_strategy.split(",") if s.strip()]
     if only_strategies:
         variants = []
         for strat in only_strategies:
             base_label = label_overrides.get(strat, strat)
-            variants.append((strat, True, f"{base_label} (hours)", None))
+            variants.append((strat, True, f"{base_label} (hours)", None, None))
             if args.include_all_day:
-                variants.append((strat, False, f"{base_label} (all-day)", None))
+                variants.append((strat, False, f"{base_label} (all-day)", None, None))
+    elif args.preset == "comprehensive":
+        # Systematically explore the parameter space to break plateaus (~144 variants)
+        risk_pcts = [0.8, 1.0]
+        notional_pcts = [0.10, 0.15, 0.20]
+        margins = [2.0, 4.0, 6.0, 8.0]
+        tightness = [10, 25]
+        scaling_factors = [2.0, 4.0, 6.0]
+        
+        variants = [
+            ("baseline_v3", True, "v3_baseline", None, None),
+            ("aggressive_reinvest_v3", True, "v3_aggressive", None, None),
+            ("kelly_v3", True, "v3_kelly", None, None),
+            ("hybrid_v3", True, "v3_hybrid", None, None),
+        ]
+        
+        for r in risk_pcts:
+            for n in notional_pcts:
+                for m in margins:
+                    for t in tightness:
+                        for s in scaling_factors:
+                            label = f"grid_r{int(r*100)}_n{int(n*100)}_m{int(m)}_t{t}_s{int(s)}"
+                            kwargs = {
+                                "name": label,
+                                "risk_pct": r,
+                                "max_notional_pct": n,
+                                "margin_cents": m,
+                                "tightness_percentile": t,
+                                "scaling_factor": s,
+                                "max_inventory": 150
+                            }
+                            variants.append(("generic_v3", True, label, None, kwargs))
     elif args.preset == "loss-sweep":
         loss_pcts = _parse_loss_pcts(args.loss_pcts)
         base = [
@@ -155,54 +200,73 @@ def main():
         for strat, base_label in base:
             for pct in loss_pcts:
                 label = f"{base_label} (hours, loss {pct:.2f})"
-                variants.append((strat, True, label, pct))
+                variants.append((strat, True, label, pct, None))
             if args.include_all_day:
                 for pct in loss_pcts:
                     label = f"{base_label} (all-day, loss {pct:.2f})"
-                    variants.append((strat, False, label, pct))
+                    variants.append((strat, False, label, pct, None))
     elif args.preset == "new-only":
         variants = [
-            ("sniper_v3", True, "v3_sniper (hours)", None),
-            ("bargain_hunter_v3", True, "v3_bargain_hunter (hours)", None),
-            ("closer_v3", True, "v3_closer (hours)", None),
-            ("hybrid_v3", True, "v3_hybrid (hours)", None), # The new adaptive strategy
+            ("sniper_v3", True, "v3_sniper (hours)", None, None),
+            ("bargain_hunter_v3", True, "v3_bargain_hunter (hours)", None, None),
+            ("closer_v3", True, "v3_closer (hours)", None, None),
+            ("hybrid_v3", True, "v3_hybrid (hours)", None, None), # The new adaptive strategy
+            ("aggressive_reinvest_v3", True, "v3_aggressive (hours)", None, None),
+            ("kelly_v3", True, "v3_kelly (hours)", None, None),
+            ("kelly_v3", True, "v3_kelly (hours)", None, None),
         ]
+    elif args.preset == "recommended-hours-check":
+        label = "grid_r80_n10_m8_t10_s2"
+        kwargs = {
+            "name": label,
+            "risk_pct": 0.8,
+            "max_notional_pct": 0.10,
+            "margin_cents": 8.0,
+            "tightness_percentile": 10,
+            "scaling_factor": 2.0,
+            "max_inventory": 150
+        }
+        variants = [
+            ("generic_v3", True, f"{label} (hours)", None, kwargs),
+        ]
+        if args.include_all_day:
+            variants.append(("generic_v3", False, f"{label} (all-day)", None, kwargs))
     else:
         variants = [
-            ("baseline_v3", True, "v3_baseline (hours)", None),
-            ("hb_notional_010", True, "hb_notional_010 (hours)", None),
-            ("hb_risk_060", True, "hb_risk_060 (hours)", None),
-            ("hb_risk_090", True, "hb_risk_090 (hours)", None),
-            ("hb_notional_010_risk_040", True, "hb_notional_010_risk_040 (hours)", None),
-            ("hb_notional_010_risk_060", True, "hb_notional_010_risk_060 (hours)", None),
-            ("hb_notional_010_risk_080", True, "hb_notional_010_risk_080 (hours)", None),
-            ("hb_notional_010_risk_100", True, "hb_notional_010_risk_100 (hours)", None),
-            ("conservative_sizing", True, "v3_conservative_size (hours)", None),
-            ("tighter_gates_fewer_trades", True, "v3_tighter_gates (hours)", None),
-            ("looser_gates_more_trades", True, "v3_looser_gates (hours)", None),
-            ("baseline_v3", False, "v3_baseline (all-day)", None),
-            ("hb_notional_010", False, "hb_notional_010 (all-day)", None),
-            ("hb_risk_060", False, "hb_risk_060 (all-day)", None),
-            ("hb_risk_090", False, "hb_risk_090 (all-day)", None),
-            ("hb_notional_010_risk_040", False, "hb_notional_010_risk_040 (all-day)", None),
-            ("hb_notional_010_risk_060", False, "hb_notional_010_risk_060 (all-day)", None),
-            ("hb_notional_010_risk_080", False, "hb_notional_010_risk_080 (all-day)", None),
-            ("hb_notional_010_risk_100", False, "hb_notional_010_risk_100 (all-day)", None),
-            ("conservative_sizing", False, "v3_conservative_size (all-day)", None),
-            ("tighter_gates_fewer_trades", False, "v3_tighter_gates (all-day)", None),
-            ("looser_gates_more_trades", False, "v3_looser_gates (all-day)", None),
-            ("higher_budget_same_edges", True, "v3_higher_budget (hours)", None),
-            ("hb_notional_010_uncapped", True, "hb_notional_010_uncapped (hours)", None),
-            ("hb_loss_040", True, "hb_loss_040 (hours)", None),
-            ("higher_budget_same_edges", False, "v3_higher_budget (all-day)", None),
-            ("hb_notional_010_uncapped", False, "hb_notional_010_uncapped (all-day)", None),
-            ("hb_loss_040", False, "hb_loss_040 (all-day)", None),
-            ("sniper_v3", True, "v3_sniper (hours)", None),
-            ("bargain_hunter_v3", True, "v3_bargain_hunter (hours)", None),
-            ("closer_v3", True, "v3_closer (hours)", None),
+            ("baseline_v3", True, "v3_baseline (hours)", None, None),
+            ("hb_notional_010", True, "hb_notional_010 (hours)", None, None),
+            ("hb_risk_060", True, "hb_risk_060 (hours)", None, None),
+            ("hb_risk_090", True, "hb_risk_090 (hours)", None, None),
+            ("hb_notional_010_risk_040", True, "hb_notional_010_risk_040 (hours)", None, None),
+            ("hb_notional_010_risk_060", True, "hb_notional_010_risk_060 (hours)", None, None),
+            ("hb_notional_010_risk_080", True, "hb_notional_010_risk_080 (hours)", None, None),
+            ("hb_notional_010_risk_100", True, "hb_notional_010_risk_100 (hours)", None, None),
+            ("conservative_sizing", True, "v3_conservative_size (hours)", None, None),
+            ("tighter_gates_fewer_trades", True, "v3_tighter_gates (hours)", None, None),
+            ("looser_gates_more_trades", True, "v3_looser_gates (hours)", None, None),
+            ("baseline_v3", False, "v3_baseline (all-day)", None, None),
+            ("hb_notional_010", False, "hb_notional_010 (all-day)", None, None),
+            ("hb_risk_060", False, "hb_risk_060 (all-day)", None, None),
+            ("hb_risk_090", False, "hb_risk_090 (all-day)", None, None),
+            ("hb_notional_010_risk_040", False, "hb_notional_010_risk_040 (all-day)", None, None),
+            ("hb_notional_010_risk_060", False, "hb_notional_010_risk_060 (all-day)", None, None),
+            ("hb_notional_010_risk_080", False, "hb_notional_010_risk_080 (all-day)", None, None),
+            ("hb_notional_010_risk_100", False, "hb_notional_010_risk_100 (all-day)", None, None),
+            ("conservative_sizing", False, "v3_conservative_size (all-day)", None, None),
+            ("tighter_gates_fewer_trades", False, "v3_tighter_gates (all-day)", None, None),
+            ("looser_gates_more_trades", False, "v3_looser_gates (all-day)", None, None),
+            ("higher_budget_same_edges", True, "v3_higher_budget (hours)", None, None),
+            ("hb_notional_010_uncapped", True, "hb_notional_010_uncapped (hours)", None, None),
+            ("hb_loss_040", True, "hb_loss_040 (hours)", None, None),
+            ("higher_budget_same_edges", False, "v3_higher_budget (all-day)", None, None),
+            ("hb_notional_010_uncapped", False, "hb_notional_010_uncapped (all-day)", None, None),
+            ("hb_loss_040", False, "hb_loss_040 (all-day)", None, None),
+            ("sniper_v3", True, "v3_sniper (hours)", None, None),
+            ("bargain_hunter_v3", True, "v3_bargain_hunter (hours)", None, None),
+            ("closer_v3", True, "v3_closer (hours)", None, None),
         ]
 
-    base_out_dir = Path("unified_engine_comparison")
+    base_out_dir = Path(args.results_dir)
     base_out_dir.mkdir(exist_ok=True)
 
     graph_cmd = [
@@ -217,10 +281,17 @@ def main():
     import concurrent.futures
 
     def run_variant(variant_data):
-        idx, (strat, hours, label, max_loss_pct) = variant_data
+        idx, (strat, hours, label, max_loss_pct, strat_kwargs) = variant_data
         
         dir_name = label.replace(" ", "_").replace("(", "").replace(")", "").replace("/", "")
         out_dir = base_out_dir / dir_name
+        
+        # Skip if already exists and has results
+        if (out_dir / "equity_history.csv").exists():
+            if args.verbose:
+                print(f"Skipping {label} (already exists)")
+            return True, label, out_dir, 0.0
+
         if out_dir.exists():
             try:
                 shutil.rmtree(out_dir)
@@ -235,12 +306,16 @@ def main():
             "--snapshot", args.snapshot,
             "--start-ts", f'"{args.start_ts}"',
             "--initial-cash", str(args.initial_cash),
-            "--warmup-hours", "0",
+            "--warmup-hours", str(args.warmup_hours),
             "--out-dir", str(out_dir),
             "--strategy", strat
         ]
         if max_loss_pct is not None:
             cmd.extend(["--max-loss-pct", str(max_loss_pct)])
+        if strat_kwargs:
+            # Pass as JSON string
+            kwargs_json = json.dumps(strat_kwargs).replace('"', '\\"')
+            cmd.extend(["--strategy-kwargs", f'"{kwargs_json}"'])
         if not hours:
             cmd.append("--trade-all-day")
             
@@ -258,6 +333,7 @@ def main():
         
         return success, label, out_dir, duration
 
+    manifest_data = []
     # Run in parallel
     with concurrent.futures.ThreadPoolExecutor(max_workers=args.workers) as executor:
         futures = {executor.submit(run_variant, (i, v)): v for i, v in enumerate(variants, 1)}
@@ -271,10 +347,21 @@ def main():
             print(f"[{completed}/{total}] {status} {label} ({_format_duration(duration)})", flush=True)
             
             if success:
-                graph_cmd.extend(["--out-dir", str(out_dir), "--label", f'"{label}"'])
+                manifest_data.append({"out_dir": str(out_dir), "label": label})
 
     # Generate Graph
     print("Generating comparison graph...")
+    manifest_path = base_out_dir / "manifest.json"
+    with open(manifest_path, "w") as f:
+        json.dump(manifest_data, f, indent=2)
+
+    graph_cmd = [
+        "python", "tools/generate_unified_variant_graph.py",
+        "--snapshot", args.snapshot,
+        "--out", args.out,
+        "--manifest", str(manifest_path)
+    ]
+    
     run_command(" ".join(graph_cmd), show_command=args.verbose)
     print(f"\nAll variants complete. Comparison graph: {args.out}", flush=True)
 

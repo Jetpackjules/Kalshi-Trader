@@ -2,21 +2,43 @@
 GRAPH GENERATION INSTRUCTIONS
 ================================================================================
 
-This file contains the commands to generate all 4 types of backtest analysis graphs.
+This file contains the commands to generate all backtest analysis graphs.
 Ensure you are in the root directory: c:\Users\jetpa\OneDrive - UW\Google_Grav_Onedrive\kalshi_weather_data
 
 --------------------------------------------------------------------------------
-1. SHADOW VS LOCAL ROI (Equity Curve)
+1. SHADOW VS LOCAL ROI (High-Resolution Equity Curve)
 --------------------------------------------------------------------------------
-Compares the live system's equity (from logs) vs the backtest's equity.
-* Use --skip-backtest if you only want to re-plot existing data.
-* Use --start-ts to align the graph start time.
+Compares Live Equity (Blue), Legacy Backtest (Orange), and Unified Backtest (Purple).
+* GRANULARITY: Per-Tick (High Resolution).
+* Use --unified-csv to include the high-res purple line.
+* Use --skip-backtest to re-plot existing data.
 
 Command:
-python tools/generate_live_vs_backtest_graph.py --snapshot vm_logs/snapshots/snapshot_2026-01-08_173738.json --out-dir unified_engine_out_snapshot_live_v2 --skip-backtest --graph backtest_charts/shadow_vs_local_roi_timeline.html --start-ts "2026-01-08 17:37:38"
+python tools/generate_live_vs_backtest_graph.py --snapshot vm_logs/snapshots/snapshot_2026-01-08_173738.json --out-dir unified_engine_out_snapshot_live_v2 --skip-backtest --graph backtest_charts/shadow_vs_local_roi_timeline_unified.html --start-ts "2026-01-08 17:37:38" --unified-csv unified_engine_out/equity_history.csv
 
 --------------------------------------------------------------------------------
-2. SHADOW VS LOCAL CASH (Cash Balance)
+2. UNIFIED COMPARISON (Single Strategy, Bulk Style)
+--------------------------------------------------------------------------------
+Generates the 2-panel "Equity + Daily Return" graph with ROI bars.
+* GRANULARITY: Daily (Resampled from per-tick data).
+* Use --only-strategy to run a specific strategy.
+* Use --warmup-hours (default 48) for accurate initial state.
+
+Command:
+python tools/run_unified_comparison.py --snapshot vm_logs/snapshots/snapshot_2026-01-08_173738.json --out backtest_charts/unified_comparison_single.html --only-strategy hb_notional_010 --warmup-hours 48
+
+--------------------------------------------------------------------------------
+3. UNIFIED COMPARISON (Multi-Strategy / Bulk Analysis)
+--------------------------------------------------------------------------------
+Automates running MULTIPLE backtest variants and plotting them on ONE chart.
+* GRANULARITY: Daily (Resampled).
+* Runs "Normal Hours" and "All-Day" (24/7) versions for multiple strategies.
+
+Command:
+python tools/run_unified_comparison.py --snapshot vm_logs/snapshots/snapshot_2026-01-08_173738.json --out backtest_charts/unified_comparison_variants.html --preset full --warmup-hours 48
+
+--------------------------------------------------------------------------------
+4. SHADOW VS LOCAL CASH (Cash Balance)
 --------------------------------------------------------------------------------
 Compares the raw cash balance over time. Useful for seeing payouts and spending.
 
@@ -24,31 +46,9 @@ Command:
 python tools/generate_live_vs_backtest_cash_graph.py --snapshot vm_logs/snapshots/snapshot_2026-01-08_173738.json --out-dir unified_engine_out_snapshot_live_v2 --graph backtest_charts/shadow_vs_local_cash_timeline.html --start-ts "2026-01-08 17:37:38"
 
 --------------------------------------------------------------------------------
-3. UNIFIED VARIANT (Single Strategy, Legacy Style)
+HELPER: RUNNING A SINGLE BACKTEST (Manual)
 --------------------------------------------------------------------------------
-Generates the 2-panel "Equity + Daily Return" graph for a SINGLE backtest run.
-Matches the style of the legacy ComplexBacktester.
-
-Prerequisite: Run a backtest first (e.g., python run_unified_backtest.py ...)
+If you need to generate raw data (CSV) for a single run manually:
 
 Command:
-python tools/generate_unified_variant_graph.py --snapshot dec05_snapshot.json --out-dir unified_engine_out_dec05 --out backtest_charts/unified_variant_dec05.html
-
---------------------------------------------------------------------------------
-4. UNIFIED COMPARISON (Multi-Strategy, Hours vs All-Day)
---------------------------------------------------------------------------------
-Automates running MULTIPLE backtest variants and plotting them on ONE chart.
-This is the "Master" command for strategy analysis.
-* Runs "Normal Hours" and "All-Day" (24/7) versions for multiple strategies.
-* Generates the comparison graph automatically.
-
-Command:
-python tools/run_unified_comparison.py --snapshot dec05_snapshot.json --start-ts "2025-12-05 00:00:00" --initial-cash 100.0 --out backtest_charts/unified_comparison_dec05.html
-
---------------------------------------------------------------------------------
-HELPER: RUNNING A SINGLE BACKTEST
---------------------------------------------------------------------------------
-If you need to generate data for Graph #3 manually:
-
-Command:
-python run_unified_backtest.py --snapshot dec05_snapshot.json --start-ts "2025-12-05 00:00:00" --initial-cash 100.0 --warmup-hours 0 --out-dir unified_engine_out_dec05 --strategy hb_notional_010
+python run_unified_backtest.py --snapshot vm_logs/snapshots/snapshot_2026-01-08_173738.json --start-ts "2026-01-08 17:37:38" --warmup-hours 48 --out-dir unified_engine_out --strategy hb_notional_010

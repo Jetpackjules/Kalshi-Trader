@@ -49,10 +49,12 @@ def main():
         ("server_mirror/unified_engine/adapters.py", "unified_engine/adapters.py"),
         ("server_mirror/unified_engine/engine.py", "unified_engine/engine.py"),
         ("server_mirror/unified_engine/tick_sources.py", "unified_engine/tick_sources.py"),
+        ("server_mirror/backtesting/strategies/v3_variants.py", "backtesting/strategies/v3_variants.py"),
+        ("server_mirror/backtesting/engine.py", "backtesting/engine.py"),
     ]
     
     # Ensure remote directory exists
-    mkdir_cmd = f'ssh -i {KEY_PATH} -o StrictHostKeyChecking=no {SERVER_ADDR} "mkdir -p unified_engine"'
+    mkdir_cmd = f'ssh -i {KEY_PATH} -o StrictHostKeyChecking=no {SERVER_ADDR} "mkdir -p unified_engine backtesting/strategies"'
     run_command(mkdir_cmd, "Creating remote unified_engine directory")
 
     for local_rel, remote_rel in files_to_upload:

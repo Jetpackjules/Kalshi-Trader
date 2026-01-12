@@ -129,7 +129,7 @@ def _build_decision_logger(path: str | None):
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Unified engine prototype runner.")
-    parser.add_argument("--strategy", default="backtesting.strategies.v3_variants:hb_notional_010")
+    parser.add_argument("--strategy", default="backtesting.strategies.v3_variants:recommended_live_strategy")
     parser.add_argument("--log-dir", default=os.path.join("vm_logs", "market_logs"))
     parser.add_argument("--tick-log", default="", help="Optional live tick CSV (live_ticks_*.csv)")
     parser.add_argument("--use-ingest", action="store_true", help="Use ingest_timestamp from live tick logs")

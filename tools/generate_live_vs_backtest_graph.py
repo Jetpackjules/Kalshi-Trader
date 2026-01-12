@@ -14,7 +14,7 @@ def _parse_timestamp(value: str) -> datetime | None:
     if not value:
         return None
     raw = value.replace("T", " ").replace("_", " ")
-    for fmt in ("%Y-%m-%d %H:%M:%S.%f", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H%M%S"):
+    for fmt in ("%Y-%m-%d %H:%M:%S.%f", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H%M%S", "%Y-%m-%d"):
         try:
             return datetime.strptime(raw, fmt)
         except ValueError:
@@ -905,6 +905,7 @@ def main() -> int:
     parser.add_argument("--live-trades", default=os.path.join("vm_logs", "trades.csv"))
     parser.add_argument("--live-decisions", default=os.path.join("vm_logs", "unified_engine_out", "decision_intents.csv"))
     parser.add_argument("--backtest-decisions", default="")
+    parser.add_argument("--unified-csv", type=str, help="Path to unified engine equity_history.csv")
     parser.add_argument("--status-dir", default=os.path.join("vm_logs", "snapshots"))
     parser.add_argument("--strategy", default="backtesting.strategies.v3_variants:hb_notional_010")
     parser.add_argument("--min-requote-interval", type=float, default=2.0)
@@ -942,6 +943,21 @@ def main() -> int:
         raise SystemExit("Could not determine end timestamp from market logs.")
 
     print(f"Time Range: {start_dt} -> {end_dt}")
+
+    # Load Unified Backtest Data if provided
+    unified_series = []
+    if args.unified_csv and os.path.exists(args.unified_csv):
+        print(f"Loading Unified Backtest data from {args.unified_csv}...")
+        with open(args.unified_csv, "r", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                dt = _parse_timestamp(row.get("date"))
+                if not dt: continue
+                if start_dt and dt < start_dt: continue
+                if end_dt and dt > end_dt: continue
+                unified_series.append({"time": dt.isoformat(), "equity": float(row["equity"])})
+        unified_series.sort(key=lambda x: x["time"])
+        print(f"Loaded {len(unified_series)} points from Unified Backtest.")
 
     # Optional: adjust backtest snapshot start equity to match reported baseline.
     backtest_snapshot_path = snapshot_path
@@ -1127,6 +1143,7 @@ def main() -> int:
   <script>
       const reported = {json.dumps(reported_on_ticks)};
     const local = {json.dumps(local_aligned)};
+    const unified = {json.dumps(unified_series)};
     const localAsk = {json.dumps(local_ask_aligned)};
     const liveTrades = {json.dumps(live_trade_points_aligned)};
     const localTrades = {json.dumps(local_trades_aligned)};
@@ -1169,6 +1186,7 @@ def main() -> int:
       const traces = [
         ...(reported.length ? [{{ x: reported.map(p => p.time), y: reported.map(p => p.equity), mode: 'lines', name: 'Live (reported, tick-time)', line: {{ color: '#2f6bff', width: 2 }} }}] : []),
       {{ x: local.map(p => p.time), y: local.map(p => p.equity), mode: 'lines', name: 'Backtest (replay)', line: {{ color: '#d46a3b' }} }},
+      ...(unified.length ? [{{ x: unified.map(p => p.time), y: unified.map(p => p.equity), mode: 'lines', name: 'Unified Backtest', line: {{ color: '#9900cc', width: 3 }} }}] : []),
       ...(localAsk.length ? [{{ x: localAsk.map(p => p.time), y: localAsk.map(p => p.equity), mode: 'lines', name: 'Backtest (implied yes ask)', line: {{ color: '#2aa876', dash: 'dot' }} }}] : []),
       {{ x: liveTrades.map(p => p.time), y: liveTrades.map(p => p.equity), mode: 'markers', name: 'Live trades', marker: {{ size: 7, color: '#f5b700', symbol: 'circle' }} }},
       {{ x: localTrades.map(p => p.time), y: localTrades.map(p => p.equity), mode: 'markers', name: 'Backtest trades', marker: {{ size: 7, color: '#ff7a1a', symbol: 'circle' }} }},

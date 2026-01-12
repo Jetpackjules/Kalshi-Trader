@@ -317,6 +317,8 @@ def main() -> int:
     parser.add_argument("--graph", default=os.path.join("backtest_charts", "shadow_vs_local_cash_timeline.html"))
     parser.add_argument("--start-ts", default="")
     parser.add_argument("--end-ts", default="")
+    parser.add_argument("--extra-trades", default="", help="Optional path to a second trades CSV to plot as a comparison line")
+    parser.add_argument("--extra-label", default="Recommended Strategy", help="Label for the extra trades line")
     args = parser.parse_args()
 
     # Load Snapshot to get default start time
@@ -373,6 +375,14 @@ def main() -> int:
 
     backtest_cash = _compute_backtest_cash(trades_path, snapshot_path, args.market_dir, start_dt, end_dt)
     
+    extra_cash = []
+    if args.extra_trades:
+        if not os.path.exists(args.extra_trades):
+            print(f"WARNING: Extra trades file not found: {args.extra_trades}")
+        else:
+            print(f"Computing cash for extra trades: {args.extra_trades}")
+            extra_cash = _compute_backtest_cash(args.extra_trades, snapshot_path, args.market_dir, start_dt, end_dt)
+    
     # STRICT CLIPPING: Ensure live cash starts exactly at or after start_dt
     live_cash = [p for p in live_cash_all if start_dt <= datetime.fromisoformat(p["time"]) <= end_dt]
     
@@ -401,10 +411,12 @@ def main() -> int:
   <script>
     const backtest = {json.dumps(backtest_cash)};
     const live = {json.dumps(live_cash_aligned)};
+    const extra = {json.dumps(extra_cash)};
 
     const traces = [
-      {{ x: backtest.map(p => p.time), y: backtest.map(p => p.cash), mode: 'lines', name: 'Backtest cash', line: {{ color: '#d46a3b' }} }},
-      ...(live.length ? [{{ x: live.map(p => p.time), y: live.map(p => p.cash), mode: 'lines', name: 'Live cash (reported)', line: {{ color: '#2f6bff', width: 2 }} }}] : []),
+      {{ x: backtest.map(p => p.time), y: backtest.map(p => p.cash), mode: 'lines', name: 'Baseline Backtest', line: {{ color: '#d46a3b' }} }},
+      ...(live.length ? [{{ x: live.map(p => p.time), y: live.map(p => p.cash), mode: 'lines', name: 'Live Cash', line: {{ color: '#2f6bff', width: 2 }} }}] : []),
+      ...(extra.length ? [{{ x: extra.map(p => p.time), y: extra.map(p => p.cash), mode: 'lines', name: '{args.extra_label}', line: {{ color: '#9333ea', width: 2 }} }}] : []),
     ];
 
     const layout = {{
@@ -422,7 +434,7 @@ def main() -> int:
     os.makedirs(os.path.dirname(args.graph), exist_ok=True)
     with open(args.graph, "w", encoding="utf-8") as f:
         f.write(html)
-    print(f"Wrote {args.graph} (backtest={len(backtest_cash)} live={len(live_cash_aligned)})")
+    print(f"Wrote {args.graph} (backtest={len(backtest_cash)} live={len(live_cash_aligned)} extra={len(extra_cash)})")
     return 0
 
 
