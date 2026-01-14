@@ -1,0 +1,2882 @@
+[
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n5_m2_t10_s1",
+    "label": "grid_r60_n5_m2_t10_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n5_m2_t10_s2",
+    "label": "grid_r60_n5_m2_t10_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n5_m2_t5_s2",
+    "label": "grid_r60_n5_m2_t5_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n5_m4_t5_s2",
+    "label": "grid_r60_n5_m4_t5_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n5_m2_t5_s1",
+    "label": "grid_r60_n5_m2_t5_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n5_m4_t5_s6",
+    "label": "grid_r60_n5_m4_t5_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n5_m2_t25_s1",
+    "label": "grid_r60_n5_m2_t25_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n5_m4_t5_s1",
+    "label": "grid_r60_n5_m4_t5_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n5_m2_t10_s4",
+    "label": "grid_r60_n5_m2_t10_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n5_m2_t5_s4",
+    "label": "grid_r60_n5_m2_t5_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n5_m4_t5_s4",
+    "label": "grid_r60_n5_m4_t5_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n5_m2_t5_s6",
+    "label": "grid_r60_n5_m2_t5_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n5_m2_t25_s2",
+    "label": "grid_r60_n5_m2_t25_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n5_m2_t10_s6",
+    "label": "grid_r60_n5_m2_t10_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n5_m2_t25_s4",
+    "label": "grid_r60_n5_m2_t25_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n5_m2_t25_s6",
+    "label": "grid_r60_n5_m2_t25_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n5_m4_t10_s1",
+    "label": "grid_r60_n5_m4_t10_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n5_m6_t5_s1",
+    "label": "grid_r60_n5_m6_t5_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n5_m6_t5_s2",
+    "label": "grid_r60_n5_m6_t5_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n5_m4_t10_s2",
+    "label": "grid_r60_n5_m4_t10_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n5_m6_t5_s4",
+    "label": "grid_r60_n5_m6_t5_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n5_m4_t10_s4",
+    "label": "grid_r60_n5_m4_t10_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n5_m4_t10_s6",
+    "label": "grid_r60_n5_m4_t10_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n5_m6_t5_s6",
+    "label": "grid_r60_n5_m6_t5_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n5_m6_t10_s1",
+    "label": "grid_r60_n5_m6_t10_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n5_m6_t10_s2",
+    "label": "grid_r60_n5_m6_t10_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n5_m4_t25_s2",
+    "label": "grid_r60_n5_m4_t25_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n5_m4_t25_s6",
+    "label": "grid_r60_n5_m4_t25_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n5_m4_t25_s1",
+    "label": "grid_r60_n5_m4_t25_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n5_m4_t25_s4",
+    "label": "grid_r60_n5_m4_t25_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n5_m6_t10_s4",
+    "label": "grid_r60_n5_m6_t10_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n5_m6_t10_s6",
+    "label": "grid_r60_n5_m6_t10_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n5_m8_t5_s1",
+    "label": "grid_r60_n5_m8_t5_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n5_m8_t5_s2",
+    "label": "grid_r60_n5_m8_t5_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n5_m8_t5_s4",
+    "label": "grid_r60_n5_m8_t5_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n5_m8_t5_s6",
+    "label": "grid_r60_n5_m8_t5_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n5_m6_t25_s1",
+    "label": "grid_r60_n5_m6_t25_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n5_m6_t25_s6",
+    "label": "grid_r60_n5_m6_t25_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n5_m6_t25_s2",
+    "label": "grid_r60_n5_m6_t25_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n5_m8_t10_s1",
+    "label": "grid_r60_n5_m8_t10_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n5_m8_t10_s6",
+    "label": "grid_r60_n5_m8_t10_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n5_m6_t25_s4",
+    "label": "grid_r60_n5_m6_t25_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n5_m8_t10_s4",
+    "label": "grid_r60_n5_m8_t10_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n5_m8_t10_s2",
+    "label": "grid_r60_n5_m8_t10_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n5_m8_t25_s1",
+    "label": "grid_r60_n5_m8_t25_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n5_m8_t25_s4",
+    "label": "grid_r60_n5_m8_t25_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n5_m8_t25_s2",
+    "label": "grid_r60_n5_m8_t25_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n5_m8_t25_s6",
+    "label": "grid_r60_n5_m8_t25_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n5_m10_t5_s1",
+    "label": "grid_r60_n5_m10_t5_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n5_m10_t5_s2",
+    "label": "grid_r60_n5_m10_t5_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n5_m10_t5_s4",
+    "label": "grid_r60_n5_m10_t5_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n5_m10_t5_s6",
+    "label": "grid_r60_n5_m10_t5_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n5_m10_t10_s1",
+    "label": "grid_r60_n5_m10_t10_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n5_m10_t10_s6",
+    "label": "grid_r60_n5_m10_t10_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n5_m10_t10_s2",
+    "label": "grid_r60_n5_m10_t10_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n5_m10_t10_s4",
+    "label": "grid_r60_n5_m10_t10_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n5_m10_t25_s4",
+    "label": "grid_r60_n5_m10_t25_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n5_m10_t25_s6",
+    "label": "grid_r60_n5_m10_t25_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n5_m10_t25_s1",
+    "label": "grid_r60_n5_m10_t25_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n5_m10_t25_s2",
+    "label": "grid_r60_n5_m10_t25_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n10_m2_t5_s1",
+    "label": "grid_r60_n10_m2_t5_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n10_m2_t5_s2",
+    "label": "grid_r60_n10_m2_t5_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n10_m2_t5_s4",
+    "label": "grid_r60_n10_m2_t5_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n10_m2_t5_s6",
+    "label": "grid_r60_n10_m2_t5_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n10_m2_t10_s1",
+    "label": "grid_r60_n10_m2_t10_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n10_m2_t10_s2",
+    "label": "grid_r60_n10_m2_t10_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n10_m2_t10_s4",
+    "label": "grid_r60_n10_m2_t10_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n10_m2_t25_s1",
+    "label": "grid_r60_n10_m2_t25_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n10_m2_t10_s6",
+    "label": "grid_r60_n10_m2_t10_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n10_m2_t25_s2",
+    "label": "grid_r60_n10_m2_t25_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n10_m4_t5_s1",
+    "label": "grid_r60_n10_m4_t5_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n10_m4_t5_s6",
+    "label": "grid_r60_n10_m4_t5_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n10_m4_t5_s2",
+    "label": "grid_r60_n10_m4_t5_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n10_m4_t5_s4",
+    "label": "grid_r60_n10_m4_t5_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n10_m2_t25_s4",
+    "label": "grid_r60_n10_m2_t25_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n10_m2_t25_s6",
+    "label": "grid_r60_n10_m2_t25_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n10_m4_t10_s1",
+    "label": "grid_r60_n10_m4_t10_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n10_m4_t10_s2",
+    "label": "grid_r60_n10_m4_t10_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n10_m4_t10_s6",
+    "label": "grid_r60_n10_m4_t10_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n10_m4_t10_s4",
+    "label": "grid_r60_n10_m4_t10_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n10_m4_t25_s2",
+    "label": "grid_r60_n10_m4_t25_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n10_m4_t25_s1",
+    "label": "grid_r60_n10_m4_t25_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n10_m6_t5_s1",
+    "label": "grid_r60_n10_m6_t5_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n10_m6_t5_s2",
+    "label": "grid_r60_n10_m6_t5_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n10_m4_t25_s6",
+    "label": "grid_r60_n10_m4_t25_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n10_m6_t5_s4",
+    "label": "grid_r60_n10_m6_t5_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n10_m4_t25_s4",
+    "label": "grid_r60_n10_m4_t25_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n10_m6_t5_s6",
+    "label": "grid_r60_n10_m6_t5_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n10_m6_t10_s1",
+    "label": "grid_r60_n10_m6_t10_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n10_m6_t10_s4",
+    "label": "grid_r60_n10_m6_t10_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n10_m6_t10_s2",
+    "label": "grid_r60_n10_m6_t10_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n10_m6_t10_s6",
+    "label": "grid_r60_n10_m6_t10_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n10_m6_t25_s1",
+    "label": "grid_r60_n10_m6_t25_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n10_m6_t25_s6",
+    "label": "grid_r60_n10_m6_t25_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n10_m6_t25_s4",
+    "label": "grid_r60_n10_m6_t25_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n10_m6_t25_s2",
+    "label": "grid_r60_n10_m6_t25_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n10_m8_t5_s2",
+    "label": "grid_r60_n10_m8_t5_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n10_m8_t5_s1",
+    "label": "grid_r60_n10_m8_t5_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n10_m8_t5_s4",
+    "label": "grid_r60_n10_m8_t5_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n10_m8_t5_s6",
+    "label": "grid_r60_n10_m8_t5_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n10_m8_t10_s1",
+    "label": "grid_r60_n10_m8_t10_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n10_m8_t10_s2",
+    "label": "grid_r60_n10_m8_t10_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n10_m8_t10_s4",
+    "label": "grid_r60_n10_m8_t10_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n10_m8_t10_s6",
+    "label": "grid_r60_n10_m8_t10_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n10_m8_t25_s1",
+    "label": "grid_r60_n10_m8_t25_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n10_m8_t25_s4",
+    "label": "grid_r60_n10_m8_t25_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n10_m8_t25_s2",
+    "label": "grid_r60_n10_m8_t25_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n10_m8_t25_s6",
+    "label": "grid_r60_n10_m8_t25_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n10_m10_t5_s1",
+    "label": "grid_r60_n10_m10_t5_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n10_m10_t5_s2",
+    "label": "grid_r60_n10_m10_t5_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n10_m10_t5_s4",
+    "label": "grid_r60_n10_m10_t5_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n10_m10_t5_s6",
+    "label": "grid_r60_n10_m10_t5_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n10_m10_t10_s1",
+    "label": "grid_r60_n10_m10_t10_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n10_m10_t10_s2",
+    "label": "grid_r60_n10_m10_t10_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n10_m10_t10_s4",
+    "label": "grid_r60_n10_m10_t10_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n10_m10_t10_s6",
+    "label": "grid_r60_n10_m10_t10_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n10_m10_t25_s1",
+    "label": "grid_r60_n10_m10_t25_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n10_m10_t25_s4",
+    "label": "grid_r60_n10_m10_t25_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n10_m10_t25_s2",
+    "label": "grid_r60_n10_m10_t25_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n10_m10_t25_s6",
+    "label": "grid_r60_n10_m10_t25_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n15_m2_t5_s1",
+    "label": "grid_r60_n15_m2_t5_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n15_m2_t10_s1",
+    "label": "grid_r60_n15_m2_t10_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n15_m2_t5_s2",
+    "label": "grid_r60_n15_m2_t5_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n15_m2_t10_s2",
+    "label": "grid_r60_n15_m2_t10_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n15_m2_t5_s4",
+    "label": "grid_r60_n15_m2_t5_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n15_m2_t5_s6",
+    "label": "grid_r60_n15_m2_t5_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n15_m2_t10_s4",
+    "label": "grid_r60_n15_m2_t10_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n15_m2_t10_s6",
+    "label": "grid_r60_n15_m2_t10_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n15_m2_t25_s1",
+    "label": "grid_r60_n15_m2_t25_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n15_m2_t25_s2",
+    "label": "grid_r60_n15_m2_t25_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n15_m2_t25_s4",
+    "label": "grid_r60_n15_m2_t25_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n15_m4_t5_s1",
+    "label": "grid_r60_n15_m4_t5_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n15_m4_t5_s4",
+    "label": "grid_r60_n15_m4_t5_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n15_m2_t25_s6",
+    "label": "grid_r60_n15_m2_t25_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n15_m4_t5_s6",
+    "label": "grid_r60_n15_m4_t5_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n15_m4_t5_s2",
+    "label": "grid_r60_n15_m4_t5_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n15_m4_t10_s2",
+    "label": "grid_r60_n15_m4_t10_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n15_m4_t10_s1",
+    "label": "grid_r60_n15_m4_t10_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n15_m4_t10_s4",
+    "label": "grid_r60_n15_m4_t10_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n15_m4_t10_s6",
+    "label": "grid_r60_n15_m4_t10_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n15_m4_t25_s1",
+    "label": "grid_r60_n15_m4_t25_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n15_m4_t25_s2",
+    "label": "grid_r60_n15_m4_t25_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n15_m4_t25_s4",
+    "label": "grid_r60_n15_m4_t25_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n15_m4_t25_s6",
+    "label": "grid_r60_n15_m4_t25_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n15_m6_t5_s1",
+    "label": "grid_r60_n15_m6_t5_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n15_m6_t5_s2",
+    "label": "grid_r60_n15_m6_t5_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n15_m6_t5_s4",
+    "label": "grid_r60_n15_m6_t5_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n15_m6_t5_s6",
+    "label": "grid_r60_n15_m6_t5_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n15_m6_t10_s1",
+    "label": "grid_r60_n15_m6_t10_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n15_m6_t10_s4",
+    "label": "grid_r60_n15_m6_t10_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n15_m6_t10_s2",
+    "label": "grid_r60_n15_m6_t10_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n15_m6_t25_s1",
+    "label": "grid_r60_n15_m6_t25_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n15_m6_t10_s6",
+    "label": "grid_r60_n15_m6_t10_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n15_m6_t25_s2",
+    "label": "grid_r60_n15_m6_t25_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n15_m6_t25_s4",
+    "label": "grid_r60_n15_m6_t25_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n15_m8_t5_s1",
+    "label": "grid_r60_n15_m8_t5_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n15_m8_t5_s2",
+    "label": "grid_r60_n15_m8_t5_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n15_m6_t25_s6",
+    "label": "grid_r60_n15_m6_t25_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n15_m8_t5_s4",
+    "label": "grid_r60_n15_m8_t5_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n15_m8_t5_s6",
+    "label": "grid_r60_n15_m8_t5_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n15_m8_t10_s1",
+    "label": "grid_r60_n15_m8_t10_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n15_m8_t10_s4",
+    "label": "grid_r60_n15_m8_t10_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n15_m8_t10_s2",
+    "label": "grid_r60_n15_m8_t10_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n15_m8_t10_s6",
+    "label": "grid_r60_n15_m8_t10_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n15_m8_t25_s1",
+    "label": "grid_r60_n15_m8_t25_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n15_m8_t25_s2",
+    "label": "grid_r60_n15_m8_t25_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n15_m10_t5_s1",
+    "label": "grid_r60_n15_m10_t5_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n15_m8_t25_s4",
+    "label": "grid_r60_n15_m8_t25_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n15_m10_t5_s2",
+    "label": "grid_r60_n15_m10_t5_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n15_m10_t5_s4",
+    "label": "grid_r60_n15_m10_t5_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n15_m10_t5_s6",
+    "label": "grid_r60_n15_m10_t5_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n15_m8_t25_s6",
+    "label": "grid_r60_n15_m8_t25_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n15_m10_t10_s2",
+    "label": "grid_r60_n15_m10_t10_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n15_m10_t10_s1",
+    "label": "grid_r60_n15_m10_t10_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n15_m10_t10_s4",
+    "label": "grid_r60_n15_m10_t10_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n15_m10_t10_s6",
+    "label": "grid_r60_n15_m10_t10_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n15_m10_t25_s1",
+    "label": "grid_r60_n15_m10_t25_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n15_m10_t25_s2",
+    "label": "grid_r60_n15_m10_t25_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n15_m10_t25_s6",
+    "label": "grid_r60_n15_m10_t25_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n15_m10_t25_s4",
+    "label": "grid_r60_n15_m10_t25_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n20_m2_t5_s1",
+    "label": "grid_r60_n20_m2_t5_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n20_m2_t10_s1",
+    "label": "grid_r60_n20_m2_t10_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n20_m2_t5_s2",
+    "label": "grid_r60_n20_m2_t5_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n20_m2_t10_s2",
+    "label": "grid_r60_n20_m2_t10_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n20_m2_t5_s4",
+    "label": "grid_r60_n20_m2_t5_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n20_m2_t5_s6",
+    "label": "grid_r60_n20_m2_t5_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n20_m2_t25_s1",
+    "label": "grid_r60_n20_m2_t25_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n20_m2_t10_s4",
+    "label": "grid_r60_n20_m2_t10_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n20_m2_t10_s6",
+    "label": "grid_r60_n20_m2_t10_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n20_m2_t25_s2",
+    "label": "grid_r60_n20_m2_t25_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n20_m2_t25_s4",
+    "label": "grid_r60_n20_m2_t25_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n20_m2_t25_s6",
+    "label": "grid_r60_n20_m2_t25_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n20_m4_t5_s1",
+    "label": "grid_r60_n20_m4_t5_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n20_m4_t5_s2",
+    "label": "grid_r60_n20_m4_t5_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n20_m4_t5_s4",
+    "label": "grid_r60_n20_m4_t5_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n20_m4_t5_s6",
+    "label": "grid_r60_n20_m4_t5_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n20_m4_t10_s1",
+    "label": "grid_r60_n20_m4_t10_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n20_m4_t10_s2",
+    "label": "grid_r60_n20_m4_t10_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n20_m4_t10_s4",
+    "label": "grid_r60_n20_m4_t10_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n20_m4_t10_s6",
+    "label": "grid_r60_n20_m4_t10_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n20_m4_t25_s1",
+    "label": "grid_r60_n20_m4_t25_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n20_m6_t5_s1",
+    "label": "grid_r60_n20_m6_t5_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n20_m4_t25_s2",
+    "label": "grid_r60_n20_m4_t25_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n20_m6_t5_s2",
+    "label": "grid_r60_n20_m6_t5_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n20_m4_t25_s4",
+    "label": "grid_r60_n20_m4_t25_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n20_m4_t25_s6",
+    "label": "grid_r60_n20_m4_t25_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n20_m6_t5_s4",
+    "label": "grid_r60_n20_m6_t5_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n20_m6_t5_s6",
+    "label": "grid_r60_n20_m6_t5_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n20_m6_t10_s1",
+    "label": "grid_r60_n20_m6_t10_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n20_m6_t10_s4",
+    "label": "grid_r60_n20_m6_t10_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n20_m6_t10_s2",
+    "label": "grid_r60_n20_m6_t10_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n20_m6_t10_s6",
+    "label": "grid_r60_n20_m6_t10_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n20_m6_t25_s1",
+    "label": "grid_r60_n20_m6_t25_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n20_m6_t25_s2",
+    "label": "grid_r60_n20_m6_t25_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n20_m8_t5_s1",
+    "label": "grid_r60_n20_m8_t5_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n20_m6_t25_s4",
+    "label": "grid_r60_n20_m6_t25_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n20_m8_t5_s2",
+    "label": "grid_r60_n20_m8_t5_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n20_m6_t25_s6",
+    "label": "grid_r60_n20_m6_t25_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n20_m8_t5_s6",
+    "label": "grid_r60_n20_m8_t5_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n20_m8_t5_s4",
+    "label": "grid_r60_n20_m8_t5_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n20_m8_t10_s1",
+    "label": "grid_r60_n20_m8_t10_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n20_m8_t10_s2",
+    "label": "grid_r60_n20_m8_t10_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n20_m8_t10_s4",
+    "label": "grid_r60_n20_m8_t10_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n20_m8_t10_s6",
+    "label": "grid_r60_n20_m8_t10_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n20_m8_t25_s1",
+    "label": "grid_r60_n20_m8_t25_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n20_m8_t25_s2",
+    "label": "grid_r60_n20_m8_t25_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n20_m8_t25_s4",
+    "label": "grid_r60_n20_m8_t25_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n20_m8_t25_s6",
+    "label": "grid_r60_n20_m8_t25_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n20_m10_t5_s1",
+    "label": "grid_r60_n20_m10_t5_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n20_m10_t5_s2",
+    "label": "grid_r60_n20_m10_t5_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n20_m10_t5_s4",
+    "label": "grid_r60_n20_m10_t5_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n20_m10_t5_s6",
+    "label": "grid_r60_n20_m10_t5_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n20_m10_t10_s1",
+    "label": "grid_r60_n20_m10_t10_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n20_m10_t10_s2",
+    "label": "grid_r60_n20_m10_t10_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n20_m10_t10_s6",
+    "label": "grid_r60_n20_m10_t10_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n20_m10_t10_s4",
+    "label": "grid_r60_n20_m10_t10_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n20_m10_t25_s1",
+    "label": "grid_r60_n20_m10_t25_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n20_m10_t25_s2",
+    "label": "grid_r60_n20_m10_t25_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n20_m10_t25_s4",
+    "label": "grid_r60_n20_m10_t25_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r60_n20_m10_t25_s6",
+    "label": "grid_r60_n20_m10_t25_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n5_m2_t5_s1",
+    "label": "grid_r80_n5_m2_t5_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n5_m2_t5_s2",
+    "label": "grid_r80_n5_m2_t5_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n5_m2_t10_s1",
+    "label": "grid_r80_n5_m2_t10_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n5_m2_t5_s4",
+    "label": "grid_r80_n5_m2_t5_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n5_m2_t5_s6",
+    "label": "grid_r80_n5_m2_t5_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n5_m2_t10_s2",
+    "label": "grid_r80_n5_m2_t10_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n5_m2_t10_s4",
+    "label": "grid_r80_n5_m2_t10_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n5_m2_t25_s1",
+    "label": "grid_r80_n5_m2_t25_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n5_m2_t10_s6",
+    "label": "grid_r80_n5_m2_t10_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n5_m4_t5_s1",
+    "label": "grid_r80_n5_m4_t5_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n5_m2_t25_s2",
+    "label": "grid_r80_n5_m2_t25_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n5_m4_t5_s2",
+    "label": "grid_r80_n5_m4_t5_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n5_m2_t25_s6",
+    "label": "grid_r80_n5_m2_t25_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n5_m2_t25_s4",
+    "label": "grid_r80_n5_m2_t25_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n5_m4_t5_s4",
+    "label": "grid_r80_n5_m4_t5_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n5_m4_t5_s6",
+    "label": "grid_r80_n5_m4_t5_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n5_m4_t10_s1",
+    "label": "grid_r80_n5_m4_t10_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n5_m4_t10_s2",
+    "label": "grid_r80_n5_m4_t10_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n5_m4_t10_s4",
+    "label": "grid_r80_n5_m4_t10_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n5_m4_t10_s6",
+    "label": "grid_r80_n5_m4_t10_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n5_m4_t25_s1",
+    "label": "grid_r80_n5_m4_t25_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n5_m4_t25_s2",
+    "label": "grid_r80_n5_m4_t25_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n5_m6_t5_s1",
+    "label": "grid_r80_n5_m6_t5_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n5_m6_t5_s4",
+    "label": "grid_r80_n5_m6_t5_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n5_m6_t5_s2",
+    "label": "grid_r80_n5_m6_t5_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n5_m6_t5_s6",
+    "label": "grid_r80_n5_m6_t5_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n5_m4_t25_s4",
+    "label": "grid_r80_n5_m4_t25_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n5_m4_t25_s6",
+    "label": "grid_r80_n5_m4_t25_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n5_m6_t10_s4",
+    "label": "grid_r80_n5_m6_t10_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n5_m6_t10_s2",
+    "label": "grid_r80_n5_m6_t10_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n5_m6_t10_s1",
+    "label": "grid_r80_n5_m6_t10_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n5_m6_t10_s6",
+    "label": "grid_r80_n5_m6_t10_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n5_m6_t25_s1",
+    "label": "grid_r80_n5_m6_t25_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n5_m6_t25_s2",
+    "label": "grid_r80_n5_m6_t25_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n5_m6_t25_s4",
+    "label": "grid_r80_n5_m6_t25_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n5_m8_t5_s2",
+    "label": "grid_r80_n5_m8_t5_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n5_m6_t25_s6",
+    "label": "grid_r80_n5_m6_t25_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n5_m8_t5_s1",
+    "label": "grid_r80_n5_m8_t5_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n5_m8_t5_s4",
+    "label": "grid_r80_n5_m8_t5_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n5_m8_t5_s6",
+    "label": "grid_r80_n5_m8_t5_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n5_m8_t10_s1",
+    "label": "grid_r80_n5_m8_t10_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n5_m8_t10_s2",
+    "label": "grid_r80_n5_m8_t10_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n5_m8_t10_s6",
+    "label": "grid_r80_n5_m8_t10_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n5_m8_t10_s4",
+    "label": "grid_r80_n5_m8_t10_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n5_m8_t25_s1",
+    "label": "grid_r80_n5_m8_t25_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n5_m8_t25_s2",
+    "label": "grid_r80_n5_m8_t25_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n5_m8_t25_s4",
+    "label": "grid_r80_n5_m8_t25_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n5_m8_t25_s6",
+    "label": "grid_r80_n5_m8_t25_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n5_m10_t5_s1",
+    "label": "grid_r80_n5_m10_t5_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n5_m10_t5_s2",
+    "label": "grid_r80_n5_m10_t5_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n5_m10_t5_s4",
+    "label": "grid_r80_n5_m10_t5_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n5_m10_t5_s6",
+    "label": "grid_r80_n5_m10_t5_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n5_m10_t10_s1",
+    "label": "grid_r80_n5_m10_t10_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n5_m10_t10_s2",
+    "label": "grid_r80_n5_m10_t10_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n5_m10_t10_s4",
+    "label": "grid_r80_n5_m10_t10_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n5_m10_t10_s6",
+    "label": "grid_r80_n5_m10_t10_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n5_m10_t25_s1",
+    "label": "grid_r80_n5_m10_t25_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n5_m10_t25_s2",
+    "label": "grid_r80_n5_m10_t25_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n5_m10_t25_s6",
+    "label": "grid_r80_n5_m10_t25_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n5_m10_t25_s4",
+    "label": "grid_r80_n5_m10_t25_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n10_m2_t5_s1",
+    "label": "grid_r80_n10_m2_t5_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n10_m2_t5_s2",
+    "label": "grid_r80_n10_m2_t5_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n10_m2_t5_s4",
+    "label": "grid_r80_n10_m2_t5_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n10_m2_t5_s6",
+    "label": "grid_r80_n10_m2_t5_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n10_m2_t10_s1",
+    "label": "grid_r80_n10_m2_t10_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n10_m2_t10_s2",
+    "label": "grid_r80_n10_m2_t10_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n10_m2_t25_s1",
+    "label": "grid_r80_n10_m2_t25_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n10_m2_t10_s4",
+    "label": "grid_r80_n10_m2_t10_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n10_m2_t10_s6",
+    "label": "grid_r80_n10_m2_t10_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n10_m2_t25_s2",
+    "label": "grid_r80_n10_m2_t25_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n10_m4_t5_s1",
+    "label": "grid_r80_n10_m4_t5_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n10_m4_t5_s2",
+    "label": "grid_r80_n10_m4_t5_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n10_m4_t5_s4",
+    "label": "grid_r80_n10_m4_t5_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n10_m2_t25_s6",
+    "label": "grid_r80_n10_m2_t25_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n10_m2_t25_s4",
+    "label": "grid_r80_n10_m2_t25_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n10_m4_t5_s6",
+    "label": "grid_r80_n10_m4_t5_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n10_m4_t10_s1",
+    "label": "grid_r80_n10_m4_t10_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n10_m4_t10_s2",
+    "label": "grid_r80_n10_m4_t10_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n10_m4_t10_s4",
+    "label": "grid_r80_n10_m4_t10_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n10_m4_t10_s6",
+    "label": "grid_r80_n10_m4_t10_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n10_m4_t25_s1",
+    "label": "grid_r80_n10_m4_t25_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n10_m4_t25_s2",
+    "label": "grid_r80_n10_m4_t25_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n10_m6_t5_s1",
+    "label": "grid_r80_n10_m6_t5_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n10_m6_t5_s2",
+    "label": "grid_r80_n10_m6_t5_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n10_m4_t25_s4",
+    "label": "grid_r80_n10_m4_t25_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n10_m6_t5_s4",
+    "label": "grid_r80_n10_m6_t5_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n10_m4_t25_s6",
+    "label": "grid_r80_n10_m4_t25_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n10_m6_t5_s6",
+    "label": "grid_r80_n10_m6_t5_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n10_m6_t10_s4",
+    "label": "grid_r80_n10_m6_t10_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n10_m6_t10_s2",
+    "label": "grid_r80_n10_m6_t10_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n10_m6_t10_s1",
+    "label": "grid_r80_n10_m6_t10_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n10_m6_t10_s6",
+    "label": "grid_r80_n10_m6_t10_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n10_m6_t25_s1",
+    "label": "grid_r80_n10_m6_t25_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n10_m6_t25_s2",
+    "label": "grid_r80_n10_m6_t25_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n10_m6_t25_s4",
+    "label": "grid_r80_n10_m6_t25_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n10_m6_t25_s6",
+    "label": "grid_r80_n10_m6_t25_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n10_m8_t5_s1",
+    "label": "grid_r80_n10_m8_t5_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n10_m8_t5_s2",
+    "label": "grid_r80_n10_m8_t5_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n10_m8_t5_s4",
+    "label": "grid_r80_n10_m8_t5_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n10_m8_t5_s6",
+    "label": "grid_r80_n10_m8_t5_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n10_m8_t10_s1",
+    "label": "grid_r80_n10_m8_t10_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n10_m8_t10_s2",
+    "label": "grid_r80_n10_m8_t10_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n10_m8_t10_s4",
+    "label": "grid_r80_n10_m8_t10_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n10_m8_t10_s6",
+    "label": "grid_r80_n10_m8_t10_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n10_m8_t25_s1",
+    "label": "grid_r80_n10_m8_t25_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n10_m8_t25_s6",
+    "label": "grid_r80_n10_m8_t25_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n10_m8_t25_s2",
+    "label": "grid_r80_n10_m8_t25_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n10_m8_t25_s4",
+    "label": "grid_r80_n10_m8_t25_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n10_m10_t5_s1",
+    "label": "grid_r80_n10_m10_t5_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n10_m10_t5_s2",
+    "label": "grid_r80_n10_m10_t5_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n10_m10_t5_s4",
+    "label": "grid_r80_n10_m10_t5_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n10_m10_t5_s6",
+    "label": "grid_r80_n10_m10_t5_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n10_m10_t10_s1",
+    "label": "grid_r80_n10_m10_t10_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n10_m10_t10_s2",
+    "label": "grid_r80_n10_m10_t10_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n10_m10_t10_s4",
+    "label": "grid_r80_n10_m10_t10_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n10_m10_t10_s6",
+    "label": "grid_r80_n10_m10_t10_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n10_m10_t25_s1",
+    "label": "grid_r80_n10_m10_t25_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n10_m10_t25_s2",
+    "label": "grid_r80_n10_m10_t25_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n10_m10_t25_s4",
+    "label": "grid_r80_n10_m10_t25_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n10_m10_t25_s6",
+    "label": "grid_r80_n10_m10_t25_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n15_m2_t5_s1",
+    "label": "grid_r80_n15_m2_t5_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n15_m2_t10_s1",
+    "label": "grid_r80_n15_m2_t10_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n15_m2_t5_s2",
+    "label": "grid_r80_n15_m2_t5_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n15_m2_t5_s4",
+    "label": "grid_r80_n15_m2_t5_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n15_m2_t5_s6",
+    "label": "grid_r80_n15_m2_t5_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n15_m2_t10_s2",
+    "label": "grid_r80_n15_m2_t10_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n15_m2_t10_s4",
+    "label": "grid_r80_n15_m2_t10_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n15_m2_t10_s6",
+    "label": "grid_r80_n15_m2_t10_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n15_m2_t25_s1",
+    "label": "grid_r80_n15_m2_t25_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n15_m2_t25_s2",
+    "label": "grid_r80_n15_m2_t25_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n15_m2_t25_s4",
+    "label": "grid_r80_n15_m2_t25_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n15_m4_t5_s2",
+    "label": "grid_r80_n15_m4_t5_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n15_m4_t5_s1",
+    "label": "grid_r80_n15_m4_t5_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n15_m2_t25_s6",
+    "label": "grid_r80_n15_m2_t25_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n15_m4_t5_s4",
+    "label": "grid_r80_n15_m4_t5_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n15_m4_t5_s6",
+    "label": "grid_r80_n15_m4_t5_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n15_m4_t10_s1",
+    "label": "grid_r80_n15_m4_t10_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n15_m4_t10_s2",
+    "label": "grid_r80_n15_m4_t10_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n15_m4_t10_s6",
+    "label": "grid_r80_n15_m4_t10_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n15_m4_t10_s4",
+    "label": "grid_r80_n15_m4_t10_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n15_m4_t25_s1",
+    "label": "grid_r80_n15_m4_t25_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n15_m4_t25_s2",
+    "label": "grid_r80_n15_m4_t25_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n15_m4_t25_s4",
+    "label": "grid_r80_n15_m4_t25_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n15_m4_t25_s6",
+    "label": "grid_r80_n15_m4_t25_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n15_m6_t5_s1",
+    "label": "grid_r80_n15_m6_t5_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n15_m6_t5_s2",
+    "label": "grid_r80_n15_m6_t5_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n15_m6_t5_s6",
+    "label": "grid_r80_n15_m6_t5_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n15_m6_t5_s4",
+    "label": "grid_r80_n15_m6_t5_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n15_m6_t10_s1",
+    "label": "grid_r80_n15_m6_t10_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n15_m6_t10_s2",
+    "label": "grid_r80_n15_m6_t10_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n15_m6_t10_s4",
+    "label": "grid_r80_n15_m6_t10_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n15_m6_t10_s6",
+    "label": "grid_r80_n15_m6_t10_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n15_m6_t25_s2",
+    "label": "grid_r80_n15_m6_t25_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n15_m6_t25_s1",
+    "label": "grid_r80_n15_m6_t25_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n15_m6_t25_s6",
+    "label": "grid_r80_n15_m6_t25_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n15_m8_t5_s1",
+    "label": "grid_r80_n15_m8_t5_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n15_m6_t25_s4",
+    "label": "grid_r80_n15_m6_t25_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n15_m8_t5_s2",
+    "label": "grid_r80_n15_m8_t5_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n15_m8_t5_s4",
+    "label": "grid_r80_n15_m8_t5_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n15_m8_t5_s6",
+    "label": "grid_r80_n15_m8_t5_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n15_m8_t10_s1",
+    "label": "grid_r80_n15_m8_t10_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n15_m8_t10_s2",
+    "label": "grid_r80_n15_m8_t10_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n15_m8_t10_s6",
+    "label": "grid_r80_n15_m8_t10_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n15_m8_t10_s4",
+    "label": "grid_r80_n15_m8_t10_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n15_m8_t25_s2",
+    "label": "grid_r80_n15_m8_t25_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n15_m8_t25_s1",
+    "label": "grid_r80_n15_m8_t25_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n15_m8_t25_s6",
+    "label": "grid_r80_n15_m8_t25_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n15_m8_t25_s4",
+    "label": "grid_r80_n15_m8_t25_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n15_m10_t5_s1",
+    "label": "grid_r80_n15_m10_t5_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n15_m10_t5_s2",
+    "label": "grid_r80_n15_m10_t5_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n15_m10_t5_s4",
+    "label": "grid_r80_n15_m10_t5_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n15_m10_t5_s6",
+    "label": "grid_r80_n15_m10_t5_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n15_m10_t10_s1",
+    "label": "grid_r80_n15_m10_t10_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n15_m10_t10_s2",
+    "label": "grid_r80_n15_m10_t10_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n15_m10_t10_s4",
+    "label": "grid_r80_n15_m10_t10_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n15_m10_t10_s6",
+    "label": "grid_r80_n15_m10_t10_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n15_m10_t25_s1",
+    "label": "grid_r80_n15_m10_t25_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n15_m10_t25_s2",
+    "label": "grid_r80_n15_m10_t25_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n15_m10_t25_s4",
+    "label": "grid_r80_n15_m10_t25_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n15_m10_t25_s6",
+    "label": "grid_r80_n15_m10_t25_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n20_m2_t5_s2",
+    "label": "grid_r80_n20_m2_t5_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n20_m2_t5_s1",
+    "label": "grid_r80_n20_m2_t5_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n20_m2_t10_s1",
+    "label": "grid_r80_n20_m2_t10_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n20_m2_t10_s2",
+    "label": "grid_r80_n20_m2_t10_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n20_m2_t5_s4",
+    "label": "grid_r80_n20_m2_t5_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n20_m2_t5_s6",
+    "label": "grid_r80_n20_m2_t5_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n20_m2_t25_s1",
+    "label": "grid_r80_n20_m2_t25_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n20_m2_t10_s4",
+    "label": "grid_r80_n20_m2_t10_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n20_m2_t10_s6",
+    "label": "grid_r80_n20_m2_t10_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n20_m2_t25_s2",
+    "label": "grid_r80_n20_m2_t25_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n20_m2_t25_s4",
+    "label": "grid_r80_n20_m2_t25_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n20_m2_t25_s6",
+    "label": "grid_r80_n20_m2_t25_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n20_m4_t5_s1",
+    "label": "grid_r80_n20_m4_t5_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n20_m4_t5_s2",
+    "label": "grid_r80_n20_m4_t5_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n20_m4_t5_s4",
+    "label": "grid_r80_n20_m4_t5_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n20_m4_t5_s6",
+    "label": "grid_r80_n20_m4_t5_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n20_m4_t10_s1",
+    "label": "grid_r80_n20_m4_t10_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n20_m4_t10_s2",
+    "label": "grid_r80_n20_m4_t10_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n20_m4_t10_s4",
+    "label": "grid_r80_n20_m4_t10_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n20_m4_t10_s6",
+    "label": "grid_r80_n20_m4_t10_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n20_m4_t25_s1",
+    "label": "grid_r80_n20_m4_t25_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n20_m6_t5_s1",
+    "label": "grid_r80_n20_m6_t5_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n20_m4_t25_s2",
+    "label": "grid_r80_n20_m4_t25_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n20_m4_t25_s4",
+    "label": "grid_r80_n20_m4_t25_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n20_m4_t25_s6",
+    "label": "grid_r80_n20_m4_t25_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n20_m6_t5_s2",
+    "label": "grid_r80_n20_m6_t5_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n20_m6_t5_s4",
+    "label": "grid_r80_n20_m6_t5_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n20_m6_t5_s6",
+    "label": "grid_r80_n20_m6_t5_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n20_m6_t10_s1",
+    "label": "grid_r80_n20_m6_t10_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n20_m6_t10_s2",
+    "label": "grid_r80_n20_m6_t10_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n20_m6_t10_s6",
+    "label": "grid_r80_n20_m6_t10_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n20_m6_t10_s4",
+    "label": "grid_r80_n20_m6_t10_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n20_m6_t25_s2",
+    "label": "grid_r80_n20_m6_t25_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n20_m6_t25_s1",
+    "label": "grid_r80_n20_m6_t25_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n20_m6_t25_s4",
+    "label": "grid_r80_n20_m6_t25_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n20_m8_t5_s1",
+    "label": "grid_r80_n20_m8_t5_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n20_m6_t25_s6",
+    "label": "grid_r80_n20_m6_t25_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n20_m8_t5_s6",
+    "label": "grid_r80_n20_m8_t5_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n20_m8_t5_s2",
+    "label": "grid_r80_n20_m8_t5_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n20_m8_t5_s4",
+    "label": "grid_r80_n20_m8_t5_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n20_m8_t10_s1",
+    "label": "grid_r80_n20_m8_t10_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n20_m8_t10_s2",
+    "label": "grid_r80_n20_m8_t10_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n20_m8_t10_s4",
+    "label": "grid_r80_n20_m8_t10_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n20_m8_t10_s6",
+    "label": "grid_r80_n20_m8_t10_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n20_m8_t25_s1",
+    "label": "grid_r80_n20_m8_t25_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n20_m8_t25_s2",
+    "label": "grid_r80_n20_m8_t25_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n20_m8_t25_s4",
+    "label": "grid_r80_n20_m8_t25_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n20_m8_t25_s6",
+    "label": "grid_r80_n20_m8_t25_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n20_m10_t5_s2",
+    "label": "grid_r80_n20_m10_t5_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n20_m10_t5_s1",
+    "label": "grid_r80_n20_m10_t5_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n20_m10_t5_s4",
+    "label": "grid_r80_n20_m10_t5_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n20_m10_t5_s6",
+    "label": "grid_r80_n20_m10_t5_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n20_m10_t10_s1",
+    "label": "grid_r80_n20_m10_t10_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n20_m10_t10_s4",
+    "label": "grid_r80_n20_m10_t10_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n20_m10_t10_s2",
+    "label": "grid_r80_n20_m10_t10_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n20_m10_t10_s6",
+    "label": "grid_r80_n20_m10_t10_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n20_m10_t25_s1",
+    "label": "grid_r80_n20_m10_t25_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n20_m10_t25_s2",
+    "label": "grid_r80_n20_m10_t25_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n20_m10_t25_s4",
+    "label": "grid_r80_n20_m10_t25_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r80_n20_m10_t25_s6",
+    "label": "grid_r80_n20_m10_t25_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n5_m2_t5_s1",
+    "label": "grid_r100_n5_m2_t5_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n5_m2_t5_s2",
+    "label": "grid_r100_n5_m2_t5_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n5_m2_t5_s4",
+    "label": "grid_r100_n5_m2_t5_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n5_m2_t10_s1",
+    "label": "grid_r100_n5_m2_t10_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n5_m2_t10_s2",
+    "label": "grid_r100_n5_m2_t10_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n5_m2_t5_s6",
+    "label": "grid_r100_n5_m2_t5_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n5_m2_t10_s4",
+    "label": "grid_r100_n5_m2_t10_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n5_m2_t25_s1",
+    "label": "grid_r100_n5_m2_t25_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n5_m2_t10_s6",
+    "label": "grid_r100_n5_m2_t10_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n5_m2_t25_s2",
+    "label": "grid_r100_n5_m2_t25_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n5_m4_t5_s1",
+    "label": "grid_r100_n5_m4_t5_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n5_m2_t25_s4",
+    "label": "grid_r100_n5_m2_t25_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n5_m2_t25_s6",
+    "label": "grid_r100_n5_m2_t25_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n5_m4_t5_s2",
+    "label": "grid_r100_n5_m4_t5_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n5_m4_t5_s4",
+    "label": "grid_r100_n5_m4_t5_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n5_m4_t5_s6",
+    "label": "grid_r100_n5_m4_t5_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n5_m4_t10_s1",
+    "label": "grid_r100_n5_m4_t10_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n5_m4_t10_s2",
+    "label": "grid_r100_n5_m4_t10_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n5_m4_t10_s4",
+    "label": "grid_r100_n5_m4_t10_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n5_m4_t10_s6",
+    "label": "grid_r100_n5_m4_t10_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n5_m4_t25_s1",
+    "label": "grid_r100_n5_m4_t25_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n5_m4_t25_s2",
+    "label": "grid_r100_n5_m4_t25_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n5_m6_t5_s1",
+    "label": "grid_r100_n5_m6_t5_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n5_m6_t5_s2",
+    "label": "grid_r100_n5_m6_t5_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n5_m4_t25_s4",
+    "label": "grid_r100_n5_m4_t25_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n5_m6_t5_s4",
+    "label": "grid_r100_n5_m6_t5_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n5_m4_t25_s6",
+    "label": "grid_r100_n5_m4_t25_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n5_m6_t5_s6",
+    "label": "grid_r100_n5_m6_t5_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n5_m6_t10_s1",
+    "label": "grid_r100_n5_m6_t10_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n5_m6_t10_s2",
+    "label": "grid_r100_n5_m6_t10_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n5_m6_t10_s4",
+    "label": "grid_r100_n5_m6_t10_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n5_m6_t10_s6",
+    "label": "grid_r100_n5_m6_t10_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n5_m6_t25_s1",
+    "label": "grid_r100_n5_m6_t25_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n5_m6_t25_s2",
+    "label": "grid_r100_n5_m6_t25_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n5_m8_t5_s1",
+    "label": "grid_r100_n5_m8_t5_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n5_m6_t25_s4",
+    "label": "grid_r100_n5_m6_t25_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n5_m6_t25_s6",
+    "label": "grid_r100_n5_m6_t25_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n5_m8_t5_s2",
+    "label": "grid_r100_n5_m8_t5_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n5_m8_t5_s4",
+    "label": "grid_r100_n5_m8_t5_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n5_m8_t5_s6",
+    "label": "grid_r100_n5_m8_t5_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n5_m8_t10_s1",
+    "label": "grid_r100_n5_m8_t10_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n5_m8_t10_s2",
+    "label": "grid_r100_n5_m8_t10_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n5_m8_t10_s4",
+    "label": "grid_r100_n5_m8_t10_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n5_m8_t10_s6",
+    "label": "grid_r100_n5_m8_t10_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n5_m8_t25_s1",
+    "label": "grid_r100_n5_m8_t25_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n5_m8_t25_s2",
+    "label": "grid_r100_n5_m8_t25_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n5_m8_t25_s4",
+    "label": "grid_r100_n5_m8_t25_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n5_m8_t25_s6",
+    "label": "grid_r100_n5_m8_t25_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n5_m10_t5_s1",
+    "label": "grid_r100_n5_m10_t5_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n5_m10_t5_s2",
+    "label": "grid_r100_n5_m10_t5_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n5_m10_t5_s4",
+    "label": "grid_r100_n5_m10_t5_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n5_m10_t5_s6",
+    "label": "grid_r100_n5_m10_t5_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n5_m10_t10_s1",
+    "label": "grid_r100_n5_m10_t10_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n5_m10_t10_s4",
+    "label": "grid_r100_n5_m10_t10_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n5_m10_t10_s2",
+    "label": "grid_r100_n5_m10_t10_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n5_m10_t10_s6",
+    "label": "grid_r100_n5_m10_t10_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n5_m10_t25_s1",
+    "label": "grid_r100_n5_m10_t25_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n5_m10_t25_s4",
+    "label": "grid_r100_n5_m10_t25_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n5_m10_t25_s2",
+    "label": "grid_r100_n5_m10_t25_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n5_m10_t25_s6",
+    "label": "grid_r100_n5_m10_t25_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n10_m2_t5_s1",
+    "label": "grid_r100_n10_m2_t5_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n10_m2_t5_s2",
+    "label": "grid_r100_n10_m2_t5_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n10_m2_t5_s4",
+    "label": "grid_r100_n10_m2_t5_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n10_m2_t5_s6",
+    "label": "grid_r100_n10_m2_t5_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n10_m2_t10_s1",
+    "label": "grid_r100_n10_m2_t10_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n10_m2_t10_s2",
+    "label": "grid_r100_n10_m2_t10_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n10_m2_t25_s1",
+    "label": "grid_r100_n10_m2_t25_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n10_m2_t10_s4",
+    "label": "grid_r100_n10_m2_t10_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n10_m2_t10_s6",
+    "label": "grid_r100_n10_m2_t10_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n10_m2_t25_s2",
+    "label": "grid_r100_n10_m2_t25_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n10_m2_t25_s4",
+    "label": "grid_r100_n10_m2_t25_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n10_m4_t5_s2",
+    "label": "grid_r100_n10_m4_t5_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n10_m4_t5_s1",
+    "label": "grid_r100_n10_m4_t5_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n10_m4_t5_s4",
+    "label": "grid_r100_n10_m4_t5_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n10_m4_t5_s6",
+    "label": "grid_r100_n10_m4_t5_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n10_m2_t25_s6",
+    "label": "grid_r100_n10_m2_t25_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n10_m4_t10_s1",
+    "label": "grid_r100_n10_m4_t10_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n10_m4_t10_s2",
+    "label": "grid_r100_n10_m4_t10_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n10_m4_t10_s4",
+    "label": "grid_r100_n10_m4_t10_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n10_m4_t10_s6",
+    "label": "grid_r100_n10_m4_t10_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n10_m4_t25_s1",
+    "label": "grid_r100_n10_m4_t25_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n10_m4_t25_s2",
+    "label": "grid_r100_n10_m4_t25_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n10_m6_t5_s1",
+    "label": "grid_r100_n10_m6_t5_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n10_m6_t5_s2",
+    "label": "grid_r100_n10_m6_t5_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n10_m4_t25_s4",
+    "label": "grid_r100_n10_m4_t25_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n10_m4_t25_s6",
+    "label": "grid_r100_n10_m4_t25_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n10_m6_t5_s4",
+    "label": "grid_r100_n10_m6_t5_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n10_m6_t5_s6",
+    "label": "grid_r100_n10_m6_t5_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n10_m6_t10_s1",
+    "label": "grid_r100_n10_m6_t10_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n10_m6_t10_s2",
+    "label": "grid_r100_n10_m6_t10_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n10_m6_t10_s4",
+    "label": "grid_r100_n10_m6_t10_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n10_m6_t10_s6",
+    "label": "grid_r100_n10_m6_t10_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n10_m6_t25_s1",
+    "label": "grid_r100_n10_m6_t25_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n10_m6_t25_s2",
+    "label": "grid_r100_n10_m6_t25_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n10_m6_t25_s4",
+    "label": "grid_r100_n10_m6_t25_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n10_m6_t25_s6",
+    "label": "grid_r100_n10_m6_t25_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n10_m8_t5_s1",
+    "label": "grid_r100_n10_m8_t5_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n10_m8_t5_s2",
+    "label": "grid_r100_n10_m8_t5_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n10_m8_t5_s4",
+    "label": "grid_r100_n10_m8_t5_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n10_m8_t5_s6",
+    "label": "grid_r100_n10_m8_t5_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n10_m8_t10_s1",
+    "label": "grid_r100_n10_m8_t10_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n10_m8_t10_s2",
+    "label": "grid_r100_n10_m8_t10_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n10_m8_t10_s6",
+    "label": "grid_r100_n10_m8_t10_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n10_m8_t10_s4",
+    "label": "grid_r100_n10_m8_t10_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n10_m8_t25_s1",
+    "label": "grid_r100_n10_m8_t25_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n10_m8_t25_s2",
+    "label": "grid_r100_n10_m8_t25_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n10_m8_t25_s4",
+    "label": "grid_r100_n10_m8_t25_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n10_m8_t25_s6",
+    "label": "grid_r100_n10_m8_t25_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n10_m10_t5_s1",
+    "label": "grid_r100_n10_m10_t5_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n10_m10_t5_s2",
+    "label": "grid_r100_n10_m10_t5_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n10_m10_t5_s4",
+    "label": "grid_r100_n10_m10_t5_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n10_m10_t5_s6",
+    "label": "grid_r100_n10_m10_t5_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n10_m10_t10_s1",
+    "label": "grid_r100_n10_m10_t10_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n10_m10_t10_s2",
+    "label": "grid_r100_n10_m10_t10_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n10_m10_t10_s6",
+    "label": "grid_r100_n10_m10_t10_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n10_m10_t10_s4",
+    "label": "grid_r100_n10_m10_t10_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n10_m10_t25_s1",
+    "label": "grid_r100_n10_m10_t25_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n10_m10_t25_s2",
+    "label": "grid_r100_n10_m10_t25_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n10_m10_t25_s4",
+    "label": "grid_r100_n10_m10_t25_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n10_m10_t25_s6",
+    "label": "grid_r100_n10_m10_t25_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n15_m2_t5_s1",
+    "label": "grid_r100_n15_m2_t5_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n15_m2_t5_s2",
+    "label": "grid_r100_n15_m2_t5_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n15_m2_t10_s1",
+    "label": "grid_r100_n15_m2_t10_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n15_m2_t5_s4",
+    "label": "grid_r100_n15_m2_t5_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n15_m2_t10_s2",
+    "label": "grid_r100_n15_m2_t10_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n15_m2_t5_s6",
+    "label": "grid_r100_n15_m2_t5_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n15_m2_t10_s4",
+    "label": "grid_r100_n15_m2_t10_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n15_m2_t10_s6",
+    "label": "grid_r100_n15_m2_t10_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n15_m2_t25_s1",
+    "label": "grid_r100_n15_m2_t25_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n15_m2_t25_s2",
+    "label": "grid_r100_n15_m2_t25_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n15_m4_t5_s1",
+    "label": "grid_r100_n15_m4_t5_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n15_m2_t25_s4",
+    "label": "grid_r100_n15_m2_t25_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n15_m2_t25_s6",
+    "label": "grid_r100_n15_m2_t25_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n15_m4_t5_s2",
+    "label": "grid_r100_n15_m4_t5_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n15_m4_t5_s4",
+    "label": "grid_r100_n15_m4_t5_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n15_m4_t5_s6",
+    "label": "grid_r100_n15_m4_t5_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n15_m4_t10_s1",
+    "label": "grid_r100_n15_m4_t10_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n15_m4_t10_s2",
+    "label": "grid_r100_n15_m4_t10_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n15_m4_t10_s4",
+    "label": "grid_r100_n15_m4_t10_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n15_m4_t10_s6",
+    "label": "grid_r100_n15_m4_t10_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n15_m4_t25_s1",
+    "label": "grid_r100_n15_m4_t25_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n15_m4_t25_s2",
+    "label": "grid_r100_n15_m4_t25_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n15_m4_t25_s4",
+    "label": "grid_r100_n15_m4_t25_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n15_m4_t25_s6",
+    "label": "grid_r100_n15_m4_t25_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n15_m6_t5_s1",
+    "label": "grid_r100_n15_m6_t5_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n15_m6_t5_s2",
+    "label": "grid_r100_n15_m6_t5_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n15_m6_t5_s4",
+    "label": "grid_r100_n15_m6_t5_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n15_m6_t5_s6",
+    "label": "grid_r100_n15_m6_t5_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n15_m6_t10_s1",
+    "label": "grid_r100_n15_m6_t10_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n15_m6_t10_s2",
+    "label": "grid_r100_n15_m6_t10_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n15_m6_t10_s4",
+    "label": "grid_r100_n15_m6_t10_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n15_m6_t10_s6",
+    "label": "grid_r100_n15_m6_t10_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n15_m6_t25_s1",
+    "label": "grid_r100_n15_m6_t25_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n15_m6_t25_s2",
+    "label": "grid_r100_n15_m6_t25_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n15_m6_t25_s4",
+    "label": "grid_r100_n15_m6_t25_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n15_m6_t25_s6",
+    "label": "grid_r100_n15_m6_t25_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n15_m8_t5_s2",
+    "label": "grid_r100_n15_m8_t5_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n15_m8_t5_s1",
+    "label": "grid_r100_n15_m8_t5_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n15_m8_t5_s4",
+    "label": "grid_r100_n15_m8_t5_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n15_m8_t5_s6",
+    "label": "grid_r100_n15_m8_t5_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n15_m8_t10_s1",
+    "label": "grid_r100_n15_m8_t10_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n15_m8_t10_s2",
+    "label": "grid_r100_n15_m8_t10_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n15_m8_t10_s4",
+    "label": "grid_r100_n15_m8_t10_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n15_m8_t10_s6",
+    "label": "grid_r100_n15_m8_t10_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n15_m8_t25_s1",
+    "label": "grid_r100_n15_m8_t25_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n15_m8_t25_s2",
+    "label": "grid_r100_n15_m8_t25_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n15_m8_t25_s6",
+    "label": "grid_r100_n15_m8_t25_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n15_m8_t25_s4",
+    "label": "grid_r100_n15_m8_t25_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n15_m10_t5_s1",
+    "label": "grid_r100_n15_m10_t5_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n15_m10_t5_s2",
+    "label": "grid_r100_n15_m10_t5_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n15_m10_t5_s4",
+    "label": "grid_r100_n15_m10_t5_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n15_m10_t5_s6",
+    "label": "grid_r100_n15_m10_t5_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n15_m10_t10_s1",
+    "label": "grid_r100_n15_m10_t10_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n15_m10_t10_s2",
+    "label": "grid_r100_n15_m10_t10_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n15_m10_t10_s4",
+    "label": "grid_r100_n15_m10_t10_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n15_m10_t10_s6",
+    "label": "grid_r100_n15_m10_t10_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n15_m10_t25_s1",
+    "label": "grid_r100_n15_m10_t25_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n15_m10_t25_s2",
+    "label": "grid_r100_n15_m10_t25_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n15_m10_t25_s4",
+    "label": "grid_r100_n15_m10_t25_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n15_m10_t25_s6",
+    "label": "grid_r100_n15_m10_t25_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n20_m2_t10_s1",
+    "label": "grid_r100_n20_m2_t10_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n20_m2_t5_s1",
+    "label": "grid_r100_n20_m2_t5_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n20_m2_t5_s2",
+    "label": "grid_r100_n20_m2_t5_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n20_m2_t5_s4",
+    "label": "grid_r100_n20_m2_t5_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n20_m2_t10_s2",
+    "label": "grid_r100_n20_m2_t10_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n20_m2_t5_s6",
+    "label": "grid_r100_n20_m2_t5_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n20_m2_t10_s4",
+    "label": "grid_r100_n20_m2_t10_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n20_m2_t25_s1",
+    "label": "grid_r100_n20_m2_t25_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n20_m2_t10_s6",
+    "label": "grid_r100_n20_m2_t10_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n20_m2_t25_s2",
+    "label": "grid_r100_n20_m2_t25_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n20_m2_t25_s4",
+    "label": "grid_r100_n20_m2_t25_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n20_m2_t25_s6",
+    "label": "grid_r100_n20_m2_t25_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n20_m4_t5_s1",
+    "label": "grid_r100_n20_m4_t5_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n20_m4_t5_s2",
+    "label": "grid_r100_n20_m4_t5_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n20_m4_t5_s4",
+    "label": "grid_r100_n20_m4_t5_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n20_m4_t5_s6",
+    "label": "grid_r100_n20_m4_t5_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n20_m4_t10_s2",
+    "label": "grid_r100_n20_m4_t10_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n20_m4_t10_s1",
+    "label": "grid_r100_n20_m4_t10_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n20_m4_t10_s4",
+    "label": "grid_r100_n20_m4_t10_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n20_m4_t10_s6",
+    "label": "grid_r100_n20_m4_t10_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n20_m4_t25_s1",
+    "label": "grid_r100_n20_m4_t25_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n20_m4_t25_s2",
+    "label": "grid_r100_n20_m4_t25_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n20_m6_t5_s1",
+    "label": "grid_r100_n20_m6_t5_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n20_m4_t25_s4",
+    "label": "grid_r100_n20_m4_t25_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n20_m4_t25_s6",
+    "label": "grid_r100_n20_m4_t25_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n20_m6_t5_s2",
+    "label": "grid_r100_n20_m6_t5_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n20_m6_t5_s4",
+    "label": "grid_r100_n20_m6_t5_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n20_m6_t5_s6",
+    "label": "grid_r100_n20_m6_t5_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n20_m6_t10_s1",
+    "label": "grid_r100_n20_m6_t10_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n20_m6_t10_s2",
+    "label": "grid_r100_n20_m6_t10_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n20_m6_t10_s4",
+    "label": "grid_r100_n20_m6_t10_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n20_m6_t10_s6",
+    "label": "grid_r100_n20_m6_t10_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n20_m6_t25_s1",
+    "label": "grid_r100_n20_m6_t25_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n20_m6_t25_s2",
+    "label": "grid_r100_n20_m6_t25_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n20_m6_t25_s4",
+    "label": "grid_r100_n20_m6_t25_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n20_m8_t5_s1",
+    "label": "grid_r100_n20_m8_t5_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n20_m6_t25_s6",
+    "label": "grid_r100_n20_m6_t25_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n20_m8_t5_s2",
+    "label": "grid_r100_n20_m8_t5_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n20_m8_t5_s4",
+    "label": "grid_r100_n20_m8_t5_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n20_m8_t5_s6",
+    "label": "grid_r100_n20_m8_t5_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n20_m8_t10_s1",
+    "label": "grid_r100_n20_m8_t10_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n20_m8_t10_s2",
+    "label": "grid_r100_n20_m8_t10_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n20_m8_t10_s4",
+    "label": "grid_r100_n20_m8_t10_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n20_m8_t10_s6",
+    "label": "grid_r100_n20_m8_t10_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n20_m8_t25_s1",
+    "label": "grid_r100_n20_m8_t25_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n20_m8_t25_s2",
+    "label": "grid_r100_n20_m8_t25_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n20_m8_t25_s4",
+    "label": "grid_r100_n20_m8_t25_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n20_m8_t25_s6",
+    "label": "grid_r100_n20_m8_t25_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n20_m10_t5_s1",
+    "label": "grid_r100_n20_m10_t5_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n20_m10_t5_s2",
+    "label": "grid_r100_n20_m10_t5_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n20_m10_t5_s4",
+    "label": "grid_r100_n20_m10_t5_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n20_m10_t5_s6",
+    "label": "grid_r100_n20_m10_t5_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n20_m10_t10_s2",
+    "label": "grid_r100_n20_m10_t10_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n20_m10_t10_s1",
+    "label": "grid_r100_n20_m10_t10_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n20_m10_t10_s4",
+    "label": "grid_r100_n20_m10_t10_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n20_m10_t10_s6",
+    "label": "grid_r100_n20_m10_t10_s6"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n20_m10_t25_s1",
+    "label": "grid_r100_n20_m10_t25_s1"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n20_m10_t25_s2",
+    "label": "grid_r100_n20_m10_t25_s2"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n20_m10_t25_s4",
+    "label": "grid_r100_n20_m10_t25_s4"
+  },
+  {
+    "out_dir": "unified_engine_comparison_bread_sweep_20260113\\grid_r100_n20_m10_t25_s6",
+    "label": "grid_r100_n20_m10_t25_s6"
+  }
+]

@@ -73,7 +73,7 @@ def main():
         "--preset",
         type=str,
         default="new-only",
-        choices=["full", "loss-sweep", "new-only", "comprehensive", "recommended-hours-check"],
+        choices=["full", "loss-sweep", "new-only", "comprehensive", "recommended-hours-check", "bread-sweep"],
         help="Variant set to run (ignored if --only-strategy is set)",
     )
     parser.add_argument(
@@ -108,7 +108,7 @@ def main():
     parser.add_argument(
         "--warmup-hours",
         type=int,
-        default=48,
+        default=0,
         help="Hours of data to feed before start-ts",
     )
     parser.add_argument(
@@ -116,6 +116,22 @@ def main():
         type=str,
         default="unified_engine_comparison",
         help="Directory to store per-variant backtest results",
+    )
+    parser.add_argument(
+        "--skip-comparison-graph",
+        action="store_true",
+        help="Skip the combined comparison graph (useful for large sweeps)",
+    )
+    parser.add_argument(
+        "--separate-graphs",
+        action="store_true",
+        help="Generate individual graphs per variant instead of a combined chart",
+    )
+    parser.add_argument(
+        "--graph-dir",
+        type=str,
+        default="backtest_charts/variant_graphs",
+        help="Output directory for per-variant graphs",
     )
     args = parser.parse_args()
 
@@ -187,6 +203,31 @@ def main():
                                 "max_inventory": 150
                             }
                             variants.append(("generic_v3", True, label, None, kwargs))
+    elif args.preset == "bread-sweep":
+        # Wide parameter sweep (~720 variants) for consistency exploration.
+        risk_pcts = [0.6, 0.8, 1.0]
+        notional_pcts = [0.05, 0.10, 0.15, 0.20]
+        margins = [2.0, 4.0, 6.0, 8.0, 10.0]
+        tightness = [5, 10, 25]
+        scaling_factors = [1.0, 2.0, 4.0, 6.0]
+
+        variants = []
+        for r in risk_pcts:
+            for n in notional_pcts:
+                for m in margins:
+                    for t in tightness:
+                        for s in scaling_factors:
+                            label = f"grid_r{int(r*100)}_n{int(n*100)}_m{int(m)}_t{t}_s{int(s)}"
+                            kwargs = {
+                                "name": label,
+                                "risk_pct": r,
+                                "max_notional_pct": n,
+                                "margin_cents": m,
+                                "tightness_percentile": t,
+                                "scaling_factor": s,
+                                "max_inventory": 150
+                            }
+                            variants.append(("generic_v3", True, label, None, kwargs))
     elif args.preset == "loss-sweep":
         loss_pcts = _parse_loss_pcts(args.loss_pcts)
         base = [
@@ -224,7 +265,8 @@ def main():
             "margin_cents": 8.0,
             "tightness_percentile": 10,
             "scaling_factor": 2.0,
-            "max_inventory": 150
+            "max_inventory": 150,
+            "max_loss_pct": 0.03
         }
         variants = [
             ("generic_v3", True, f"{label} (hours)", None, kwargs),
@@ -349,21 +391,39 @@ def main():
             if success:
                 manifest_data.append({"out_dir": str(out_dir), "label": label})
 
-    # Generate Graph
-    print("Generating comparison graph...")
     manifest_path = base_out_dir / "manifest.json"
     with open(manifest_path, "w") as f:
         json.dump(manifest_data, f, indent=2)
 
-    graph_cmd = [
-        "python", "tools/generate_unified_variant_graph.py",
-        "--snapshot", args.snapshot,
-        "--out", args.out,
-        "--manifest", str(manifest_path)
-    ]
-    
-    run_command(" ".join(graph_cmd), show_command=args.verbose)
-    print(f"\nAll variants complete. Comparison graph: {args.out}", flush=True)
+    if args.separate_graphs:
+        graph_dir = Path(args.graph_dir)
+        graph_dir.mkdir(parents=True, exist_ok=True)
+        for item in manifest_data:
+            label = item["label"]
+            out_dir = item["out_dir"]
+            safe_label = re.sub(r"[^A-Za-z0-9._-]+", "_", label).strip("_")
+            out_path = graph_dir / f"{safe_label}.html"
+            graph_cmd = [
+                "python", "tools/generate_unified_variant_graph.py",
+                "--snapshot", args.snapshot,
+                "--out", str(out_path),
+                "--out-dir", out_dir,
+                "--label", label,
+            ]
+            run_command(" ".join(graph_cmd), show_command=args.verbose)
+
+    if not args.skip_comparison_graph:
+        print("Generating comparison graph...")
+        graph_cmd = [
+            "python", "tools/generate_unified_variant_graph.py",
+            "--snapshot", args.snapshot,
+            "--out", args.out,
+            "--manifest", str(manifest_path)
+        ]
+        run_command(" ".join(graph_cmd), show_command=args.verbose)
+        print(f"\nAll variants complete. Comparison graph: {args.out}", flush=True)
+    else:
+        print("\nAll variants complete. Skipped combined comparison graph.", flush=True)
 
 if __name__ == "__main__":
     main()

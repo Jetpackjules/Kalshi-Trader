@@ -1,6 +1,7 @@
 import sys
 import os
 import argparse
+import csv
 import time as time_module
 from datetime import datetime, timedelta, time
 from pathlib import Path
@@ -27,8 +28,54 @@ def _compute_holdings(adapter: SimAdapter) -> float:
     return holdings
 
 
+
+def _build_decision_logger(path: str | None):
+    if not path or path.strip().lower() in {"none", "off"}:
+        return None
+    dir_name = os.path.dirname(path)
+    if dir_name:
+        os.makedirs(dir_name, exist_ok=True)
+    fieldnames = [
+        "decision_id",
+        "decision_time",
+        "tick_time",
+        "tick_seq",
+        "tick_source",
+        "tick_row",
+        "ticker",
+        "decision_type",
+        "cash",
+        "pos_yes",
+        "pos_no",
+        "pending_yes",
+        "pending_no",
+        "order_index",
+        "action",
+        "price",
+        "qty",
+        "source",
+    ]
+    
+    # Initialize file with header
+    with open(path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+
+    
+    def _log(decision: dict) -> None:
+        # Re-open in append mode for each write to ensure flush
+        with open(path, "a", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            # Filter keys to match fieldnames
+            row = {k: v for k, v in decision.items() if k in fieldnames}
+            writer.writerow(row)
+
+    return _log
+
+
 def main():
     parser = argparse.ArgumentParser(description="Run Unified Backtest (Shadow Mode)")
+    default_end_ts = "2099-01-01 00:00:00"
     parser.add_argument("--out-dir", type=str, default="unified_engine_out", help="Output directory")
     parser.add_argument(
         "--snapshot",
@@ -45,7 +92,7 @@ def main():
     parser.add_argument(
         "--end-ts",
         type=str,
-        default="2099-01-01 00:00:00",
+        default=default_end_ts,
         help="Simulation end timestamp (YYYY-MM-DD HH:MM:SS)",
     )
     parser.add_argument("--initial-cash", type=float, default=2.12, help="Initial cash balance")
@@ -55,7 +102,7 @@ def main():
         default=1.0,
         help="Minimum interval between orders (seconds)",
     )
-    parser.add_argument("--warmup-hours", type=int, default=48, help="Hours of data to feed before start-ts")
+    parser.add_argument("--warmup-hours", type=int, default=0, help="Hours of data to feed before start-ts")
     parser.add_argument(
         "--strategy",
         type=str,
@@ -72,6 +119,8 @@ def main():
     )
     parser.add_argument("--verbose", action="store_true", help="Enable verbose/debug output")
     parser.add_argument("--quiet", action="store_true", help="Suppress non-error output")
+    parser.add_argument("--decision-log", type=str, default=None, help="Path to decision log CSV")
+    parser.add_argument("--log-dir", type=str, default=r"vm_logs\market_logs", help="Directory containing market logs")
     args = parser.parse_args()
 
     os.environ["BT_VERBOSE"] = "1" if args.verbose else "0"
@@ -82,7 +131,7 @@ def main():
 
     log(f"Running Unified Backtest (Shadow Mode) - Strategy: {args.strategy}...")
 
-    log_dir = r"vm_logs\market_logs"
+    log_dir = args.log_dir
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -97,7 +146,22 @@ def main():
 
     strat_func = getattr(v3_variants, args.strategy)
 
-    strategy_kwargs = json.loads(args.strategy_kwargs)
+    if args.strategy_kwargs and args.strategy_kwargs != "{}":
+        strategy_kwargs = json.loads(args.strategy_kwargs)
+    elif args.strategy == "generic_v3":
+        strategy_kwargs = {
+            "risk_pct": 0.8,
+            "max_notional_pct": 0.10,
+            "margin_cents": 8.0,
+            "tightness_percentile": 10,
+            "scaling_factor": 2.0,
+            "max_inventory": 150,
+            "max_loss_pct": 0.03
+        }
+    else:
+        strategy_kwargs = {}
+
+    print(f"DEBUG_STRAT_ARGS: {args.strategy} strategy_kwargs={strategy_kwargs}")
     try:
         strategy = strat_func(**strategy_kwargs)
     except TypeError:
@@ -145,17 +209,28 @@ def main():
             # Price in cents (implied YES price)
             adapter.last_prices[ticker] = 100.0 - ((cost / no_qty) * 100.0)
 
+    decision_log_path = args.decision_log
+    decision_log = None
+    if decision_log_path:
+        decision_log = _build_decision_logger(decision_log_path)
+
     engine = UnifiedEngine(
         strategy=strategy,
         adapter=adapter,
         min_requote_interval=min_requote_interval,
         diag_log=None,
-        decision_log=None,
+        decision_log=decision_log,
     )
 
     log(f"Loading ticks from {log_dir}...")
     ticks = list(iter_ticks_from_market_logs(log_dir))
     log(f"Loaded {len(ticks)} ticks.")
+    if args.end_ts == default_end_ts and ticks:
+        # If the user did not set an end bound, align to last available tick for accurate progress/ETA.
+        last_tick_ts = max(tick["time"] for tick in ticks if tick.get("time"))
+        if last_tick_ts < end_ts:
+            end_ts = last_tick_ts
+            log(f"Auto end_ts set to last tick: {end_ts}")
 
     log(f"Starting Warmup from {warmup_start_ts} to {start_ts}...")
     log(f"Simulation Start: {start_ts}")

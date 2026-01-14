@@ -1,10 +1,6 @@
 [
   {
-    "out_dir": "unified_engine_comparison\\grid_r80_n10_m8_t10_s2_all-day",
-    "label": "grid_r80_n10_m8_t10_s2 (all-day)"
-  },
-  {
-    "out_dir": "unified_engine_comparison\\grid_r80_n10_m8_t10_s2_hours",
-    "label": "grid_r80_n10_m8_t10_s2 (hours)"
+    "out_dir": "unified_engine_comparison\\recommended_live_strategy_hours",
+    "label": "recommended_live_strategy (hours)"
   }
 ]

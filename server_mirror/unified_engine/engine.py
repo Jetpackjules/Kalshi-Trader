@@ -26,6 +26,7 @@ class UnifiedEngine:
         diag_log=None,
         diag_every: int = 1,
         decision_log=None,
+        trade_log=None,
     ):
         self.strategy = strategy
         self.adapter = adapter
@@ -34,7 +35,9 @@ class UnifiedEngine:
         self.diag_log = diag_log
         self.diag_every = max(int(diag_every), 1)
         self.decision_log = decision_log
+        self.trade_log = trade_log
         self._decision_seq = 0
+        self._trade_seq = 0
 
     def _emit_decision(
         self,
@@ -51,10 +54,15 @@ class UnifiedEngine:
         pos_no: int,
         pending_yes: int,
         pending_no: int,
+        market_state: dict | None,
     ) -> None:
         if not self.decision_log:
             return
         self._decision_seq += 1
+        yes_ask = market_state.get("yes_ask") if market_state else None
+        no_ask = market_state.get("no_ask") if market_state else None
+        yes_bid = market_state.get("yes_bid") if market_state else None
+        no_bid = market_state.get("no_bid") if market_state else None
         base = {
             "decision_id": self._decision_seq,
             "decision_time": datetime.now().isoformat(),
@@ -69,6 +77,10 @@ class UnifiedEngine:
             "pos_no": pos_no,
             "pending_yes": pending_yes,
             "pending_no": pending_no,
+            "yes_ask": yes_ask,
+            "no_ask": no_ask,
+            "yes_bid": yes_bid,
+            "no_bid": no_bid,
         }
         if decision_type == "keep":
             self.decision_log(base)
@@ -89,6 +101,57 @@ class UnifiedEngine:
                 }
             )
             self.decision_log(row)
+
+    def _emit_trade(
+        self,
+        *,
+        tick_time: datetime,
+        tick_seq: int | None,
+        tick_source: str | None,
+        tick_row: int | None,
+        ticker: str,
+        action: str,
+        price: float,
+        qty: int,
+        cash: float,
+        pos_yes: int,
+        pos_no: int,
+        pending_yes: int,
+        pending_no: int,
+        market_state: dict | None,
+        order_source: str | None,
+    ) -> None:
+        if not self.trade_log:
+            return
+        self._trade_seq += 1
+        yes_ask = market_state.get("yes_ask") if market_state else None
+        no_ask = market_state.get("no_ask") if market_state else None
+        yes_bid = market_state.get("yes_bid") if market_state else None
+        no_bid = market_state.get("no_bid") if market_state else None
+        self.trade_log(
+            {
+                "trade_id": self._trade_seq,
+                "trade_time": datetime.now().isoformat(),
+                "tick_time": tick_time.isoformat(),
+                "tick_seq": tick_seq,
+                "tick_source": tick_source,
+                "tick_row": tick_row,
+                "ticker": ticker,
+                "action": action,
+                "price": price,
+                "qty": qty,
+                "cash": cash,
+                "pos_yes": pos_yes,
+                "pos_no": pos_no,
+                "pending_yes": pending_yes,
+                "pending_no": pending_no,
+                "yes_ask": yes_ask,
+                "no_ask": no_ask,
+                "yes_bid": yes_bid,
+                "no_bid": no_bid,
+                "order_source": order_source,
+            }
+        )
 
     def on_tick(
         self,
@@ -185,6 +248,7 @@ class UnifiedEngine:
                 pos_no=pos_no,
                 pending_yes=pending_yes,
                 pending_no=pending_no,
+                market_state=market_state,
             )
             return
 
@@ -204,6 +268,7 @@ class UnifiedEngine:
             pos_no=pos_no,
             pending_yes=pending_yes,
             pending_no=pending_no,
+            market_state=market_state,
         )
 
         kept_ids = set()
@@ -229,6 +294,23 @@ class UnifiedEngine:
                 self.adapter.cancel_order(existing["id"])
 
         for order in unsatisfied:
+            self._emit_trade(
+                tick_time=current_time,
+                tick_seq=tick_seq,
+                tick_source=tick_source,
+                tick_row=tick_row,
+                ticker=ticker,
+                action=order.action,
+                price=order.price,
+                qty=order.qty,
+                cash=cash,
+                pos_yes=pos_yes,
+                pos_no=pos_no,
+                pending_yes=pending_yes,
+                pending_no=pending_no,
+                market_state=market_state,
+                order_source=getattr(order, "source", None),
+            )
             self.adapter.place_order(order, market_state, current_time)
 
     def run(self, ticks: Iterable[dict]) -> None:

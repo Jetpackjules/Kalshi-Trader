@@ -45,10 +45,17 @@ def main():
     parser.add_argument("--manifest", type=str, help="Path to JSON manifest containing out_dirs and labels")
     parser.add_argument("--snapshot", type=str, required=True, help="Path to starting snapshot")
     parser.add_argument("--out", type=str, default="backtest_charts/unified_variant_comparison.html", help="Output HTML path")
+    parser.add_argument(
+        "--highlight-label",
+        type=str,
+        action="append",
+        help="Label(s) to highlight in red with thicker line. Repeatable.",
+    )
     args = parser.parse_args()
 
     out_dirs = args.out_dir or []
     labels = args.label or []
+    highlight_labels = set(args.highlight_label or [])
 
     if args.manifest:
         with open(args.manifest, "r") as f:
@@ -226,6 +233,8 @@ def main():
         line_style = dict()
         if "all-day" in label.lower() or "24/7" in label.lower():
             line_style = dict(dash='dot')
+        if label in highlight_labels:
+            line_style = {**line_style, "color": "red", "width": 3}
 
         fig.add_trace(
             go.Scatter(x=dates, y=equities, mode="lines+markers", name=label, line=line_style),

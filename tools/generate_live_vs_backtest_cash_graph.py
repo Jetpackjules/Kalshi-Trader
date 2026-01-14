@@ -3,6 +3,9 @@ import csv
 import json
 import os
 import re
+import subprocess
+import sys
+import time as time_module
 from datetime import datetime, timedelta, time as dt_time
 
 
@@ -71,17 +74,8 @@ def _market_date_from_filename(name: str) -> datetime | None:
 
 
 def _update_last_prices_from_row(row: dict, last_prices: dict) -> None:
-    last_trade = row.get("last_trade_price")
-    if last_trade in (None, ""):
-        extras = row.get(None)
-        if extras:
-            last_trade = extras[-1] if isinstance(extras, list) else extras
-    last_trade = _coerce_last_trade(last_trade)
     ticker = (row.get("market_ticker") or "").strip()
     if not ticker:
-        return
-    if last_trade is not None:
-        last_prices[ticker] = float(last_trade)
         return
     try:
         yes_bid = float(row.get("best_yes_bid")) if row.get("best_yes_bid") not in (None, "") else float("nan")
@@ -99,6 +93,15 @@ def _update_last_prices_from_row(row: dict, last_prices: dict) -> None:
     ya = yes_ask
     if yb == yb and ya == ya:
         last_prices[ticker] = (yb + ya) / 2.0
+        return
+    last_trade = row.get("last_trade_price")
+    if last_trade in (None, ""):
+        extras = row.get(None)
+        if extras:
+            last_trade = extras[-1] if isinstance(extras, list) else extras
+    last_trade = _coerce_last_trade(last_trade)
+    if last_trade is not None:
+        last_prices[ticker] = float(last_trade)
 
 
 def _seed_last_prices_before_start(
@@ -317,8 +320,13 @@ def main() -> int:
     parser.add_argument("--graph", default=os.path.join("backtest_charts", "shadow_vs_local_cash_timeline.html"))
     parser.add_argument("--start-ts", default="")
     parser.add_argument("--end-ts", default="")
-    parser.add_argument("--extra-trades", default="", help="Optional path to a second trades CSV to plot as a comparison line")
-    parser.add_argument("--extra-label", default="Recommended Strategy", help="Label for the extra trades line")
+    parser.add_argument("--sim-gap-file", default="", help="Substring match of market_data_*.csv to skip initial rows for simulated gap")
+    parser.add_argument("--sim-gap-rows", type=int, default=0, help="Number of initial rows to skip for sim-gap file")
+    parser.add_argument("--sim-gap-label", default="Backtest (sim gap)", help="Label for simulated gap line")
+    parser.add_argument("--strategy", default="backtesting.strategies.v3_variants:hb_notional_010")
+    parser.add_argument("--min-requote-interval", type=float, default=2.0)
+    parser.add_argument("--extra-trades", action="append", help="Path to extra trades CSV (e.g. recommended strategy). Can be specified multiple times. Format: 'path' or 'path:label'")
+    parser.add_argument("--extra-label", default="Recommended Strategy", help="Default label for extra trades line (if not specified in --extra-trades)")
     args = parser.parse_args()
 
     # Load Snapshot to get default start time
@@ -371,18 +379,74 @@ def main() -> int:
 
     trades_path = os.path.join(args.out_dir, "unified_trades.csv")
     if not os.path.exists(trades_path):
+        fallback = os.path.join(args.out_dir, "trades.csv")
+        if os.path.exists(fallback):
+            trades_path = fallback
+    if not os.path.exists(trades_path):
         raise SystemExit(f"Missing backtest trades: {trades_path}")
 
     backtest_cash = _compute_backtest_cash(trades_path, snapshot_path, args.market_dir, start_dt, end_dt)
     
-    extra_cash = []
-    if args.extra_trades:
-        if not os.path.exists(args.extra_trades):
-            print(f"WARNING: Extra trades file not found: {args.extra_trades}")
+    extra_cash_lines = []
+    extra_trades = list(args.extra_trades or [])
+
+    if args.sim_gap_file and args.sim_gap_rows > 0:
+        sim_suffix = time_module.strftime("%Y%m%d_%H%M%S", time_module.localtime())
+        sim_out_dir = os.path.join(args.out_dir, f"sim_gap_{sim_suffix}")
+        os.makedirs(sim_out_dir, exist_ok=True)
+        runner_path = os.path.join("server_mirror", "unified_engine", "runner.py")
+        sim_cmd = [
+            sys.executable,
+            runner_path,
+            "--strategy",
+            args.strategy,
+            "--log-dir",
+            args.market_dir,
+            "--snapshot",
+            snapshot_path,
+            "--min-requote-interval",
+            str(args.min_requote_interval),
+            "--start-ts",
+            start_dt.strftime("%Y-%m-%d %H:%M:%S"),
+            "--end-ts",
+            end_dt.strftime("%Y-%m-%d %H:%M:%S.%f"),
+            "--out-dir",
+            sim_out_dir,
+            "--status-every-ticks",
+            "1000000",
+            "--skip-file",
+            args.sim_gap_file,
+            "--skip-rows",
+            str(args.sim_gap_rows),
+        ]
+        env = os.environ.copy()
+        env["PYTHONPATH"] = os.pathsep.join(
+            [os.path.join(os.getcwd(), "server_mirror"), env.get("PYTHONPATH", "")]
+        )
+        subprocess.run(sim_cmd, check=True, env=env)
+        sim_trades = os.path.join(sim_out_dir, "unified_trades.csv")
+        if not os.path.exists(sim_trades):
+            sim_trades = os.path.join(sim_out_dir, "trades.csv")
+        if os.path.exists(sim_trades):
+            extra_trades.append(f"{sim_trades}:{args.sim_gap_label}")
         else:
-            print(f"Computing cash for extra trades: {args.extra_trades}")
-            extra_cash = _compute_backtest_cash(args.extra_trades, snapshot_path, args.market_dir, start_dt, end_dt)
-    
+            print(f"WARNING: Sim gap trades not found in {sim_out_dir}")
+
+    if extra_trades:
+        for item in extra_trades:
+            if ":" in item:
+                path, label = item.split(":", 1)
+            else:
+                path, label = item, args.extra_label
+            
+            if not os.path.exists(path):
+                print(f"WARNING: Extra trades file not found: {path}")
+                continue
+            
+            print(f"Computing cash for extra trades: {path} ({label})")
+            cash_series = _compute_backtest_cash(path, snapshot_path, args.market_dir, start_dt, end_dt)
+            extra_cash_lines.append({"label": label, "data": cash_series})
+
     # STRICT CLIPPING: Ensure live cash starts exactly at or after start_dt
     live_cash = [p for p in live_cash_all if start_dt <= datetime.fromisoformat(p["time"]) <= end_dt]
     
@@ -411,12 +475,18 @@ def main() -> int:
   <script>
     const backtest = {json.dumps(backtest_cash)};
     const live = {json.dumps(live_cash_aligned)};
-    const extra = {json.dumps(extra_cash)};
+    const extras = {json.dumps(extra_cash_lines)};
 
     const traces = [
       {{ x: backtest.map(p => p.time), y: backtest.map(p => p.cash), mode: 'lines', name: 'Baseline Backtest', line: {{ color: '#d46a3b' }} }},
       ...(live.length ? [{{ x: live.map(p => p.time), y: live.map(p => p.cash), mode: 'lines', name: 'Live Cash', line: {{ color: '#2f6bff', width: 2 }} }}] : []),
-      ...(extra.length ? [{{ x: extra.map(p => p.time), y: extra.map(p => p.cash), mode: 'lines', name: '{args.extra_label}', line: {{ color: '#9333ea', width: 2 }} }}] : []),
+      ...extras.map((e, i) => ({{
+          x: e.data.map(p => p.time),
+          y: e.data.map(p => p.cash),
+          mode: 'lines',
+          name: e.label,
+          line: {{ width: 2, dash: 'dot' }} 
+      }}))
     ];
 
     const layout = {{
@@ -434,7 +504,7 @@ def main() -> int:
     os.makedirs(os.path.dirname(args.graph), exist_ok=True)
     with open(args.graph, "w", encoding="utf-8") as f:
         f.write(html)
-    print(f"Wrote {args.graph} (backtest={len(backtest_cash)} live={len(live_cash_aligned)} extra={len(extra_cash)})")
+    print(f"Wrote {args.graph} (backtest={len(backtest_cash)} live={len(live_cash_aligned)} extra={len(extra_cash_lines)})")
     return 0
 
 

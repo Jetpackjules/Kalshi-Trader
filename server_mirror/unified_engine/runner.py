@@ -105,11 +105,94 @@ def _build_decision_logger(path: str | None):
         "pos_no",
         "pending_yes",
         "pending_no",
+        "yes_ask",
+        "no_ask",
+        "yes_bid",
+        "no_bid",
         "order_index",
         "action",
         "price",
         "qty",
         "source",
+    ]
+    file_exists = os.path.isfile(path)
+    handle = open(path, "a", newline="", encoding="utf-8")
+    writer = csv.DictWriter(handle, fieldnames=fieldnames)
+    if not file_exists:
+        writer.writeheader()
+        handle.flush()
+
+    def _log(row: dict) -> None:
+        record = {k: "" for k in fieldnames}
+        record.update(row)
+        writer.writerow(record)
+        handle.flush()
+
+    return _log
+
+
+def _build_trade_logger(path: str | None):
+    if not path or path.strip().lower() in {"none", "off"}:
+        return None
+    dir_name = os.path.dirname(path)
+    if dir_name:
+        os.makedirs(dir_name, exist_ok=True)
+    fieldnames = [
+        "trade_id",
+        "trade_time",
+        "tick_time",
+        "tick_seq",
+        "tick_source",
+        "tick_row",
+        "ticker",
+        "action",
+        "price",
+        "qty",
+        "cash",
+        "pos_yes",
+        "pos_no",
+        "pending_yes",
+        "pending_no",
+        "yes_ask",
+        "no_ask",
+        "yes_bid",
+        "no_bid",
+        "order_source",
+    ]
+    file_exists = os.path.isfile(path)
+    handle = open(path, "a", newline="", encoding="utf-8")
+    writer = csv.DictWriter(handle, fieldnames=fieldnames)
+    if not file_exists:
+        writer.writeheader()
+        handle.flush()
+
+    def _log(row: dict) -> None:
+        record = {k: "" for k in fieldnames}
+        record.update(row)
+        writer.writerow(record)
+        handle.flush()
+
+    return _log
+
+
+def _build_ingest_logger(path: str | None):
+    if not path or path.strip().lower() in {"none", "off"}:
+        return None
+    dir_name = os.path.dirname(path)
+    if dir_name:
+        os.makedirs(dir_name, exist_ok=True)
+    fieldnames = [
+        "event",
+        "wall_time",
+        "file",
+        "mode",
+        "file_size",
+        "initial_offset",
+        "earliest_ts",
+        "latest_ts",
+        "backfill_first_ts",
+        "backfill_last_ts",
+        "backfill_rows",
     ]
     file_exists = os.path.isfile(path)
     handle = open(path, "a", newline="", encoding="utf-8")
@@ -141,9 +224,13 @@ def main() -> int:
     parser.add_argument("--end-ts", default="", help="YYYY-mm-dd HH:MM:SS[.fff]")
     parser.add_argument("--out-dir", default="unified_engine_out")
     parser.add_argument("--decision-log", default="", help="CSV path for decision intents (blank = out_dir/decision_intents.csv)")
+    parser.add_argument("--trade-log", default="", help="CSV path for trade debug log (blank = out_dir/trade_debug.csv)")
+    parser.add_argument("--ingest-log", default="", help="CSV path for tick ingest log (blank = out_dir/tick_ingest_log.csv)")
     parser.add_argument("--diag-log", action="store_true", help="Emit per-tick diagnostic lines")
     parser.add_argument("--diag-every", type=int, default=1, help="Ticks between diagnostics")
     parser.add_argument("--diag-heartbeat-s", type=float, default=30.0, help="Seconds between follow heartbeats")
+    parser.add_argument("--skip-file", default="", help="Substring match of market_data_*.csv to skip initial rows")
+    parser.add_argument("--skip-rows", type=int, default=0, help="Number of initial rows to skip for skip-file")
     parser.add_argument("--status-every-ticks", type=int, default=1, help="Write status every N ticks")
     parser.add_argument("--live", action="store_true", help="Run in LIVE trading mode (real money)")
     parser.add_argument("--key-file", default="kalshi_prod_private_key.pem", help="Path to private key for live trading")
@@ -159,6 +246,10 @@ def main() -> int:
     decision_log_path = args.decision_log or os.path.join(args.out_dir, "decision_intents.csv")
     print(f"Decision log: {decision_log_path}")
     decision_log = _build_decision_logger(decision_log_path)
+    trade_log_path = args.trade_log or os.path.join(args.out_dir, "trade_debug.csv")
+    trade_log = _build_trade_logger(trade_log_path)
+    ingest_log_path = args.ingest_log or os.path.join(args.out_dir, "tick_ingest_log.csv")
+    ingest_log = _build_ingest_logger(ingest_log_path)
 
     strategy = _load_strategy(args.strategy)
     try:
@@ -245,6 +336,9 @@ def main() -> int:
             follow=args.follow,
             diag_log=diag_log,
             heartbeat_s=args.diag_heartbeat_s,
+            ingest_log=ingest_log,
+            skip_file=args.skip_file or None,
+            skip_rows=max(0, int(args.skip_rows)),
         )
 
     start_ts = None
@@ -272,6 +366,7 @@ def main() -> int:
         diag_log=diag_log,
         diag_every=args.diag_every,
         decision_log=decision_log,
+        trade_log=trade_log,
     )
 
     out_dir = Path(args.out_dir)

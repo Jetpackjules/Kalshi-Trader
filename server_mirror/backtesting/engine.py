@@ -182,6 +182,7 @@ class InventoryAwareMarketMaker(ComplexStrategy):
         
         # New configurable params
         self.margin_cents = margin_cents
+        print(f"DEBUG_INIT: {name} margin_cents={self.margin_cents}")
         self.scaling_factor = scaling_factor
         self.max_notional_pct = max_notional_pct
         self.max_loss_pct = max_loss_pct
@@ -254,6 +255,13 @@ class InventoryAwareMarketMaker(ComplexStrategy):
         
         required_edge_cents = fee_cents + self.margin_cents # Fee + Margin
         
+        if "KXHIGHNY-26JAN13-T50" in ticker and "07:10:22" in str(current_time):
+            print(f"DEBUG_0710: {current_time} {ticker} fair_prob={fair_prob:.4f} edge={edge*100:.2f}c required={required_edge_cents:.2f}c cash={spendable_cash:.2f}")
+
+        if "KXHIGHNY-26JAN12-B43.5" in ticker and "08:46:20" in str(current_time):
+            print(f"DEBUG_0846: {current_time} {ticker} fair_prob={fair_prob:.4f} edge={edge*100:.2f}c required={required_edge_cents:.2f}c cash={spendable_cash:.2f}")
+            print(f"DEBUG_HIST: {hist}")
+
         if (edge * 100) < required_edge_cents: return None
         
         # --- PHASE 9: SCALABLE SIZING (Smart Sizing) ---
@@ -374,6 +382,7 @@ class MicroScalper(ComplexStrategy):
 class RegimeSwitcher(ComplexStrategy):
     def __init__(self, name, risk_pct=0.5, active_hours=None, tightness_percentile=20, **mm_kwargs):
         super().__init__(name, risk_pct)
+        print(f"DEBUG_RS_INIT: {name} mm_kwargs={mm_kwargs}")
         # Pass mm_kwargs to InventoryAwareMarketMaker
         if 'margin_cents' not in mm_kwargs: mm_kwargs['margin_cents'] = 4.0
         self.mm = InventoryAwareMarketMaker("Sub-MM", risk_pct, **mm_kwargs)

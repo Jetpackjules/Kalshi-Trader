@@ -8,6 +8,7 @@ import subprocess
 import sys
 from datetime import datetime, timedelta, time as dt_time
 import bisect
+import time as time_module
 
 
 def _parse_timestamp(value: str) -> datetime | None:
@@ -369,15 +370,6 @@ def _last_mid_prices_at_timestamp(snapshot_path: str, market_dir: str, cutoff_dt
                 ticker = r.get("market_ticker")
                 if ticker not in positions:
                     continue
-                last_trade = r.get("last_trade_price")
-                if last_trade in (None, ""):
-                    extras = r.get(None)
-                    if extras:
-                        last_trade = extras[-1] if isinstance(extras, list) else extras
-                last_trade = _coerce_last_trade(last_trade)
-                if last_trade is not None:
-                    last_mid[ticker] = last_trade
-                    continue
                 try:
                     yb = float(r.get("best_yes_bid")) if r.get("best_yes_bid") not in (None, "") else None
                     na = float(r.get("implied_no_ask")) if r.get("implied_no_ask") not in (None, "") else None
@@ -387,6 +379,14 @@ def _last_mid_prices_at_timestamp(snapshot_path: str, market_dir: str, cutoff_dt
                 if yb is None and na is not None:
                     yb = 100.0 - na
                 if yb is None or ya is None:
+                    last_trade = r.get("last_trade_price")
+                    if last_trade in (None, ""):
+                        extras = r.get(None)
+                        if extras:
+                            last_trade = extras[-1] if isinstance(extras, list) else extras
+                    last_trade = _coerce_last_trade(last_trade)
+                    if last_trade is not None:
+                        last_mid[ticker] = last_trade
                     continue
                 last_mid[ticker] = (yb + ya) / 2.0
     return last_mid
@@ -419,7 +419,7 @@ def _snapshot_start_equity(snapshot_path: str) -> float:
         return 0.0
 
 
-def _compute_local_equity(trades_path: str, snapshot_path: str, market_dir: str, start_dt: datetime, end_dt: datetime):
+def _compute_local_equity(trades_path: str, snapshot_path: str, market_dir: str, start_dt: datetime, end_dt: datetime, use_liquidation_value: bool = False):
     trades = []
     with open(trades_path, "r", encoding="utf-8") as f:
         reader = csv.DictReader(f)
@@ -483,6 +483,10 @@ def _compute_local_equity(trades_path: str, snapshot_path: str, market_dir: str,
     local_trades = []
     trade_idx = 0
 
+    # Track Bid/Ask separately for liquidation value
+    last_bid_prices = {} # For selling YES (best_yes_bid)
+    last_ask_prices = {} # For buying YES (implied_yes_ask) -> Selling NO (100 - ask)
+
     def apply_trade(tr):
         nonlocal cash
         notional = (tr["price"] / 100.0) * tr["qty"]
@@ -502,33 +506,44 @@ def _compute_local_equity(trades_path: str, snapshot_path: str, market_dir: str,
             cash += (notional - fee)
             pos_no[ticker] = pos_no.get(ticker, 0) - tr["qty"]
 
-    def compute_equity():
+    def compute_equity_mid():
         holdings = 0.0
         for t, q in pos_yes.items():
             mid = last_prices.get(t)
-            if mid is None:
-                continue
+            if mid is None: continue
             holdings += q * (mid / 100.0)
         for t, q in pos_no.items():
             mid = last_prices.get(t)
-            if mid is None:
-                continue
+            if mid is None: continue
             holdings += q * ((100.0 - mid) / 100.0)
         return cash + holdings
 
-    def compute_equity_ask():
+    def compute_equity_liquidation():
         holdings = 0.0
+        # Value of YES = Qty * Bid
         for t, q in pos_yes.items():
-            ask = last_ask_prices.get(t)
-            if ask is None:
+            bid = last_bid_prices.get(t)
+            if bid is None: 
+                # Fallback to mid if no bid available yet
+                mid = last_prices.get(t)
+                if mid is not None: holdings += q * (mid / 100.0)
                 continue
-            holdings += q * (ask / 100.0)
+            holdings += q * (bid / 100.0)
+        
+        # Value of NO = Qty * (100 - Ask)
+        # NO Bid = 100 - YES Ask.
         for t, q in pos_no.items():
             ask = last_ask_prices.get(t)
             if ask is None:
+                # Fallback to mid
+                mid = last_prices.get(t)
+                if mid is not None: holdings += q * ((100.0 - mid) / 100.0)
                 continue
-            holdings += q * ((100.0 - ask) / 100.0)
+            no_bid = 100.0 - ask
+            holdings += q * (no_bid / 100.0)
         return cash + holdings
+
+    compute_equity = compute_equity_liquidation if use_liquidation_value else compute_equity_mid
 
     rows = _load_market_rows(market_dir, start_dt, end_dt)
     print(f"DEBUG: Loaded {len(rows)} market rows and {len(trades)} backtest trades.")
@@ -554,6 +569,21 @@ def _compute_local_equity(trades_path: str, snapshot_path: str, market_dir: str,
         if yes_ask == yes_ask:
             last_ask_prices[r.get("market_ticker")] = yes_ask
 
+        # Update Bid/Ask trackers
+        ticker = r.get("market_ticker")
+        
+        # YES Bid: explicit bid or implied from NO Ask (100 - NO Ask)
+        yb = yes_bid
+        if yb != yb and no_ask == no_ask:
+            yb = 100.0 - no_ask
+        if yb == yb:
+            last_bid_prices[ticker] = yb
+
+        # YES Ask: explicit ask
+        ya = yes_ask
+        if ya == ya:
+            last_ask_prices[ticker] = ya
+
         last_trade = r.get("_last_trade")
         source = "quote"
         if last_trade is not None:
@@ -563,10 +593,6 @@ def _compute_local_equity(trades_path: str, snapshot_path: str, market_dir: str,
             except Exception:
                 pass
         else:
-            yb = yes_bid
-            if yb != yb and no_ask == no_ask:
-                yb = 100.0 - no_ask
-            ya = yes_ask
             if yb == yb and ya == ya:
                 last_prices[r.get("market_ticker")] = (yb + ya) / 2.0
 
@@ -585,10 +611,9 @@ def _compute_local_equity(trades_path: str, snapshot_path: str, market_dir: str,
             pos_yes[ticker] = 0
             pos_no[ticker] = 0
             last_prices.pop(ticker, None)
+            last_bid_prices.pop(ticker, None)
             last_ask_prices.pop(ticker, None)
             settled.add(ticker)
-
-        local_ask.append({"time": t.isoformat(), "equity": compute_equity_ask(), "source": "implied_yes_ask"})
 
         eq = compute_equity()
         local.append({"time": t.isoformat(), "equity": eq, "source": source})
@@ -702,23 +727,25 @@ def _compute_live_equity_from_fills(
             no_ask = float("nan")
             yes_ask = float("nan")
 
-        last_trade = r.get("_last_trade")
-        if last_trade is not None:
-            try:
-                last_prices[r.get("market_ticker")] = float(last_trade)
-                live.append({"time": t.isoformat(), "equity": compute_equity(), "source": "last_trade"})
-                live_portfolio.append({"time": t.isoformat(), "value": compute_holdings()})
-                continue
-            except Exception:
-                pass
-
         yb = yes_bid
         if yb != yb and no_ask == no_ask:
             yb = 100.0 - no_ask
         ya = yes_ask
+        used_source = None
         if yb == yb and ya == ya:
             last_prices[r.get("market_ticker")] = (yb + ya) / 2.0
-        live.append({"time": t.isoformat(), "equity": compute_equity(), "source": "quote"})
+            used_source = "quote"
+        else:
+            last_trade = r.get("_last_trade")
+            if last_trade is not None:
+                try:
+                    last_prices[r.get("market_ticker")] = float(last_trade)
+                    used_source = "last_trade"
+                except Exception:
+                    pass
+        if used_source is None:
+            used_source = "quote"
+        live.append({"time": t.isoformat(), "equity": compute_equity(), "source": used_source})
         live_portfolio.append({"time": t.isoformat(), "value": compute_holdings()})
 
     while fill_idx < len(fills):
@@ -926,6 +953,12 @@ def main() -> int:
         action="store_true",
         help="Replay live trades against market logs instead of running the backtest.",
     )
+    parser.add_argument("--liquidation-value", action="store_true", help="Use liquidation value (Bid) instead of Mid price for backtest lines")
+    parser.add_argument("--extra-trades", action="append", help="Path to extra trades CSV (e.g. recommended strategy). Can be specified multiple times. Format: 'path' or 'path:label'")
+    parser.add_argument("--extra-label", default="Recommended Strategy", help="Default label for extra trades line (if not specified in --extra-trades)")
+    parser.add_argument("--sim-gap-file", default="", help="Substring match of market_data_*.csv to skip initial rows for simulated gap")
+    parser.add_argument("--sim-gap-rows", type=int, default=0, help="Number of initial rows to skip for sim-gap file")
+    parser.add_argument("--sim-gap-label", default="Backtest (sim gap)", help="Label for simulated gap line")
     args = parser.parse_args()
 
     snapshot_path = args.snapshot or _latest_snapshot(args.snapshot_dir)
@@ -996,10 +1029,10 @@ def main() -> int:
         decision_log_path = os.path.join(args.out_dir, "decision_intents.csv")
         if os.path.exists(decision_log_path):
             os.remove(decision_log_path)
+        runner_path = os.path.join("server_mirror", "unified_engine", "runner.py")
         cmd = [
             sys.executable,
-            "-m",
-            "unified_engine.runner",
+            runner_path,
             "--strategy",
             args.strategy,
             "--log-dir",
@@ -1014,15 +1047,25 @@ def main() -> int:
             end_dt.strftime("%Y-%m-%d %H:%M:%S.%f"),
             "--out-dir",
             args.out_dir,
+            "--status-every-ticks",
+            "1000000",
         ]
-        subprocess.run(cmd, check=True)
+        env = os.environ.copy()
+        env["PYTHONPATH"] = os.pathsep.join(
+            [os.path.join(os.getcwd(), "server_mirror"), env.get("PYTHONPATH", "")]
+        )
+        subprocess.run(cmd, check=True, env=env)
 
     trades_path = args.live_trades if args.replay_live_trades else os.path.join(args.out_dir, "unified_trades.csv")
+    if not os.path.exists(trades_path) and not args.replay_live_trades:
+        fallback = os.path.join(args.out_dir, "trades.csv")
+        if os.path.exists(fallback):
+            trades_path = fallback
     if not os.path.exists(trades_path):
         raise SystemExit(f"Missing backtest trades: {trades_path}")
 
     local, local_trades, local_ask = _compute_local_equity(
-        trades_path, backtest_snapshot_path, args.market_dir, start_dt, end_dt
+        trades_path, backtest_snapshot_path, args.market_dir, start_dt, end_dt, use_liquidation_value=args.liquidation_value
     )
 
     live = []
@@ -1070,6 +1113,78 @@ def main() -> int:
         if first_local > start_dt:
             local.insert(0, {"time": start_dt.isoformat(), "equity": baseline_equity, "source": "baseline"})
     reported_on_ticks = []
+    
+    extra_lines = []
+    extra_trades = list(args.extra_trades or [])
+
+    if args.sim_gap_file and args.sim_gap_rows > 0 and not args.replay_live_trades:
+        sim_suffix = time_module.strftime("%Y%m%d_%H%M%S", time_module.localtime())
+        sim_out_dir = os.path.join(args.out_dir, f"sim_gap_{sim_suffix}")
+        os.makedirs(sim_out_dir, exist_ok=True)
+        runner_path = os.path.join("server_mirror", "unified_engine", "runner.py")
+        sim_cmd = [
+            sys.executable,
+            runner_path,
+            "--strategy",
+            args.strategy,
+            "--log-dir",
+            args.market_dir,
+            "--snapshot",
+            backtest_snapshot_path,
+            "--min-requote-interval",
+            str(args.min_requote_interval),
+            "--start-ts",
+            start_dt.strftime("%Y-%m-%d %H:%M:%S"),
+            "--end-ts",
+            end_dt.strftime("%Y-%m-%d %H:%M:%S.%f"),
+            "--out-dir",
+            sim_out_dir,
+            "--status-every-ticks",
+            "1000000",
+            "--skip-file",
+            args.sim_gap_file,
+            "--skip-rows",
+            str(args.sim_gap_rows),
+        ]
+        env = os.environ.copy()
+        env["PYTHONPATH"] = os.pathsep.join(
+            [os.path.join(os.getcwd(), "server_mirror"), env.get("PYTHONPATH", "")]
+        )
+        subprocess.run(sim_cmd, check=True, env=env)
+        sim_trades = os.path.join(sim_out_dir, "unified_trades.csv")
+        if not os.path.exists(sim_trades):
+            sim_trades = os.path.join(sim_out_dir, "trades.csv")
+        if os.path.exists(sim_trades):
+            extra_trades.append(f"{sim_trades}:{args.sim_gap_label}")
+        else:
+            print(f"WARNING: Sim gap trades not found in {sim_out_dir}")
+
+    if extra_trades:
+        for item in extra_trades:
+            if ":" in item:
+                path, label = item.split(":", 1)
+            else:
+                path, label = item, args.extra_label
+            
+            if not os.path.exists(path):
+                print(f"WARNING: Extra trades file not found: {path}")
+                continue
+            
+            print(f"Computing equity for extra trades: {path} ({label})")
+            # We use the same snapshot/market dir/dates as the main backtest
+            ex_local, _, _ = _compute_local_equity(
+                path, backtest_snapshot_path, args.market_dir, start_dt, end_dt, use_liquidation_value=args.liquidation_value
+            )
+            
+            # Align extra line to reported baseline if needed (same offset logic)
+            if ex_local and reported:
+                offset = reported[0]["equity"] - ex_local[0]["equity"]
+                ex_aligned = [
+                    {"time": p["time"], "equity": p["equity"] + offset} for p in ex_local
+                ]
+                extra_lines.append({"label": label, "data": ex_aligned})
+            elif ex_local:
+                extra_lines.append({"label": label, "data": list(ex_local)})
     if reported and local:
         reported_on_ticks = _resample_to_timestamps(reported, local)
     elif reported:
@@ -1150,6 +1265,7 @@ def main() -> int:
       const liveDecisions = {json.dumps(live_decisions_aligned)};
       const backtestDecisions = {json.dumps(backtest_decisions_aligned)};
       const markers = {json.dumps([divergence_marker] if divergence_marker else [])};
+    const extras = {json.dumps(extra_lines)};
 
     const localTickColors = local.map(p => (
       p.source === 'last_trade' ? '#1f9e8a' :
@@ -1188,6 +1304,13 @@ def main() -> int:
       {{ x: local.map(p => p.time), y: local.map(p => p.equity), mode: 'lines', name: 'Backtest (replay)', line: {{ color: '#d46a3b' }} }},
       ...(unified.length ? [{{ x: unified.map(p => p.time), y: unified.map(p => p.equity), mode: 'lines', name: 'Unified Backtest', line: {{ color: '#9900cc', width: 3 }} }}] : []),
       ...(localAsk.length ? [{{ x: localAsk.map(p => p.time), y: localAsk.map(p => p.equity), mode: 'lines', name: 'Backtest (implied yes ask)', line: {{ color: '#2aa876', dash: 'dot' }} }}] : []),
+      ...extras.map((e, i) => ({{
+          x: e.data.map(p => p.time),
+          y: e.data.map(p => p.equity),
+          mode: 'lines',
+          name: e.label,
+          line: {{ width: 2, dash: 'dot' }} 
+      }})),
       {{ x: liveTrades.map(p => p.time), y: liveTrades.map(p => p.equity), mode: 'markers', name: 'Live trades', marker: {{ size: 7, color: '#f5b700', symbol: 'circle' }} }},
       {{ x: localTrades.map(p => p.time), y: localTrades.map(p => p.equity), mode: 'markers', name: 'Backtest trades', marker: {{ size: 7, color: '#ff7a1a', symbol: 'circle' }} }},
       {{ x: liveDecisions.map(p => p.time), y: liveDecisions.map(p => p.equity), mode: 'markers', name: 'Live decisions', marker: {{ size: 6, color: '#1f9e8a', symbol: 'diamond' }} }},

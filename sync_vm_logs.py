@@ -156,6 +156,8 @@ def sync_logs():
         "trades.csv",
         "decision_intents.csv",
         "unified_orders.csv",
+        "trade_debug.csv",
+        "tick_ingest_log.csv",
     ]
 
     for filename in unified_files:
