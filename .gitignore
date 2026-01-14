@@ -21,3 +21,4 @@ grid_search_out/
 local_market_logs/
 server_mirror/output.log
 server_mirror/output.log
+*.log
