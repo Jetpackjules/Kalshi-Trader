@@ -1,0 +1,10 @@
+Analysis for vm_logs/market_logs/market_data_KXHIGHNY-26JAN12.csv at 2026-01-11T12:00:00
+Found 6 unique tickers.
+Ticker                    | Yes Bid  | Yes Ask  | No Bid   | No Ask   | Last Upd
+------------------------------------------------------------------------------------------
+KXHIGHNY-26JAN12-B39.5    | 2        | 5        | 95       | 98       | 2026-01-11T11:59:01.263558
+KXHIGHNY-26JAN12-B41.5    | 44       | 53       | 47       | 56       | 2026-01-11T11:59:36.234357
+KXHIGHNY-26JAN12-B43.5    | 34       | 39       | 61       | 66       | 2026-01-11T11:59:21.678500
+KXHIGHNY-26JAN12-B45.5    | 4        | 9        | 91       | 96       | 2026-01-11T11:59:21.568837
+KXHIGHNY-26JAN12-T39      | 2        | 3        | 97       | 98       | 2026-01-11T11:41:51.096048
+KXHIGHNY-26JAN12-T46      | 4        | 8        | 92       | 96       | 2026-01-11T11:59:07.473445

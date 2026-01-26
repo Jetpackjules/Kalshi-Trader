@@ -12,6 +12,7 @@ vm_logs/
 # Large Data Files
 *.csv
 *.json
+*.log
 !manifest.json
 !dec05_snapshot.json
 
@@ -22,3 +23,5 @@ local_market_logs/
 server_mirror/output.log
 server_mirror/output.log
 *.log
+*.log
+server_mirror/output.log

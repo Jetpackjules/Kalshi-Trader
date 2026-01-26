@@ -10,12 +10,14 @@ from typing import Iterable
 import pandas as pd
 
 
+
 def _build_market_state(row: dict) -> dict:
     return {
         "yes_ask": row.get("yes_ask"),
         "no_ask": row.get("no_ask"),
         "yes_bid": row.get("yes_bid"),
         "no_bid": row.get("no_bid"),
+        "last_price": row.get("last_price"),
     }
 
 
@@ -82,6 +84,7 @@ def _row_to_tick(row: dict, ts_col: str) -> dict | None:
                 "no_ask": _parse_float(row.get("no_ask")),
                 "yes_bid": _parse_float(row.get("yes_bid")),
                 "no_bid": _parse_float(row.get("no_bid")),
+                "last_price": _parse_float(row.get("last_price")),
             }
         ),
         "seq": None,
@@ -100,10 +103,11 @@ def iter_ticks_from_market_logs(
     ingest_log=None,
     skip_file: str | None = None,
     skip_rows: int = 0,
+    file_pattern: str = "market_data_*.csv",
 ) -> Iterable[dict]:
     log_path = Path(log_dir)
     if not follow:
-        files = sorted(log_path.glob("market_data_*.csv"))
+        files = sorted(log_path.glob(file_pattern))
         rows = []
         for file_idx, path in enumerate(files):
             try:
@@ -126,6 +130,7 @@ def iter_ticks_from_market_logs(
                                 "no_ask": _parse_float(row.get("implied_no_ask")),
                                 "yes_bid": _parse_float(row.get("best_yes_bid")),
                                 "no_bid": _parse_float(row.get("best_no_bid")),
+                                "last_price": _parse_float(row.get("last_trade_price")),
                                 "source_file": path.name,
                                 "source_order": file_idx,
                                 "source_row": row_idx,
@@ -146,6 +151,7 @@ def iter_ticks_from_market_logs(
                         "no_ask": row["no_ask"],
                         "yes_bid": row["yes_bid"],
                         "no_bid": row["no_bid"],
+                        "last_price": row["last_price"],
                     }
                 ),
                 "seq": seq,
@@ -184,6 +190,9 @@ def iter_ticks_from_market_logs(
             
             file_offsets[path] = offset
             file_rows[path] = 0
+            
+            print(f"DEBUG: Init File {path.name} | StartAtEnd={start_at_end} | Offset={offset} | Size={os.path.getsize(path)}")
+
         file_size = 0
         try:
             file_size = path.stat().st_size
@@ -229,10 +238,10 @@ def iter_ticks_from_market_logs(
         if not start_at_end:
             backfill_state[path] = {"first_ts": None, "last_ts": None, "rows": 0, "done": False}
 
-    initial_files = set(log_path.glob("market_data_*.csv"))
+    initial_files = set(log_path.glob(file_pattern))
 
     while True:
-        files = sorted(log_path.glob("market_data_*.csv"))
+        files = sorted(log_path.glob(file_pattern))
         for path in files:
             if path not in file_offsets:
                 _init_file(path, start_at_end=(path in initial_files))

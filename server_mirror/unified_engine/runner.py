@@ -12,12 +12,12 @@ from typing import Iterable
 
 import pandas as pd
 
-from unified_engine.adapters import SimAdapter
+from unified_engine.adapters import SimAdapter, create_headers, API_URL
 from unified_engine.engine import UnifiedEngine
 from unified_engine.tick_sources import iter_ticks_from_live_log, iter_ticks_from_market_logs
 
 
-def _load_strategy(spec: str):
+def _load_strategy(spec: str, **kwargs):
     if ":" not in spec:
         raise ValueError("Strategy must be module:symbol")
     module, symbol = spec.split(":", 1)
@@ -25,7 +25,7 @@ def _load_strategy(spec: str):
     factory = getattr(mod, symbol)
     if not callable(factory):
         raise TypeError(f"{spec} is not callable")
-    return factory()
+    return factory(**kwargs)
 
 
 def _seed_from_snapshot(adapter: SimAdapter, strategy, snapshot_path: str) -> float:
@@ -220,6 +220,8 @@ def main() -> int:
     parser.add_argument("--snapshot", default="", help="Optional snapshot JSON for starting state")
     parser.add_argument("--initial-cash", type=float, default=100.0)
     parser.add_argument("--min-requote-interval", type=float, default=2.0)
+    parser.add_argument("--amend-price-tolerance", type=float, default=0.0, help="Keep existing order if price diff <= this (cents)")
+    parser.add_argument("--amend-qty-tolerance", type=int, default=0, help="Keep existing order if qty diff <= this")
     parser.add_argument("--start-ts", default="", help="YYYY-mm-dd HH:MM:SS[.fff]")
     parser.add_argument("--end-ts", default="", help="YYYY-mm-dd HH:MM:SS[.fff]")
     parser.add_argument("--out-dir", default="unified_engine_out")
@@ -237,6 +239,8 @@ def main() -> int:
     parser.add_argument("--fill-latency-s", type=float, default=0.0, help="Constant fill latency for sim fills")
     parser.add_argument("--fill-latency-model", default="", help="Latency model JSON with delays_seconds/clamped_delays")
     parser.add_argument("--fill-latency-seed", type=int, default=0, help="Seed for latency sampling")
+    parser.add_argument("--strategy-kwargs", default="{}", help="JSON dict of kwargs for strategy factory")
+    parser.add_argument("--file-pattern", default="market_data_*.csv", help="Glob pattern for market logs")
     args = parser.parse_args()
 
     diag_log = _build_diag_logger(args.diag_log)
@@ -251,7 +255,8 @@ def main() -> int:
     ingest_log_path = args.ingest_log or os.path.join(args.out_dir, "tick_ingest_log.csv")
     ingest_log = _build_ingest_logger(ingest_log_path)
 
-    strategy = _load_strategy(args.strategy)
+    strategy_kwargs = json.loads(args.strategy_kwargs)
+    strategy = _load_strategy(args.strategy, **strategy_kwargs)
     try:
         import sys
         print(f"DEBUG: backtesting.engine imported from: {sys.modules['backtesting.engine'].__file__}")
@@ -339,6 +344,7 @@ def main() -> int:
             ingest_log=ingest_log,
             skip_file=args.skip_file or None,
             skip_rows=max(0, int(args.skip_rows)),
+            file_pattern=args.file_pattern,
         )
 
     start_ts = None
@@ -363,6 +369,8 @@ def main() -> int:
         strategy=strategy,
         adapter=adapter,
         min_requote_interval=args.min_requote_interval,
+        amend_price_tolerance=args.amend_price_tolerance,
+        amend_qty_tolerance=args.amend_qty_tolerance,
         diag_log=diag_log,
         diag_every=args.diag_every,
         decision_log=decision_log,
@@ -485,8 +493,46 @@ def main() -> int:
                 "positions": positions_out,
                 "target_date": "Unified",
                 "last_decision": getattr(strategy, "last_decision", {}),
-                "window_status": window_status
+                "window_status": window_status,
+                "active_orders": []
             }
+            
+            # Fetch and map active orders for dashboard
+            try:
+                # Use direct API call to get ALL orders (LiveAdapter.get_open_orders requires args)
+                path = "/trade-api/v2/portfolio/orders"
+                headers = create_headers(adapter.private_key, "GET", path)
+                resp = adapter._session.get(API_URL + path, headers=headers)
+                
+                mapped_orders = []
+                if resp.status_code == 200:
+                    raw_orders = resp.json().get("orders", [])
+                    for o in raw_orders:
+                        # Only active orders
+                        if o.get("status") not in ("resting", "open"):
+                            continue
+                            
+                        m = {"ticker": o["ticker"], "qty": o["remaining_count"]}
+                        action = o["action"]
+                        side = o["side"]
+                        
+                        if action == "buy" and side == "yes":
+                            m["action"] = "BUY_YES"
+                            m["price"] = o["yes_price"]
+                        elif action == "buy" and side == "no":
+                            m["action"] = "BUY_NO"
+                            # Buy NO at X = Sell YES at 100-X
+                            m["price"] = 100 - o["no_price"]
+                        elif action == "sell" and side == "yes":
+                            m["action"] = "BUY_NO"
+                            m["price"] = o["yes_price"]
+                        
+                        if "action" in m:
+                            mapped_orders.append(m)
+                status_data["active_orders"] = mapped_orders
+            except Exception as e:
+                print(f"Error fetching orders for status: {e}")
+
             with open("trader_status.json", "w") as f:
                 json.dump(status_data, f)
             

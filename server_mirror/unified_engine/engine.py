@@ -23,6 +23,8 @@ class UnifiedEngine:
         strategy,
         adapter,
         min_requote_interval: float = 2.0,
+        amend_price_tolerance: float = 0.0,
+        amend_qty_tolerance: int = 0,
         diag_log=None,
         diag_every: int = 1,
         decision_log=None,
@@ -31,6 +33,8 @@ class UnifiedEngine:
         self.strategy = strategy
         self.adapter = adapter
         self.min_requote_interval = float(min_requote_interval)
+        self.amend_price_tolerance = float(amend_price_tolerance)
+        self.amend_qty_tolerance = int(amend_qty_tolerance)
         self.last_requote_time: dict[str, float] = {}
         self.diag_log = diag_log
         self.diag_every = max(int(diag_every), 1)
@@ -177,6 +181,7 @@ class UnifiedEngine:
             if status in ("executed", "cancelled", "canceled", "expired", "rejected"):
                 continue
             side = (o.get("side") or "yes").lower()
+            action = (o.get("action") or "buy").lower()
             price = o.get("yes_price") if side == "yes" else o.get("no_price")
             if price is None:
                 continue
@@ -184,24 +189,54 @@ class UnifiedEngine:
                 pending_yes += remaining
             else:
                 pending_no += remaining
+            
+            # Map API orders to Strategy Actions
+            # Strategy uses BUY_YES / BUY_NO
+            # API Buy YES -> BUY_YES
+            # API Buy NO  -> BUY_NO
+            # API Sell YES -> BUY_NO (Equivalent)
+            # API Sell NO  -> BUY_YES (Equivalent)
+            
+            mapped_action = "BUY_YES"
+            mapped_price = price
+            
+            if action == "buy":
+                if side == "no":
+                    mapped_action = "BUY_NO"
+            elif action == "sell":
+                if side == "yes":
+                    mapped_action = "BUY_NO"
+                    # Sell YES at X means Buy NO at 100-X
+                    # API returns yes_price for side=yes.
+                    # We need to convert to no_price for strategy matching.
+                    if price is not None:
+                        mapped_price = 100 - price
+                elif side == "no":
+                    # Sell NO at X means Buy YES at 100-X
+                    mapped_action = "BUY_YES"
+                    if price is not None:
+                        mapped_price = 100 - price
+            
             active_orders.append(
                 {
-                    "action": "BUY_YES" if side == "yes" else "BUY_NO",
+                    "action": mapped_action,
                     "ticker": ticker,
                     "qty": remaining,
-                    "price": price,
+                    "price": mapped_price,
                     "source": "MM",
                     "id": o.get("order_id"),
+                    "api_action": action,
+                    "api_side": side,
                 }
             )
 
         positions = self.adapter.get_positions()
         pos = positions.get(ticker, {"yes": 0, "no": 0})
         mm_inv = {
-            "YES": int(pos.get("yes") or 0) + pending_yes,
-            "NO": int(pos.get("no") or 0) + pending_no,
+            "yes": int(pos.get("yes") or 0) + pending_yes,
+            "no": int(pos.get("no") or 0) + pending_no,
         }
-        portfolios_inventories = {"MM": mm_inv}
+        portfolios_inventories = {ticker: mm_inv}
 
         if self.min_requote_interval > 0:
             last_req = self.last_requote_time.get(ticker, 0.0)
@@ -254,7 +289,14 @@ class UnifiedEngine:
 
         self.last_requote_time[ticker] = current_time.timestamp()
 
-        desired = [Order(**o) if isinstance(o, dict) else o for o in desired_orders]
+        desired = []
+        for o in desired_orders:
+            if isinstance(o, dict):
+                payload = dict(o)
+                payload.pop("decision_qty", None)
+                desired.append(Order(**payload))
+            else:
+                desired.append(o)
         self._emit_decision(
             tick_time=current_time,
             tick_seq=tick_seq,
@@ -273,20 +315,64 @@ class UnifiedEngine:
 
         kept_ids = set()
         unsatisfied: list[Order] = []
+        
         for want in desired:
             matched = False
             for existing in active_orders:
                 if existing["id"] in kept_ids:
                     continue
-                if (
-                    existing["action"] == want.action
-                    and existing["price"] == want.price
-                    and existing["qty"] >= want.qty
-                ):
-                    kept_ids.add(existing["id"])
-                    matched = True
-                    break
+                
+                # Check for Match (Action must match)
+                if existing["action"] == want.action:
+                    # 0. Close-enough Match (within tolerance)
+                    try:
+                        price_diff = abs(float(existing["price"]) - float(want.price))
+                    except Exception:
+                        price_diff = float("inf")
+                    try:
+                        qty_diff = abs(int(existing["qty"]) - int(want.qty))
+                    except Exception:
+                        qty_diff = 10**9
+
+                    if price_diff <= self.amend_price_tolerance and qty_diff <= self.amend_qty_tolerance:
+                        kept_ids.add(existing["id"])
+                        matched = True
+                        break
+
+                    # 1. Perfect Match
+                    if existing["price"] == want.price and existing["qty"] == want.qty:
+                        kept_ids.add(existing["id"])
+                        matched = True
+                        # print(f"DEBUG: Perfect Match {existing['id']} | {want.action} {want.price}")
+                        break
+                    
+                    # 2. Amendable Match (Same Action, Different Price/Qty)
+                    if hasattr(self.adapter, "amend_order"):
+                        raw_price = want.price
+                        if existing["api_action"] == "sell":
+                             if existing["action"] == "BUY_NO" and existing["api_side"] == "yes":
+                                 raw_price = 100 - want.price
+                             elif existing["action"] == "BUY_YES" and existing["api_side"] == "no":
+                                 raw_price = 100 - want.price
+                        
+                        print(f"DEBUG: Amending {existing['id']} | Want: {want.price} (Raw: {raw_price}) | Have: {existing['price']}")
+                        success = self.adapter.amend_order(
+                            order_id=existing["id"],
+                            ticker=ticker,
+                            action=existing["api_action"],
+                            side=existing["api_side"],
+                            price=raw_price,
+                            qty=want.qty
+                        )
+                        if success:
+                            kept_ids.add(existing["id"])
+                            matched = True
+                            break
+                        else:
+                            print(f"DEBUG: Amend Failed for {existing['id']}")
+            
             if not matched:
+                print(f"DEBUG: No Match Found for {want.action} {want.price} {want.qty}")
                 unsatisfied.append(want)
 
         for existing in active_orders:

@@ -171,6 +171,11 @@ class InventoryAwareMarketMaker(ComplexStrategy):
         scaling_factor=4.0,
         max_notional_pct=0.05,
         max_loss_pct=0.02,
+        decision_cash=None,
+        decision_max_inventory=None,
+        qty_scale_mode="actual",
+        inv_penalty_mode="reciprocal",
+        inventory_scale_cash=None,
     ):
         super().__init__(name, risk_pct)
         if hmax_inventory is not None and max_inventory == 50:
@@ -186,6 +191,11 @@ class InventoryAwareMarketMaker(ComplexStrategy):
         self.scaling_factor = scaling_factor
         self.max_notional_pct = max_notional_pct
         self.max_loss_pct = max_loss_pct
+        self.decision_cash = decision_cash
+        self.decision_max_inventory = decision_max_inventory
+        self.qty_scale_mode = qty_scale_mode
+        self.inv_penalty_mode = inv_penalty_mode
+        self.inventory_scale_cash = inventory_scale_cash
         
         self.tick_count = 0
         self.fair_prices = {} 
@@ -279,34 +289,105 @@ class InventoryAwareMarketMaker(ComplexStrategy):
 
         scale = min(1.0, edge_after_fee / self.scaling_factor)
 
-        max_notional = spendable_cash * self.max_notional_pct
-        max_loss = spendable_cash * self.max_loss_pct
+        decision_cash = spendable_cash if self.decision_cash is None else float(self.decision_cash)
+        if decision_cash <= 0:
+            return None
+
+        cash_ratio = 1.0
+        if self.decision_cash:
+            cash_ratio = spendable_cash / float(self.decision_cash)
+            if cash_ratio <= 0:
+                return None
+
+        inv_cash_ratio = 1.0
+        if self.inventory_scale_cash is not None:
+            inv_cash_ratio = spendable_cash / float(self.inventory_scale_cash)
+            if inv_cash_ratio <= 0:
+                return None
+
+        decision_max_notional = decision_cash * self.max_notional_pct
+        decision_max_loss = decision_cash * self.max_loss_pct
+        actual_max_notional = spendable_cash * self.max_notional_pct
+        actual_max_loss = spendable_cash * self.max_loss_pct
 
         price_unit = price_to_pay / 100.0
         cost_unit = price_unit + fee_per_contract
 
-        qty_by_notional = int(max_notional / cost_unit) if cost_unit > 0 else 0
-        qty_by_loss = int(max_loss / cost_unit) if cost_unit > 0 else 0
+        decision_qty_by_notional = int(decision_max_notional / cost_unit) if cost_unit > 0 else 0
+        decision_qty_by_loss = int(decision_max_loss / cost_unit) if cost_unit > 0 else 0
+        actual_qty_by_notional = int(actual_max_notional / cost_unit) if cost_unit > 0 else 0
+        actual_qty_by_loss = int(actual_max_loss / cost_unit) if cost_unit > 0 else 0
 
-        base_qty = min(qty_by_notional, qty_by_loss)
-        if base_qty <= 0:
+        decision_base_qty = min(decision_qty_by_notional, decision_qty_by_loss)
+        if decision_base_qty <= 0:
+            return None
+        actual_base_qty = min(actual_qty_by_notional, actual_qty_by_loss)
+        if actual_base_qty <= 0:
             return None
 
         current_inv = inventories['YES'] if action == 'BUY_YES' else inventories['NO']
-        if self.max_inventory is None:
-            room = float('inf')
+        decision_inv = current_inv
+        if self.inventory_scale_cash is not None:
+            decision_inv = current_inv / inv_cash_ratio
+        elif self.qty_scale_mode == "proportional" and self.decision_cash:
+            decision_inv = current_inv / cash_ratio
+        decision_max_inventory = self.decision_max_inventory
+        actual_max_inventory = self.max_inventory
+        if decision_max_inventory is None:
+            decision_room = float('inf')
         else:
-            room = self.max_inventory - current_inv
-            if room <= 0:
+            decision_room = decision_max_inventory - decision_inv
+            if decision_room <= 0:
                 return None
-
-        inv_penalty = 1.0 / (1.0 + current_inv / 200.0)
-
-        qty = int(base_qty * scale * inv_penalty)
-        if self.max_inventory is None:
-            qty = max(1, qty)
+            decision_room = int(math.floor(decision_room))
+            if decision_room <= 0:
+                return None
+        if actual_max_inventory is None:
+            actual_room = float('inf')
         else:
-            qty = max(1, min(qty, room))
+            if self.inventory_scale_cash is not None:
+                scaled_cap = int(round(actual_max_inventory * inv_cash_ratio))
+                actual_max_inventory = max(1, scaled_cap)
+            actual_room = actual_max_inventory - current_inv
+
+        if self.inv_penalty_mode == "linear":
+            if decision_max_inventory is None:
+                decision_inv_penalty = 1.0
+            else:
+                denom = float(decision_max_inventory) if decision_max_inventory != 0 else 1.0
+                decision_inv_penalty = max(0.0, 1.0 - (float(decision_inv) / denom))
+        else:
+            decision_inv_penalty = 1.0 / (1.0 + decision_inv / 200.0)
+
+        decision_qty = int(decision_base_qty * scale * decision_inv_penalty)
+        if decision_room != float('inf'):
+            decision_qty = min(decision_qty, decision_room)
+        if decision_qty <= 0:
+            return None
+
+        if self.inv_penalty_mode == "linear":
+            if actual_max_inventory is None:
+                actual_inv_penalty = 1.0
+            else:
+                denom = float(actual_max_inventory) if actual_max_inventory != 0 else 1.0
+                actual_inv_penalty = max(0.0, 1.0 - (float(current_inv) / denom))
+        else:
+            actual_inv_penalty = 1.0 / (1.0 + current_inv / 200.0)
+
+        qty = int(actual_base_qty * scale * actual_inv_penalty)
+
+        if qty <= 0:
+            return None
+
+        max_affordable = int(spendable_cash / cost_unit) if cost_unit > 0 else 0
+        if max_affordable <= 0:
+            return None
+
+        qty = min(qty, max_affordable)
+
+        if actual_room != float('inf'):
+            qty = min(qty, actual_room)
+        qty = max(1, qty)
             
         self.tick_count += 1
         if self.tick_count % 1000 == 0: # Throttle debug prints slightly
@@ -317,12 +398,13 @@ class InventoryAwareMarketMaker(ComplexStrategy):
                 )
         
         # Re-gate with actual fee (rounding check)
-        fee_real = calculate_convex_fee(price_to_pay, qty)
-        fee_cents_real = (fee_real / qty) * 100.0
-        
-        edge_after_fee_real = edge_cents - fee_cents_real - self.margin_cents
-        if edge_after_fee_real <= 0:
-            return None
+        if self.qty_scale_mode != "proportional":
+            fee_real = calculate_convex_fee(price_to_pay, qty)
+            fee_cents_real = (fee_real / qty) * 100.0
+            
+            edge_after_fee_real = edge_cents - fee_cents_real - self.margin_cents
+            if edge_after_fee_real <= 0:
+                return None
         
         orders = []
         
@@ -331,13 +413,31 @@ class InventoryAwareMarketMaker(ComplexStrategy):
             # INVARIANT: Cannot buy YES if we hold NO
             if inventories['NO'] > 0: return None
             
-            orders.append({'action': 'BUY_YES', 'ticker': ticker, 'qty': qty, 'price': yes_ask, 'expiry': current_time + timedelta(seconds=15), 'source': 'MM', 'time': current_time})
+            orders.append({
+                'action': 'BUY_YES',
+                'ticker': ticker,
+                'qty': qty,
+                'decision_qty': decision_qty,
+                'price': yes_ask,
+                'expiry': current_time + timedelta(seconds=15),
+                'source': 'MM',
+                'time': current_time,
+            })
         
         elif action == 'BUY_NO':
             # INVARIANT: Cannot buy NO if we hold YES
             if inventories['YES'] > 0: return None
             
-            orders.append({'action': 'BUY_NO', 'ticker': ticker, 'qty': qty, 'price': no_ask, 'expiry': current_time + timedelta(seconds=15), 'source': 'MM', 'time': current_time})
+            orders.append({
+                'action': 'BUY_NO',
+                'ticker': ticker,
+                'qty': qty,
+                'decision_qty': decision_qty,
+                'price': no_ask,
+                'expiry': current_time + timedelta(seconds=15),
+                'source': 'MM',
+                'time': current_time,
+            })
             
         return orders
 
@@ -380,7 +480,15 @@ class MicroScalper(ComplexStrategy):
         return None
 
 class RegimeSwitcher(ComplexStrategy):
-    def __init__(self, name, risk_pct=0.5, active_hours=None, tightness_percentile=20, **mm_kwargs):
+    def __init__(
+        self,
+        name,
+        risk_pct=0.5,
+        active_hours=None,
+        tightness_percentile=20,
+        decision_budget_cash=None,
+        **mm_kwargs,
+    ):
         super().__init__(name, risk_pct)
         print(f"DEBUG_RS_INIT: {name} mm_kwargs={mm_kwargs}")
         # Pass mm_kwargs to InventoryAwareMarketMaker
@@ -390,6 +498,12 @@ class RegimeSwitcher(ComplexStrategy):
         self.spread_histories = defaultdict(list)
         self.active_hours = active_hours # list of ints or None
         self.tightness_percentile = tightness_percentile
+        self.decision_budget_cash = decision_budget_cash
+        if self.decision_budget_cash is not None:
+            if getattr(self.mm, "decision_cash", None) is None:
+                self.mm.decision_cash = float(self.decision_budget_cash)
+            if getattr(self.mm, "decision_max_inventory", None) is None:
+                self.mm.decision_max_inventory = self.mm.max_inventory
         self.tick_count = 0
         # Shadow Inventories for attribution/logic
         self.mm_inventory = defaultdict(int) 
@@ -521,11 +635,14 @@ class ComplexBacktester:
                 'wallet': Wallet(self.initial_capital),
                 'inventory_yes': defaultdict(lambda: defaultdict(int)), # source -> ticker -> qty
                 'inventory_no': defaultdict(lambda: defaultdict(int)),
+                'decision_inventory_yes': defaultdict(lambda: defaultdict(int)), # decision-budget inventory
+                'decision_inventory_no': defaultdict(lambda: defaultdict(int)),
                 'active_limit_orders': defaultdict(list),
                 'trades': [],
                 'pnl_by_source': defaultdict(float),
                 'paid_out': set(), # Guard against double payouts
-                'cost_basis': defaultdict(float) # ticker -> total cost basis
+                'cost_basis': defaultdict(float), # ticker -> total cost basis
+                'decision_cost_basis': defaultdict(float), # ticker -> total decision-budget cost basis
             }
         if self.inventory_per_dollar_daily is not None:
             for s in self.strategies:
@@ -659,9 +776,11 @@ class ComplexBacktester:
                     if queue_payout(tkr, qty, is_yes=True):
                         portfolio['paid_out'].add(key)
                         portfolio['inventory_yes'][src][tkr] = 0
+                        portfolio['decision_inventory_yes'][src][tkr] = 0
                         # Clear cost basis for this ticker if all sources are cleared
                         # (In this bot, usually only one source holds a ticker at a time)
                         portfolio['cost_basis'][tkr] = 0.0
+                        portfolio['decision_cost_basis'][tkr] = 0.0
 
         # NO inventories
         for src in list(portfolio['inventory_no'].keys()):
@@ -673,9 +792,11 @@ class ComplexBacktester:
                     if queue_payout(tkr, qty, is_yes=False):
                         portfolio['paid_out'].add(key)
                         portfolio['inventory_no'][src][tkr] = 0
+                        portfolio['decision_inventory_no'][src][tkr] = 0
                         portfolio['cost_basis'][tkr] = 0.0
+                        portfolio['decision_cost_basis'][tkr] = 0.0
 
-    def execute_trade(self, portfolio, ticker, action, price, qty, source, timestamp, market_state, strat_name, viz_list):
+    def execute_trade(self, portfolio, ticker, action, price, qty, source, timestamp, market_state, strat_name, viz_list, decision_qty=None):
         # 1. Apply optional buy-side slippage and calculate cost/fee
         exec_price = float(price)
         if action in ('BUY_YES', 'BUY_NO') and self.buy_slippage_cents:
@@ -683,56 +804,86 @@ class ComplexBacktester:
 
         fee = calculate_convex_fee(exec_price, qty)
         cost = qty * (exec_price / 100.0) + fee
+        decision_cost = None
+        decision_qty_local = None
         
         # 2. Budget Check (Match Live Trader)
         start_equity = portfolio.get('daily_start_equity', self.initial_capital)
         risk_pct = 0.5
+        decision_budget_cash = None
         for s in self.strategies:
             if s.name == strat_name:
                 risk_pct = s.risk_pct
+                decision_budget_cash = getattr(s, "decision_budget_cash", None)
                 break
-        
-        budget = start_equity * risk_pct
-        
-        # Calculate current exposure (Acquisition Cost)
-        current_exposure = 0.0
-        
-        # Inventory Exposure (Cost Basis)
-        current_exposure += sum(portfolio['cost_basis'].values())
-                
-        # Active Orders Exposure
-        for t, orders in portfolio['active_limit_orders'].items():
-            for o in orders:
-                p_ord = o['price']
-                q_ord = o['qty']
-                current_exposure += q_ord * (p_ord / 100.0)
-                
-        if (current_exposure + cost) > budget:
-            # Scale down to fit budget
-            available = budget - current_exposure
-            if available > 0 and cost > 0:
-                ratio = available / cost
-                qty = int(qty * ratio)
-                if qty <= 0:
-                    # print(f"BUDGET REJECT (Immediate) {ticker}: Exp=${current_exposure:.2f} + Cost=${cost:.2f} > Budget=${budget:.2f} (Scaled to 0)")
-                    return False
-                fee = calculate_convex_fee(price, qty)
-                cost = qty * (price / 100.0) + fee
-                # print(f"BUDGET SCALE (Immediate) {ticker}: Scaled qty to {qty} to fit budget ${budget:.2f}")
-            else:
-                # print(f"BUDGET REJECT (Immediate) {ticker}: Exp=${current_exposure:.2f} > Budget=${budget:.2f}")
+
+        if decision_budget_cash is not None:
+            budget = float(decision_budget_cash) * risk_pct
+            decision_qty = int(decision_qty) if decision_qty is not None else qty
+            decision_fee = calculate_convex_fee(exec_price, decision_qty)
+            decision_cost = decision_qty * (exec_price / 100.0) + decision_fee
+
+            current_exposure = 0.0
+            current_exposure += sum(portfolio['decision_cost_basis'].values())
+            for t, orders in portfolio['active_limit_orders'].items():
+                for o in orders:
+                    p_ord = o['price']
+                    dq_ord = int(o.get('decision_qty', o.get('qty', 0)))
+                    current_exposure += dq_ord * (p_ord / 100.0)
+
+            if (current_exposure + decision_cost) > budget:
                 return False
+            decision_qty_local = decision_qty
+        else:
+            budget = start_equity * risk_pct
+
+            # Calculate current exposure (Acquisition Cost)
+            current_exposure = 0.0
+
+            # Inventory Exposure (Cost Basis)
+            current_exposure += sum(portfolio['cost_basis'].values())
+
+            # Active Orders Exposure
+            for t, orders in portfolio['active_limit_orders'].items():
+                for o in orders:
+                    p_ord = o['price']
+                    q_ord = o['qty']
+                    current_exposure += q_ord * (p_ord / 100.0)
+
+            if (current_exposure + cost) > budget:
+                # Scale down to fit budget
+                available = budget - current_exposure
+                if available > 0 and cost > 0:
+                    ratio = available / cost
+                    qty = int(qty * ratio)
+                    if qty <= 0:
+                        # print(f"BUDGET REJECT (Immediate) {ticker}: Exp=${current_exposure:.2f} + Cost=${cost:.2f} > Budget=${budget:.2f} (Scaled to 0)")
+                        return False
+                    fee = calculate_convex_fee(price, qty)
+                    cost = qty * (price / 100.0) + fee
+                    # print(f"BUDGET SCALE (Immediate) {ticker}: Scaled qty to {qty} to fit budget ${budget:.2f}")
+                else:
+                    # print(f"BUDGET REJECT (Immediate) {ticker}: Exp=${current_exposure:.2f} > Budget=${budget:.2f}")
+                    return False
 
         # 3. Check Cash & Execute
-        if portfolio['wallet'].spend(cost):
-            # Update Inventory
-            if action == 'BUY_YES': 
-                portfolio['inventory_yes'][source][ticker] += qty
-            elif action == 'BUY_NO': 
-                portfolio['inventory_no'][source][ticker] += qty
+            if portfolio['wallet'].spend(cost):
+                # Update Inventory
+                if action == 'BUY_YES': 
+                    portfolio['inventory_yes'][source][ticker] += qty
+                elif action == 'BUY_NO': 
+                    portfolio['inventory_no'][source][ticker] += qty
+
+                if decision_qty_local is not None:
+                    if action == 'BUY_YES':
+                        portfolio['decision_inventory_yes'][source][ticker] += decision_qty_local
+                    elif action == 'BUY_NO':
+                        portfolio['decision_inventory_no'][source][ticker] += decision_qty_local
             
             # Update Cost Basis
             portfolio['cost_basis'][ticker] += cost
+            if decision_budget_cash is not None and decision_cost is not None:
+                portfolio['decision_cost_basis'][ticker] += decision_cost
             
             y_ask = market_state.get('yes_ask', np.nan)
             y_bid = market_state.get('yes_bid', np.nan)
@@ -832,43 +983,68 @@ class ComplexBacktester:
                 # --- BUDGET CHECK (Match Live Trader) ---
                 start_equity = portfolio.get('daily_start_equity', self.initial_capital)
                 risk_pct = 0.5
+                decision_budget_cash = None
                 for s in self.strategies:
                     if s.name == strat_name:
                         risk_pct = s.risk_pct
+                        decision_budget_cash = getattr(s, "decision_budget_cash", None)
                         break
-                budget = start_equity * risk_pct
-                
-                current_exposure = 0.0
-                
-                # 1. Inventory Exposure (Cost Basis)
-                current_exposure += sum(portfolio['cost_basis'].values())
-                        
-                # 2. Active Orders Exposure
-                for t, orders in portfolio['active_limit_orders'].items():
-                    for ord_item in orders:
-                        # Skip THIS order if it's in the list (it is)
-                        if ord_item is o: continue
-                        p = ord_item['price']
-                        q = ord_item['qty']
-                        current_exposure += q * (p / 100.0)
-                
-                if (current_exposure + cost) > budget:
-                    # Scale down to fit budget
-                    available = budget - current_exposure
-                    if available > 0 and cost > 0:
-                        ratio = available / cost
-                        qty = int(qty * ratio)
-                        if qty <= 0:
-                            # print(f"BUDGET REJECT (Limit) {ticker}: Exp=${current_exposure:.2f} + Cost=${cost:.2f} > Budget=${budget:.2f} (Scaled to 0)")
-                            still_active.append(o)
-                            continue
-                        fee = calculate_convex_fee(exec_price, qty)
-                        cost = (qty * (exec_price / 100.0)) + fee
-                        # print(f"BUDGET SCALE (Limit) {ticker}: Scaled qty to {qty} to fit budget ${budget:.2f}")
-                    else:
-                        # print(f"BUDGET REJECT (Limit) {ticker}: Exp=${current_exposure:.2f} > Budget=${budget:.2f}")
+
+                decision_cost = None
+                if decision_budget_cash is not None:
+                    budget = float(decision_budget_cash) * risk_pct
+                    decision_qty = int(o.get('decision_qty', qty))
+                    decision_fee = calculate_convex_fee(exec_price, decision_qty)
+                    decision_cost = (decision_qty * (exec_price / 100.0)) + decision_fee
+
+                    current_exposure = 0.0
+                    current_exposure += sum(portfolio['decision_cost_basis'].values())
+
+                    for t, orders in portfolio['active_limit_orders'].items():
+                        for ord_item in orders:
+                            if ord_item is o:
+                                continue
+                            p = ord_item['price']
+                            dq = int(ord_item.get('decision_qty', ord_item.get('qty', 0)))
+                            current_exposure += dq * (p / 100.0)
+
+                    if (current_exposure + decision_cost) > budget:
                         still_active.append(o)
                         continue
+                else:
+                    budget = start_equity * risk_pct
+
+                    current_exposure = 0.0
+
+                    # 1. Inventory Exposure (Cost Basis)
+                    current_exposure += sum(portfolio['cost_basis'].values())
+
+                    # 2. Active Orders Exposure
+                    for t, orders in portfolio['active_limit_orders'].items():
+                        for ord_item in orders:
+                            # Skip THIS order if it's in the list (it is)
+                            if ord_item is o: continue
+                            p = ord_item['price']
+                            q = ord_item['qty']
+                            current_exposure += q * (p / 100.0)
+
+                    if (current_exposure + cost) > budget:
+                        # Scale down to fit budget
+                        available = budget - current_exposure
+                        if available > 0 and cost > 0:
+                            ratio = available / cost
+                            qty = int(qty * ratio)
+                            if qty <= 0:
+                                # print(f"BUDGET REJECT (Limit) {ticker}: Exp=${current_exposure:.2f} + Cost=${cost:.2f} > Budget=${budget:.2f} (Scaled to 0)")
+                                still_active.append(o)
+                                continue
+                            fee = calculate_convex_fee(exec_price, qty)
+                            cost = (qty * (exec_price / 100.0)) + fee
+                            # print(f"BUDGET SCALE (Limit) {ticker}: Scaled qty to {qty} to fit budget ${budget:.2f}")
+                        else:
+                            # print(f"BUDGET REJECT (Limit) {ticker}: Exp=${current_exposure:.2f} > Budget=${budget:.2f}")
+                            still_active.append(o)
+                            continue
 
                 # Check Cash
                 if portfolio['wallet'].spend(cost):
@@ -877,9 +1053,17 @@ class ComplexBacktester:
                         portfolio['inventory_yes'][source][ticker] += qty
                     elif action == 'BUY_NO': 
                         portfolio['inventory_no'][source][ticker] += qty
+
+                    if decision_budget_cash is not None and decision_qty is not None:
+                        if action == 'BUY_YES':
+                            portfolio['decision_inventory_yes'][source][ticker] += decision_qty
+                        elif action == 'BUY_NO':
+                            portfolio['decision_inventory_no'][source][ticker] += decision_qty
                     
                     # Update Cost Basis
                     portfolio['cost_basis'][ticker] += cost
+                    if decision_budget_cash is not None and decision_cost is not None:
+                        portfolio['decision_cost_basis'][ticker] += decision_cost
                     
                     trade = {
                         'time': timestamp, 
@@ -931,7 +1115,9 @@ class ComplexBacktester:
                 proceeds = qty * (price / 100.0) - fee
                 portfolio["wallet"].add_cash(proceeds)
                 portfolio["inventory_yes"][src][ticker] = 0
+                portfolio["decision_inventory_yes"][src][ticker] = 0
                 portfolio['cost_basis'][ticker] = 0.0
+                portfolio['decision_cost_basis'][ticker] = 0.0
                 
                 # Log the exit
                 portfolio['trades'].append({
@@ -950,7 +1136,9 @@ class ComplexBacktester:
                 proceeds = qty * (price / 100.0) - fee
                 portfolio["wallet"].add_cash(proceeds)
                 portfolio["inventory_no"][src][ticker] = 0
+                portfolio["decision_inventory_no"][src][ticker] = 0
                 portfolio['cost_basis'][ticker] = 0.0
+                portfolio['decision_cost_basis'][ticker] = 0.0
                 
                 # Log the exit
                 portfolio['trades'].append({
@@ -1114,10 +1302,23 @@ class ComplexBacktester:
                             if dt_s < self.min_requote_interval_seconds:
                                 continue
 
-                    src_invs = {
-                        'MM': {'YES': p['inventory_yes']['MM'][ticker], 'NO': p['inventory_no']['MM'][ticker]},
-                        'Scalper': {'YES': p['inventory_yes']['Scalper'][ticker], 'NO': p['inventory_no']['Scalper'][ticker]}
-                    }
+                    use_decision_inventory = getattr(s, "decision_budget_cash", None) is not None
+                    if use_decision_inventory:
+                        src_invs = {
+                            'MM': {
+                                'YES': p['decision_inventory_yes']['MM'][ticker],
+                                'NO': p['decision_inventory_no']['MM'][ticker],
+                            },
+                            'Scalper': {
+                                'YES': p['decision_inventory_yes']['Scalper'][ticker],
+                                'NO': p['decision_inventory_no']['Scalper'][ticker],
+                            },
+                        }
+                    else:
+                        src_invs = {
+                            'MM': {'YES': p['inventory_yes']['MM'][ticker], 'NO': p['inventory_no']['MM'][ticker]},
+                            'Scalper': {'YES': p['inventory_yes']['Scalper'][ticker], 'NO': p['inventory_no']['Scalper'][ticker]},
+                        }
                     new_orders = s.on_market_update(ticker, ms, current_time, src_invs, p['active_limit_orders'][ticker], p['wallet'].available_cash, idx)
 
                     if self.min_requote_interval_seconds > 0:
@@ -1133,14 +1334,15 @@ class ComplexBacktester:
                              qty = o['qty']
                              source = o['source']
                              
+                             decision_qty = o.get('decision_qty')
                              if action == 'BUY_YES':
                                  curr_ask = ms.get('yes_ask', np.nan)
                                  if not pd.isna(curr_ask) and price >= curr_ask:
-                                     filled = bool(self.execute_trade(p, ticker, action, float(curr_ask), qty, source, current_time, ms, s.name, daily_trades_viz))
+                                     filled = bool(self.execute_trade(p, ticker, action, float(curr_ask), qty, source, current_time, ms, s.name, daily_trades_viz, decision_qty=decision_qty))
                              elif action == 'BUY_NO':
                                  curr_ask = ms.get('no_ask', np.nan)
                                  if not pd.isna(curr_ask) and price >= curr_ask:
-                                     filled = bool(self.execute_trade(p, ticker, action, float(curr_ask), qty, source, current_time, ms, s.name, daily_trades_viz))
+                                     filled = bool(self.execute_trade(p, ticker, action, float(curr_ask), qty, source, current_time, ms, s.name, daily_trades_viz, decision_qty=decision_qty))
                              
                              if not filled:
                                  active_orders.append(o)

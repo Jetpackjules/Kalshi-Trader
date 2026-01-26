@@ -27,6 +27,20 @@ def recommended_live_strategy() -> RegimeSwitcher:
     )
 
 
+def recommended_live_strategy_dec100() -> RegimeSwitcher:
+    return RegimeSwitcher(
+        "recommended_live_strategy_dec100",
+        risk_pct=0.8,
+        tightness_percentile=10,
+        max_inventory=150,
+        margin_cents=8.0,
+        scaling_factor=2.0,
+        max_notional_pct=0.10,
+        max_loss_pct=0.03,
+        decision_budget_cash=100,
+    )
+
+
 def meta_regime_switcher_uncapped() -> RegimeSwitcher:
     return RegimeSwitcher("meta_uncapped", max_inventory=None)
 

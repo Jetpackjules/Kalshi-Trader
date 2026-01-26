@@ -50,7 +50,9 @@ def main():
         ("server_mirror/unified_engine/engine.py", "unified_engine/engine.py"),
         ("server_mirror/unified_engine/tick_sources.py", "unified_engine/tick_sources.py"),
         ("server_mirror/backtesting/strategies/v3_variants.py", "backtesting/strategies/v3_variants.py"),
+        ("server_mirror/backtesting/strategies/simple_market_maker.py", "backtesting/strategies/simple_market_maker.py"),
         ("server_mirror/backtesting/engine.py", "backtesting/engine.py"),
+        ("run_bot.sh", "run_bot.sh"),
     ]
     
     # Ensure remote directory exists
@@ -69,14 +71,9 @@ def main():
         run_command(scp_cmd, f"Uploading {os.path.basename(local_path)}")
 
     # 3. Start the Unified Engine
-    # Using nohup to keep it running after disconnect.
-    # Append to output.log so the graph keeps its full history.
-    start_cmd = (
-        f'ssh -i {KEY_PATH} -o StrictHostKeyChecking=no {SERVER_ADDR} '
-        f'"nohup ~/venv/bin/python -u -m unified_engine.runner --live --key-file ~/kalshi_prod_private_key.pem '
-        f'--log-dir market_logs --follow --diag-log --status-every-ticks 1 >> ~/output.log 2>&1 &"'
-    )
-    run_command(start_cmd, "Starting Unified Engine (runner.py)")
+    # Using run_bot.sh to handle quoting and startup
+    start_cmd = f'ssh -i {KEY_PATH} -o StrictHostKeyChecking=no {SERVER_ADDR} "chmod +x ~/run_bot.sh && ~/run_bot.sh"'
+    run_command(start_cmd, "Starting Unified Engine (run_bot.sh)")
 
     print("=== Deployment Complete ===")
     print("Unified Engine has been restarted on the server.")

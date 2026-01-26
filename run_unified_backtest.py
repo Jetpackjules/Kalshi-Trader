@@ -104,6 +104,12 @@ def main():
     )
     parser.add_argument("--warmup-hours", type=int, default=0, help="Hours of data to feed before start-ts")
     parser.add_argument(
+        "--day-boundary-hour",
+        type=int,
+        default=0,
+        help="Hour offset for daily boundaries (e.g. 5 means day runs 5am->5am)",
+    )
+    parser.add_argument(
         "--strategy",
         type=str,
         default="hb_notional_010",
@@ -121,6 +127,29 @@ def main():
     parser.add_argument("--quiet", action="store_true", help="Suppress non-error output")
     parser.add_argument("--decision-log", type=str, default=None, help="Path to decision log CSV")
     parser.add_argument("--log-dir", type=str, default=r"vm_logs\market_logs", help="Directory containing market logs")
+    parser.add_argument("--famine-days", type=int, default=0, help="Consecutive losing days before pausing trading")
+    parser.add_argument("--abundance-days", type=int, default=0, help="Consecutive winning days before resuming trading")
+    parser.add_argument("--famine-daily-pct", type=float, default=0.0, help="Daily pct <= threshold counts as famine")
+    parser.add_argument("--abundance-daily-pct", type=float, default=0.0, help="Daily pct >= threshold counts as abundance")
+    parser.add_argument(
+        "--resume-restart-mode",
+        type=str,
+        default="off",
+        choices=["off", "intraday", "eod"],
+        help="Resume from famine using a shadow restart sim (intraday or end-of-day)",
+    )
+    parser.add_argument(
+        "--resume-restart-pct",
+        type=float,
+        default=0.0,
+        help="Restart ROI threshold (%) required to resume when using resume-restart-mode",
+    )
+    parser.add_argument(
+        "--fill-prob-per-min",
+        type=float,
+        default=0.0,
+        help="Probability of passive fill per minute (0.0 to 1.0)",
+    )
     args = parser.parse_args()
 
     os.environ["BT_VERBOSE"] = "1" if args.verbose else "0"
@@ -142,9 +171,16 @@ def main():
     initial_cash = args.initial_cash
     min_requote_interval = args.min_requote_interval
 
-    import server_mirror.backtesting.strategies.v3_variants as v3_variants
-
-    strat_func = getattr(v3_variants, args.strategy)
+    if ":" in args.strategy:
+        # Dynamic loading: module:function
+        import importlib
+        module_name, func_name = args.strategy.split(":")
+        mod = importlib.import_module(module_name)
+        strat_func = getattr(mod, func_name)
+    else:
+        # Legacy behavior
+        import server_mirror.backtesting.strategies.v3_variants as v3_variants
+        strat_func = getattr(v3_variants, args.strategy)
 
     if args.strategy_kwargs and args.strategy_kwargs != "{}":
         strategy_kwargs = json.loads(args.strategy_kwargs)
@@ -162,23 +198,28 @@ def main():
         strategy_kwargs = {}
 
     print(f"DEBUG_STRAT_ARGS: {args.strategy} strategy_kwargs={strategy_kwargs}")
-    try:
-        strategy = strat_func(**strategy_kwargs)
-    except TypeError:
-        strategy = strat_func()
 
-    if args.max_loss_pct is not None:
+    def _build_strategy():
         try:
-            if hasattr(strategy, "mm") and hasattr(strategy.mm, "max_loss_pct"):
-                strategy.mm.max_loss_pct = float(args.max_loss_pct)
-            if hasattr(strategy, "max_loss_pct"):
-                strategy.max_loss_pct = float(args.max_loss_pct)
-        except (TypeError, ValueError):
-            pass
+            strat = strat_func(**strategy_kwargs)
+        except TypeError:
+            strat = strat_func()
 
-    if args.trade_all_day:
-        log("Disabling time constraints (trade-all-day)...")
-        strategy.active_hours = list(range(24))
+        if args.max_loss_pct is not None:
+            try:
+                if hasattr(strat, "mm") and hasattr(strat.mm, "max_loss_pct"):
+                    strat.mm.max_loss_pct = float(args.max_loss_pct)
+                if hasattr(strat, "max_loss_pct"):
+                    strat.max_loss_pct = float(args.max_loss_pct)
+            except (TypeError, ValueError):
+                pass
+
+        if args.trade_all_day:
+            log("Disabling time constraints (trade-all-day)...")
+            strat.active_hours = list(range(24))
+        return strat
+
+    strategy = _build_strategy()
 
     log(f"Loaded Strategy: {strategy.name}")
 
@@ -194,6 +235,7 @@ def main():
         initial_cash=initial_cash,
         initial_positions=initial_positions,
         diag_log=None,
+        fill_prob_per_min=args.fill_prob_per_min,
     )
 
     # Seed initial prices from snapshot cost basis to avoid equity spikes
@@ -222,6 +264,42 @@ def main():
         decision_log=decision_log,
     )
 
+    famine_enabled = args.famine_days > 0 and args.abundance_days > 0
+    resume_on_restart = args.resume_restart_mode != "off"
+    gate_state = {
+        "enabled": True,
+        "current_day": None,
+        "day_start_equity": None,
+        "last_day_equity": None,
+        "neg_streak": 0,
+        "pos_streak": 0,
+    }
+    shadow_state = {
+        "day": None,
+        "start_equity": None,
+        "last_equity": None,
+        "adapter": None,
+        "engine": None,
+    }
+
+    if famine_enabled:
+        class _GatedStrategy:
+            def __init__(self, base, gate):
+                self._base = base
+                self._gate = gate
+                self.name = getattr(base, "name", "gated")
+
+            def __getattr__(self, item):
+                return getattr(self._base, item)
+
+            def on_market_update(self, *args, **kwargs):
+                if not self._gate["enabled"]:
+                    return []
+                return self._base.on_market_update(*args, **kwargs)
+
+        strategy = _GatedStrategy(strategy, gate_state)
+        engine.strategy = strategy
+
     log(f"Loading ticks from {log_dir}...")
     ticks = list(iter_ticks_from_market_logs(log_dir))
     log(f"Loaded {len(ticks)} ticks.")
@@ -243,7 +321,7 @@ def main():
     last_breakdown_date = None
     started = False
 
-    def record_equity(record_ts: datetime) -> None:
+    def record_equity(record_ts: datetime) -> float:
         nonlocal last_breakdown_date
         cash_val = adapter.get_cash()
         holdings_val = _compute_holdings(adapter)
@@ -278,6 +356,7 @@ def main():
                     }
                 )
             last_breakdown_date = current_date
+        return equity_val
 
     settled_dates: set[tuple[str, datetime.date]] = set()
 
@@ -346,7 +425,85 @@ def main():
         if not started:
             started = True
         
-        record_equity(t)
+        equity_val = record_equity(t)
+
+        if famine_enabled:
+            if args.day_boundary_hour:
+                day = (t - timedelta(hours=args.day_boundary_hour)).date()
+            else:
+                day = t.date()
+            if gate_state["current_day"] is None:
+                gate_state["current_day"] = day
+                gate_state["day_start_equity"] = equity_val
+                gate_state["last_day_equity"] = equity_val
+            elif day == gate_state["current_day"]:
+                gate_state["last_day_equity"] = equity_val
+            else:
+                # Day rolled over: evaluate previous day performance
+                start_eq = gate_state["day_start_equity"]
+                end_eq = gate_state["last_day_equity"]
+                if start_eq and end_eq is not None:
+                    daily_pct = ((end_eq / start_eq) - 1.0) * 100.0
+                    if daily_pct <= args.famine_daily_pct:
+                        gate_state["neg_streak"] += 1
+                        gate_state["pos_streak"] = 0
+                    elif daily_pct >= args.abundance_daily_pct:
+                        gate_state["pos_streak"] += 1
+                        gate_state["neg_streak"] = 0
+                    else:
+                        gate_state["neg_streak"] = 0
+                        gate_state["pos_streak"] = 0
+
+                if gate_state["enabled"] and gate_state["neg_streak"] >= args.famine_days:
+                    gate_state["enabled"] = False
+                    if not args.quiet:
+                        print(f"[FAMINE] Pausing at {t} after {gate_state['neg_streak']} losing days")
+                    for order in list(adapter.open_orders):
+                        adapter.cancel_order(order.get("order_id"))
+                elif (not gate_state["enabled"]) and (not resume_on_restart) and gate_state["pos_streak"] >= args.abundance_days:
+                    gate_state["enabled"] = True
+                    if not args.quiet:
+                        print(f"[ABUNDANCE] Resuming at {t} after {gate_state['pos_streak']} winning days")
+                    gate_state["neg_streak"] = 0
+                    gate_state["pos_streak"] = 0
+
+                if resume_on_restart and not gate_state["enabled"] and args.resume_restart_mode == "eod":
+                    start_eq = shadow_state["start_equity"]
+                    end_eq = shadow_state["last_equity"]
+                    if start_eq and end_eq is not None:
+                        restart_pct = ((end_eq / start_eq) - 1.0) * 100.0
+                        if restart_pct >= args.resume_restart_pct:
+                            gate_state["enabled"] = True
+                            gate_state["neg_streak"] = 0
+                            gate_state["pos_streak"] = 0
+                            if not args.quiet:
+                                print(
+                                    f"[RESTART] Resuming at {t} (EOD restart ROI {restart_pct:.2f}%)"
+                                )
+
+                gate_state["current_day"] = day
+                gate_state["day_start_equity"] = equity_val
+                gate_state["last_day_equity"] = equity_val
+                if resume_on_restart and not gate_state["enabled"]:
+                    shadow_state["day"] = day
+                    shadow_state["start_equity"] = adapter.get_cash()
+                    shadow_state["last_equity"] = shadow_state["start_equity"]
+                    shadow_adapter = SimAdapter(initial_cash=shadow_state["start_equity"])
+                    shadow_engine = UnifiedEngine(
+                        strategy=_build_strategy(),
+                        adapter=shadow_adapter,
+                        min_requote_interval=min_requote_interval,
+                        diag_log=None,
+                        decision_log=None,
+                    )
+                    shadow_state["adapter"] = shadow_adapter
+                    shadow_state["engine"] = shadow_engine
+                else:
+                    shadow_state["day"] = None
+                    shadow_state["start_equity"] = None
+                    shadow_state["last_equity"] = None
+                    shadow_state["adapter"] = None
+                    shadow_state["engine"] = None
 
         count += 1
         if count % 10000 == 0:
@@ -381,6 +538,36 @@ def main():
             tick_source=tick.get("source_file"),
             tick_row=tick.get("source_row"),
         )
+
+        if resume_on_restart and not gate_state["enabled"]:
+            shadow_engine = shadow_state.get("engine")
+            shadow_adapter = shadow_state.get("adapter")
+            if shadow_engine is not None and shadow_adapter is not None:
+                shadow_engine.on_tick(
+                    ticker=tick["ticker"],
+                    market_state=tick["market_state"],
+                    current_time=t,
+                    tick_seq=tick.get("seq"),
+                    tick_source=tick.get("source_file"),
+                    tick_row=tick.get("source_row"),
+                )
+                shadow_equity = shadow_adapter.get_cash() + _compute_holdings(shadow_adapter)
+                shadow_state["last_equity"] = shadow_equity
+                if args.resume_restart_mode == "intraday":
+                    start_eq = shadow_state["start_equity"]
+                    if start_eq and ((shadow_equity / start_eq) - 1.0) * 100.0 >= args.resume_restart_pct:
+                        gate_state["enabled"] = True
+                        gate_state["neg_streak"] = 0
+                        gate_state["pos_streak"] = 0
+                        shadow_state["day"] = None
+                        shadow_state["start_equity"] = None
+                        shadow_state["last_equity"] = None
+                        shadow_state["adapter"] = None
+                        shadow_state["engine"] = None
+                        if not args.quiet:
+                            print(
+                                f"[RESTART] Resuming at {t} (intraday restart ROI >= {args.resume_restart_pct:.2f}%)"
+                            )
 
         for ticker in list(adapter.positions.keys()):
             m_dt = parse_market_date_from_ticker(ticker)

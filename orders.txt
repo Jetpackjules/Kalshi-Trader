@@ -1,0 +1,56 @@
+--- Listing Open Orders ---
+DEBUG: Sync Cash | Old: 0.00 | New (API): 0.33
+DEBUG: Synced Position | KXHIGHNY-26JAN25-T23 | YES=20 | NO=0
+DEBUG: Synced Position | KXHIGHNY-26JAN25-B23.5 | YES=6 | NO=0
+Total Orders Fetched: 100
+Total RESTING Orders: 4
+
+[Order 1]
+Ticker: KXHIGHNY-26JAN25-B23.5
+Action: buy
+Side: yes
+Type: limit
+Status: resting
+Price (YES): 3
+Price (NO): 97
+Qty: 10
+
+[Order 2]
+Ticker: KXHIGHNY-26JAN25-T23
+Action: buy
+Side: yes
+Type: limit
+Status: resting
+Price (YES): 3
+Price (NO): 97
+Qty: 10
+
+[Order 3]
+Ticker: KXHIGHNY-26JAN25-T23
+Action: buy
+Side: yes
+Type: limit
+Status: canceled
+Price (YES): 2
+Price (NO): 98
+Qty: 0
+
+[Order 4]
+Ticker: KXHIGHNY-26JAN25-B23.5
+Action: buy
+Side: yes
+Type: limit
+Status: canceled
+Price (YES): 2
+Price (NO): 98
+Qty: 0
+
+[Order 5]
+Ticker: KXHIGHNY-26JAN25-B23.5
+Action: buy
+Side: yes
+Type: limit
+Status: canceled
+Price (YES): 3
+Price (NO): 97
+Qty: 0

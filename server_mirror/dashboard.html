@@ -343,6 +343,36 @@
 
             <section class="panel">
                 <div class="panel-header">
+                    <h2>Market Gaps (Today)</h2>
+                    <small id="gapStatusToday">Waiting for live status...</small>
+                    <div class="panel-actions">
+                        <label for="gapWindow" style="font-size: 12px; color: var(--muted);">Recent</label>
+                        <select id="gapWindow" class="btn btn-ghost">
+                            <option value="900">15m</option>
+                            <option value="3600" selected>1h</option>
+                            <option value="7200">2h</option>
+                            <option value="21600">6h</option>
+                            <option value="86400">24h</option>
+                        </select>
+                        <small id="gapCountToday" style="color: var(--muted);">--</small>
+                    </div>
+                </div>
+                <div id="gapChartToday" style="width: 100%; height: 300px;"></div>
+            </section>
+
+            <section class="panel">
+                <div class="panel-header">
+                    <h2>Market Gaps (Tomorrow)</h2>
+                    <small id="gapStatusTomorrow">Waiting for live status...</small>
+                    <div class="panel-actions">
+                        <small id="gapCountTomorrow" style="color: var(--muted);">--</small>
+                    </div>
+                </div>
+                <div id="gapChartTomorrow" style="width: 100%; height: 300px;"></div>
+            </section>
+
+            <section class="panel">
+                <div class="panel-header">
                     <h2>Market Tape</h2>
                     <div class="panel-actions">
                         <label for="fileSelect" style="font-size: 12px; color: var(--muted);">Market Day</label>
@@ -451,8 +481,12 @@
 
     <script>
         const LOG_DIR = 'market_logs/';
+        const RECENT_FILES_TO_SCAN = 3;
         let currentFile = '';
-        let marketCache = { ticks: [], lastTick: null };
+        let marketCache = { ticks: [], markets: {}, latestMarketData: {}, lastTick: null };
+        let latestOrders = [];
+        let latestPositions = {};
+        let gapCache = { today: null, tomorrow: null };
 
         function formatTime(date) {
             return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -487,15 +521,23 @@
                 document.getElementById('liveSpent').innerText = spentText;
                 document.getElementById('liveHeartbeat').innerText = data.last_update || '-';
 
-                // Update Window Chip
                 if (data.window_status) {
                     const winChip = document.getElementById('windowChip');
                     winChip.innerHTML = `<strong>${data.window_status.message}</strong>`;
                     winChip.style.color = data.window_status.color;
                     winChip.style.borderColor = data.window_status.color;
                 }
+
+                if (data.active_orders) {
+                    latestOrders = data.active_orders || [];
+                    latestPositions = data.positions || {};
+                    renderGapCharts();
+                } else if (marketCache.latestMarketData && Object.keys(marketCache.latestMarketData).length) {
+                    renderGapCharts();
+                }
             } catch (e) {
                 document.getElementById('liveStatusText').innerText = 'Live: Offline';
+                console.error(e);
             }
         }
 
@@ -531,20 +573,45 @@
             const lines = csvText.trim().split('\n');
             const tickPoints = [];
             const markets = {};
+            const latestMarketData = {}; // ticker -> { bid, ask }
+            let lastTickMs = null;
+
             for (let i = 1; i < lines.length; i++) {
                 const row = lines[i].split(',');
                 if (row.length < 6) continue;
+
                 const timestamp = new Date(row[0]);
+                const tsMs = timestamp.getTime();
                 const ticker = row[1];
+                const bid = parseFloat(row[2]);
+                const ask = parseFloat(row[5]);
                 const impliedNoAsk = parseFloat(row[4]);
+                const lastTrade = row.length > 6 ? parseFloat(row[6]) : null;
+
                 if (!markets[ticker]) {
                     markets[ticker] = { x: [], y: [] };
                 }
                 markets[ticker].x.push(row[0]);
                 markets[ticker].y.push(impliedNoAsk);
                 tickPoints.push({ time: timestamp, ticker });
+
+                // Keep track of latest market bid/ask
+                latestMarketData[ticker] = { bid, ask, lastTs: timestamp.getTime(), lastTrade };
+                if (!lastTickMs || tsMs > lastTickMs) {
+                    lastTickMs = tsMs;
+                }
             }
-            return { markets, tickPoints };
+            return { markets, tickPoints, latestMarketData, lastTick: lastTickMs ? new Date(lastTickMs) : null };
+        }
+
+        function mergeLatestMarketData(target, incoming) {
+            Object.keys(incoming).forEach(ticker => {
+                const src = incoming[ticker];
+                const cur = target[ticker];
+                if (!cur || (src.lastTs && (!cur.lastTs || src.lastTs > cur.lastTs))) {
+                    target[ticker] = src;
+                }
+            });
         }
 
         async function loadData() {
@@ -554,19 +621,46 @@
             currentFile = filename;
             document.getElementById('graphStatus').innerText = `Loading ${filename}...`;
             try {
+                // 1. Load the primary file
                 const response = await fetch(`${LOG_DIR}${filename}?t=${Date.now()}`);
                 const text = await response.text();
                 const parsed = parseMarketCsv(text);
-                marketCache.ticks = parsed.tickPoints;
-                marketCache.lastTick = parsed.tickPoints.length
-                    ? parsed.tickPoints[parsed.tickPoints.length - 1].time
+
+                let mergedMarketData = { ...parsed.latestMarketData };
+                let mergedTicks = [...parsed.tickPoints];
+                let mergedMarkets = { ...parsed.markets };
+
+                // 2. Always try to load the LATEST file from manifest to get current quotes
+                const manifestResponse = await fetch(`${LOG_DIR}manifest.json?t=${Date.now()}`);
+                const manifest = await manifestResponse.json();
+                if (manifest.files && manifest.files.length > 0) {
+                    const recentFiles = manifest.files.slice(-RECENT_FILES_TO_SCAN);
+                    for (const recentFile of recentFiles) {
+                        if (recentFile === filename) continue;
+                        try {
+                            const respRecent = await fetch(`${LOG_DIR}${recentFile}?t=${Date.now()}`);
+                            const textRecent = await respRecent.text();
+                            const parsedRecent = parseMarketCsv(textRecent);
+                            mergeLatestMarketData(mergedMarketData, parsedRecent.latestMarketData);
+                        } catch (eRecent) { }
+                    }
+                }
+
+                marketCache.ticks = mergedTicks;
+                marketCache.markets = mergedMarkets;
+                marketCache.latestMarketData = mergedMarketData;
+                marketCache.lastTick = mergedTicks.length
+                    ? mergedTicks[mergedTicks.length - 1].time
                     : null;
-                renderMarketChart(parsed.markets, filename);
+
+                renderMarketChart(mergedMarkets, filename);
                 document.getElementById('graphStatus').innerText = `Loaded ${filename} at ${formatTime(new Date())}`;
                 updateTimeline();
                 updateHealth();
+                loadGapMarketData();
             } catch (e) {
                 document.getElementById('graphStatus').innerText = 'Error loading CSV';
+                console.error(e);
             }
         }
 
@@ -800,6 +894,10 @@
             currentFile = e.target.value;
             loadData();
         });
+        const gapWindow = document.getElementById('gapWindow');
+        if (gapWindow) {
+            gapWindow.addEventListener('change', () => renderGapCharts());
+        }
 
         fetchManifest();
         updateClock();
@@ -807,6 +905,7 @@
         loadTrades();
         updateShadowSnapshot();
         updateTimeline();
+        loadGapMarketData();
 
         setInterval(fetchManifest, 10000);
         setInterval(loadData, 30000);
@@ -814,8 +913,352 @@
         setInterval(loadTrades, 6000);
         setInterval(updateClock, 1000);
         setInterval(updateTimeline, 60000);
-        setInterval(updateShadowSnapshot, 45000);
+            setInterval(updateShadowSnapshot, 45000);
         setInterval(updateHealth, 15000);
+        setInterval(loadGapMarketData, 60000);
+        function formatMarketDateCode(date) {
+            const months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+            const yy = String(date.getFullYear()).slice(-2);
+            const dd = String(date.getDate()).padStart(2, '0');
+            return `${yy}${months[date.getMonth()]}${dd}`;
+        }
+
+        function parseMarketDateCode(code) {
+            if (!code || code.length !== 7) return null;
+            const months = { JAN: 0, FEB: 1, MAR: 2, APR: 3, MAY: 4, JUN: 5, JUL: 6, AUG: 7, SEP: 8, OCT: 9, NOV: 10, DEC: 11 };
+            const yy = parseInt(code.slice(0, 2), 10);
+            const mon = months[code.slice(2, 5)];
+            const dd = parseInt(code.slice(5, 7), 10);
+            if (Number.isNaN(yy) || mon === undefined || Number.isNaN(dd)) return null;
+            return new Date(2000 + yy, mon, dd);
+        }
+
+        function ymdInTz(date, tz) {
+            return new Intl.DateTimeFormat('en-CA', {
+                timeZone: tz,
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            }).format(date);
+        }
+
+        function codeToYmd(code) {
+            const date = parseMarketDateCode(code);
+            if (!date) return null;
+            const yyyy = date.getFullYear();
+            const mm = String(date.getMonth() + 1).padStart(2, '0');
+            const dd = String(date.getDate()).padStart(2, '0');
+            return `${yyyy}-${mm}-${dd}`;
+        }
+
+        async function loadGapMarketData() {
+            try {
+                const response = await fetch(`${LOG_DIR}manifest.json?t=${Date.now()}`);
+                const data = await response.json();
+                const files = data.files || [];
+                if (!files.length) return;
+
+                const tz = 'America/New_York';
+                const todayYmd = ymdInTz(new Date(), tz);
+                const tomorrowDate = new Date();
+                tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+                const tomorrowYmd = ymdInTz(tomorrowDate, tz);
+
+                const latestFile = files[files.length - 1] || null;
+                const prevFile = files.length > 1 ? files[files.length - 2] : null;
+
+                const latestCode = latestFile ? (latestFile.match(/-(\d{2}[A-Z]{3}\d{2})\.csv$/) || [])[1] : null;
+                const prevCode = prevFile ? (prevFile.match(/-(\d{2}[A-Z]{3}\d{2})\.csv$/) || [])[1] : null;
+                const latestYmd = codeToYmd(latestCode);
+                const prevYmd = codeToYmd(prevCode);
+
+                let todayFile = latestFile;
+                let tomorrowFile = prevFile;
+
+                if (latestYmd && latestYmd > todayYmd) {
+                    // Latest file is for tomorrow or later.
+                    todayFile = prevFile;
+                    tomorrowFile = latestFile;
+                } else if (latestYmd && latestYmd === todayYmd) {
+                    todayFile = latestFile;
+                    tomorrowFile = prevFile;
+                } else if (prevYmd && prevYmd === todayYmd && latestYmd && latestYmd < todayYmd) {
+                    todayFile = prevFile;
+                    tomorrowFile = latestFile;
+                }
+
+                async function fetchMarketFile(filename) {
+                    if (!filename) return null;
+                    const resp = await fetch(`${LOG_DIR}${filename}?t=${Date.now()}`);
+                    const text = await resp.text();
+                    const parsed = parseMarketCsv(text);
+                    return { file: filename, marketData: parsed.latestMarketData, lastTick: parsed.lastTick };
+                }
+
+                gapCache.today = await fetchMarketFile(todayFile);
+                gapCache.tomorrow = await fetchMarketFile(tomorrowFile);
+                renderGapCharts();
+            } catch (e) {
+                // Ignore gap refresh errors
+            }
+        }
+
+        function renderGapCharts() {
+            const gapWindow = document.getElementById('gapWindow');
+            const recentWindowMs = gapWindow ? parseInt(gapWindow.value, 10) * 1000 : 3600 * 1000;
+
+            const todayData = gapCache.today;
+            const tomorrowData = gapCache.tomorrow;
+
+            renderGapChartTo({
+                chartId: 'gapChartToday',
+                statusId: 'gapStatusToday',
+                countId: 'gapCountToday',
+                orders: latestOrders,
+                positions: latestPositions,
+                marketDataOverride: todayData ? todayData.marketData : null,
+                fileLabel: todayData ? todayData.file : null,
+                recentWindowMs,
+                includeAll: true
+            });
+
+            renderGapChartTo({
+                chartId: 'gapChartTomorrow',
+                statusId: 'gapStatusTomorrow',
+                countId: 'gapCountTomorrow',
+                orders: latestOrders,
+                positions: latestPositions,
+                marketDataOverride: tomorrowData ? tomorrowData.marketData : null,
+                fileLabel: tomorrowData ? tomorrowData.file : null,
+                recentWindowMs,
+                includeAll: true
+            });
+        }
+
+        function renderGapChartTo(opts) {
+            const chartId = opts.chartId;
+            const statusId = opts.statusId;
+            const countId = opts.countId;
+            const orders = opts.orders || [];
+            const positions = opts.positions || {};
+            const marketDataOverride = opts.marketDataOverride || null;
+            const fileLabel = opts.fileLabel || null;
+            const recentWindowMs = opts.recentWindowMs || 3600 * 1000;
+            const includeAll = !!opts.includeAll;
+
+            const nowMs = Date.now();
+            // 1. Collect tickers from the selected file only
+            const allTickers = new Set();
+            if (marketDataOverride) {
+                Object.keys(marketDataOverride).forEach(t => allTickers.add(t));
+            } else if (window.marketCache && window.marketCache.latestMarketData) {
+                Object.keys(window.marketCache.latestMarketData).forEach(t => allTickers.add(t));
+            }
+
+            const marketData = {};
+
+            // Initialize all
+            allTickers.forEach(ticker => {
+                // Default to market data if available
+                const m = marketDataOverride
+                    ? marketDataOverride[ticker]
+                    : ((window.marketCache && window.marketCache.latestMarketData) ? window.marketCache.latestMarketData[ticker] : null);
+                marketData[ticker] = {
+                    bid: m ? m.bid : 0,
+                    ask: m ? m.ask : 100,
+                    hasMarketData: !!m,
+                    lastTs: m ? m.lastTs : null,
+                    lastTrade: m ? m.lastTrade : null,
+                    bidQty: 0,
+                    askQty: 0,
+                    yesPos: 0,
+                    noPos: 0,
+                    userBid: null,
+                    userAsk: null
+                };
+            });
+
+            // 2. Process User Orders (Overlay) - only if present in this file
+            orders.forEach(o => {
+                if (!marketData[o.ticker]) return;
+                if (o.action === 'BUY_YES') {
+                    if (marketData[o.ticker].userBid === null || o.price > marketData[o.ticker].userBid) {
+                        marketData[o.ticker].userBid = o.price;
+                        marketData[o.ticker].bidQty = o.qty;
+                    }
+                } else if (o.action === 'BUY_NO') {
+                    if (marketData[o.ticker].userAsk === null || o.price < marketData[o.ticker].userAsk) {
+                        marketData[o.ticker].userAsk = o.price;
+                        marketData[o.ticker].askQty = o.qty;
+                    }
+                }
+            });
+
+            // 3. Process Positions (only if present in this file)
+            if (positions) {
+                Object.keys(positions).forEach(ticker => {
+                    if (!marketData[ticker]) return;
+                    const p = positions[ticker];
+                    marketData[ticker].yesPos = p.yes || 0;
+                    marketData[ticker].noPos = p.no || 0;
+                });
+            }
+
+            // Prepare traces
+            const tickers = Array.from(allTickers);
+
+            // Numerical Sort: B strikes then T strikes
+            const getStrike = t => {
+                const m = t.match(/(\d+(\.\d+)?)$/);
+                if (!m) return 0;
+                return parseFloat(m[1]);
+            };
+            const getSide = t => {
+                const m = t.match(/([BT])\d+(\.\d+)?$/);
+                return m ? m[1] : '';
+            };
+            tickers.sort((a, b) => {
+                const sa = getStrike(a);
+                const sb = getStrike(b);
+                if (sa !== sb) return sa - sb;
+                const sideOrder = { B: 0, T: 1 };
+                return (sideOrder[getSide(a)] ?? 0) - (sideOrder[getSide(b)] ?? 0);
+            });
+
+            const x = [];
+            const y = []; // Gap Size (Height of bar)
+            const text = [];
+            const annotations = [];
+            const barColors = [];
+            let filteredCount = 0;
+
+            tickers.forEach(ticker => {
+                const data = marketData[ticker];
+                const lastTsMs = data.lastTs || null;
+                const isRecent = lastTsMs ? (nowMs - lastTsMs) <= recentWindowMs : false;
+                const hasInterest = (data.userBid !== null || data.userAsk !== null || data.yesPos || data.noPos);
+                if (includeAll) {
+                    // include all tickers from the file
+                } else if (!isRecent && !hasInterest) {
+                    return;
+                }
+                filteredCount += 1;
+                const shortName = ticker.split('-').pop();
+
+                // Calculate Market Gap
+                const bid = data.bid;
+                const ask = data.ask;
+                const gap = ask - bid;
+
+                x.push(shortName);
+                y.push(gap);
+
+                // Color based on Gap
+                if (!data.hasMarketData) barColors.push('rgba(200, 200, 200, 0.3)'); // Grey for no data
+                else if (!isRecent) barColors.push('rgba(160, 160, 160, 0.4)'); // Stale data
+                else if (gap <= 2) barColors.push('#10B981'); // Tight
+                else if (gap <= 10) barColors.push('#F59E0B'); // Medium
+                else barColors.push('#EF4444'); // Wide
+
+                // Bar Text (unused - we use annotations instead)
+                text.push("");
+
+                // Order annotations (above/below the centered bar)
+                if (data.userBid !== null) {
+                    annotations.push({
+                        x: shortName,
+                        y: (gap / 2) + 0.8,
+                        text: `Buy ${data.bidQty}@${data.userBid}c`,
+                        showarrow: false,
+                        font: { color: '#1d4ed8', size: 11, weight: 'bold' }
+                    });
+                }
+                if (data.userAsk !== null) {
+                    const yesAsk = 100 - data.userAsk;
+                    annotations.push({
+                        x: shortName,
+                        y: -(gap / 2) - 0.9,
+                        text: `Sell ${data.askQty}@${yesAsk}c`,
+                        showarrow: false,
+                        font: { color: '#a21caf', size: 11, weight: 'bold' }
+                    });
+                }
+
+                // Gap label (inside bar, above centerline)
+                if (data.hasMarketData) {
+                    annotations.push({
+                        x: shortName,
+                        y: Math.max(-gap / 2 + 0.2, (gap / 2) - 0.3),
+                        text: `${gap}c`,
+                        showarrow: false,
+                        font: { color: '#1f1c18', size: 11, weight: 'bold' }
+                    });
+                }
+
+                // Holdings annotation (inside bar, below centerline)
+                if (data.yesPos || data.noPos) {
+                    annotations.push({
+                        x: shortName,
+                        y: Math.min(gap / 2 - 0.2, -(gap / 2) + 0.3),
+                        text: `Y:${data.yesPos} N:${data.noPos}`,
+                        showarrow: false,
+                        font: { color: '#1f1c18', size: 9, weight: 'bold' }
+                    });
+                }
+            });
+
+            const trace = {
+                x: x,
+                y: y,
+                base: y.map(val => -val / 2),
+                type: 'bar',
+                text: text,
+                textposition: 'none',
+                marker: {
+                    color: barColors,
+                    line: { color: '#1f1c18', width: 1 }
+                },
+                hoverinfo: 'text',
+                hovertext: x.map((t, i) => {
+                    const d = marketData[tickers[i]];
+                    const yesAsk = d.userAsk !== null ? (100 - d.userAsk) : null;
+                    const lastUpdated = d.lastTs ? formatTime(new Date(d.lastTs)) : '-';
+                    return `${t}<br>Gap: ${y[i]}c<br>Market Bid: ${d.bid}c<br>Market Ask: ${d.ask}c<br>Our Bid: ${d.userBid ?? '-'}c<br>Our Ask (YES eq): ${yesAsk ?? '-'}c<br>Hold Y:${d.yesPos} N:${d.noPos}<br>Last: ${lastUpdated}`;
+                })
+            };
+
+            const traces = [trace];
+
+            const maxGap = y.length ? Math.max(...y) : 0;
+            const gapCeil = Math.max(4, Math.ceil((maxGap / 2) + 2));
+            const layout = {
+                xaxis: { title: 'Market' },
+                yaxis: { title: 'Gap (Cents)', range: [-gapCeil, gapCeil], zeroline: true, zerolinecolor: '#1f1c18' },
+                annotations: annotations,
+                plot_bgcolor: '#fffaf3',
+                paper_bgcolor: '#fffaf3',
+                margin: { t: 50, b: 60, l: 40, r: 20 },
+                font: { family: 'Space Grotesk, sans-serif', color: '#1f1c18' },
+                showlegend: false
+            };
+
+            const gapStatus = document.getElementById(statusId);
+            if (gapStatus) {
+                const gapWindow = document.getElementById('gapWindow');
+                const windowLabel = gapWindow ? gapWindow.options[gapWindow.selectedIndex].text : '1h';
+                const fileText = fileLabel ? fileLabel.replace('market_data_', '').replace('.csv', '') : 'no file';
+                gapStatus.innerText = `Showing ${filteredCount} markets (last ${windowLabel}) · ${fileText}`;
+            }
+            const gapCount = document.getElementById(countId);
+            if (gapCount) {
+                gapCount.innerText = `${filteredCount} markets`;
+            }
+            Plotly.newPlot(chartId, traces, layout, { displayModeBar: false });
+        }
+
+
+
+
     </script>
 </body>
 
