@@ -1,0 +1,45 @@
+Analyzing Portfolio Sum (Sum of Implied Yes Asks < 100)...
+Found 370 anomalies in market_data_KXHIGHNY-25DEC05.csv (Universe: 6)
+Found 210 anomalies in market_data_KXHIGHNY-25DEC06.csv (Universe: 6)
+Found 58 anomalies in market_data_KXHIGHNY-25DEC07.csv (Universe: 6)
+Found 1248 anomalies in market_data_KXHIGHNY-25DEC08.csv (Universe: 6)
+Found 294 anomalies in market_data_KXHIGHNY-25DEC09.csv (Universe: 6)
+Found 102 anomalies in market_data_KXHIGHNY-25DEC10.csv (Universe: 6)
+Found 1716 anomalies in market_data_KXHIGHNY-25DEC11.csv (Universe: 6)
+Found 33 anomalies in market_data_KXHIGHNY-25DEC12.csv (Universe: 6)
+Found 87 anomalies in market_data_KXHIGHNY-25DEC13.csv (Universe: 6)
+Found 1891 anomalies in market_data_KXHIGHNY-25DEC14.csv (Universe: 6)
+Found 112 anomalies in market_data_KXHIGHNY-25DEC15.csv (Universe: 6)
+Found 116 anomalies in market_data_KXHIGHNY-25DEC16.csv (Universe: 6)
+Found 123 anomalies in market_data_KXHIGHNY-25DEC17.csv (Universe: 6)
+Found 249 anomalies in market_data_KXHIGHNY-25DEC18.csv (Universe: 6)
+Found 132 anomalies in market_data_KXHIGHNY-25DEC19.csv (Universe: 6)
+Found 230 anomalies in market_data_KXHIGHNY-25DEC20.csv (Universe: 6)
+Found 75 anomalies in market_data_KXHIGHNY-25DEC21.csv (Universe: 6)
+Found 115 anomalies in market_data_KXHIGHNY-25DEC22.csv (Universe: 6)
+Found 131 anomalies in market_data_KXHIGHNY-25DEC23.csv (Universe: 6)
+Found 107 anomalies in market_data_KXHIGHNY-25DEC24.csv (Universe: 6)
+Found 400 anomalies in market_data_KXHIGHNY-25DEC25.csv (Universe: 6)
+Found 2281 anomalies in market_data_KXHIGHNY-25DEC26.csv (Universe: 6)
+Found 132 anomalies in market_data_KXHIGHNY-25DEC27.csv (Universe: 6)
+Found 716 anomalies in market_data_KXHIGHNY-25DEC28.csv (Universe: 6)
+Found 64 anomalies in market_data_KXHIGHNY-25DEC29.csv (Universe: 6)
+Found 4276 anomalies in market_data_KXHIGHNY-25DEC30.csv (Universe: 6)
+Found 202 anomalies in market_data_KXHIGHNY-25DEC31.csv (Universe: 6)
+Found 111 anomalies in market_data_KXHIGHNY-26JAN01.csv (Universe: 6)
+Found 91 anomalies in market_data_KXHIGHNY-26JAN03.csv (Universe: 6)
+
+==============================
+PORTFOLIO ANOMALY REPORT
+==============================
+Total Anomalies Found: 15672
+Lowest Sum Observed:   39.00
+Location:              market_data_KXHIGHNY-25DEC07.csv @ 2025-12-07T09:53:00.834457
+Prices at Lowest Point:
+  KXHIGHNY-25DEC07-B41.5: 1.0
+  KXHIGHNY-25DEC07-B39.5: 1.0
+  KXHIGHNY-25DEC07-T37: 1.0
+  KXHIGHNY-25DEC07-T44: 4.0
+  KXHIGHNY-25DEC07-B43.5: 31.0
+  KXHIGHNY-25DEC07-B37.5: 1.0
+==============================

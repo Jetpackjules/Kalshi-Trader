@@ -1,0 +1,37 @@
+Analyzing 'Guaranteed No Profit' Duration for market_data_KXHIGHNY-26JAN*.csv (Excluding Jan 1-3)...
+Found 94 events in market_data_KXHIGHNY-26JAN04.csv
+Found 123 events in market_data_KXHIGHNY-26JAN09.csv
+
+==============================
+DURATION & PROFIT ANALYSIS (Excluding Jan 1-3)
+==============================
+Total Events: 217
+Average Duration:             104.73 seconds
+Average Profit:               1.58 cents
+------------------------------
+Average Duration (Top 10 Longest): 1665.69 seconds
+Top 10 Longest Events:
+  1. 4086.75s (Profit: 6.00c) @ 2026-01-03T09:35:21.593473
+  2. 3129.46s (Profit: 5.00c) @ 2026-01-03T13:11:48.372378
+  3. 2371.74s (Profit: 5.00c) @ 2026-01-03T14:47:05.340726
+  4. 1637.34s (Profit: 4.00c) @ 2026-01-03T11:11:30.468160
+  5. 1258.25s (Profit: 4.00c) @ 2026-01-03T12:07:17.304261
+  6. 1058.68s (Profit: 4.00c) @ 2026-01-03T12:28:37.554583
+  7. 1056.23s (Profit: 6.00c) @ 2026-01-09T00:18:18.712606
+  8. 733.81s (Profit: 7.00c) @ 2026-01-08T22:00:59.560032
+  9. 698.06s (Profit: 3.00c) @ 2026-01-08T22:19:06.001737
+  10. 626.60s (Profit: 3.00c) @ 2026-01-03T11:00:22.941731
+------------------------------
+Average Duration (Top 10 Most Profitable): 1381.71 seconds
+Top 10 Most Profitable Events:
+  1. Profit: 7.00c (Duration: 733.81s) @ 2026-01-08T22:00:59.560032
+  2. Profit: 7.00c (Duration: 283.17s) @ 2026-01-08T23:07:35.785569
+  3. Profit: 7.00c (Duration: 212.62s) @ 2026-01-09T00:05:41.236436
+  4. Profit: 6.00c (Duration: 4086.75s) @ 2026-01-03T09:35:21.593473
+  5. Profit: 6.00c (Duration: 1056.23s) @ 2026-01-09T00:18:18.712606
+  6. Profit: 5.00c (Duration: 3129.46s) @ 2026-01-03T13:11:48.372378
+  7. Profit: 5.00c (Duration: 2371.74s) @ 2026-01-03T14:47:05.340726
+  8. Profit: 5.00c (Duration: 261.96s) @ 2026-01-08T22:41:50.547457
+  9. Profit: 5.00c (Duration: 44.06s) @ 2026-01-08T23:33:42.724291
+  10. Profit: 4.00c (Duration: 1637.34s) @ 2026-01-03T11:11:30.468160
+==============================

@@ -25,6 +25,8 @@ class UnifiedEngine:
         min_requote_interval: float = 2.0,
         amend_price_tolerance: float = 0.0,
         amend_qty_tolerance: int = 0,
+        trade_live_window_s: float = 0.0,
+        allow_warmup_old_ticks: bool = False,
         diag_log=None,
         diag_every: int = 1,
         decision_log=None,
@@ -35,6 +37,8 @@ class UnifiedEngine:
         self.min_requote_interval = float(min_requote_interval)
         self.amend_price_tolerance = float(amend_price_tolerance)
         self.amend_qty_tolerance = int(amend_qty_tolerance)
+        self.trade_live_window_s = float(trade_live_window_s)
+        self.allow_warmup_old_ticks = bool(allow_warmup_old_ticks)
         self.last_requote_time: dict[str, float] = {}
         self.diag_log = diag_log
         self.diag_every = max(int(diag_every), 1)
@@ -42,6 +46,7 @@ class UnifiedEngine:
         self.trade_log = trade_log
         self._decision_seq = 0
         self._trade_seq = 0
+        self._stale_seq = 0
 
     def _emit_decision(
         self,
@@ -168,6 +173,35 @@ class UnifiedEngine:
         tick_row: int | None = None,
     ) -> None:
         self.adapter.process_tick(ticker, market_state, current_time)
+
+        if self.trade_live_window_s > 0:
+            lag_s = (datetime.now() - current_time).total_seconds()
+            if lag_s > self.trade_live_window_s:
+                self._stale_seq += 1
+                if self.diag_log and (self._stale_seq % self.diag_every == 0):
+                    self.diag_log(
+                        "STALE_TICK",
+                        tick_ts=current_time,
+                        ticker=ticker,
+                        lag_s=round(lag_s, 3),
+                        window_s=self.trade_live_window_s,
+                        source=tick_source,
+                        row=tick_row,
+                    )
+                if not self.allow_warmup_old_ticks:
+                    return
+                try:
+                    self.strategy.on_market_update(
+                        ticker,
+                        market_state,
+                        current_time,
+                        {ticker: {"yes": 0, "no": 0}},
+                        [],
+                        0.0,
+                    )
+                except Exception:
+                    pass
+                return
 
         open_orders = self.adapter.get_open_orders(ticker, market_state, current_time)
         active_orders = []

@@ -222,6 +222,8 @@ def main() -> int:
     parser.add_argument("--min-requote-interval", type=float, default=2.0)
     parser.add_argument("--amend-price-tolerance", type=float, default=0.0, help="Keep existing order if price diff <= this (cents)")
     parser.add_argument("--amend-qty-tolerance", type=int, default=0, help="Keep existing order if qty diff <= this")
+    parser.add_argument("--live-trade-window-s", type=float, default=0.0, help="Only trade if tick is within this many seconds of now (0 disables)")
+    parser.add_argument("--warmup-old-ticks", action="store_true", help="If set, still call strategy on old ticks but do not trade")
     parser.add_argument("--start-ts", default="", help="YYYY-mm-dd HH:MM:SS[.fff]")
     parser.add_argument("--end-ts", default="", help="YYYY-mm-dd HH:MM:SS[.fff]")
     parser.add_argument("--out-dir", default="unified_engine_out")
@@ -371,6 +373,8 @@ def main() -> int:
         min_requote_interval=args.min_requote_interval,
         amend_price_tolerance=args.amend_price_tolerance,
         amend_qty_tolerance=args.amend_qty_tolerance,
+        trade_live_window_s=args.live_trade_window_s,
+        allow_warmup_old_ticks=args.warmup_old_ticks,
         diag_log=diag_log,
         diag_every=args.diag_every,
         decision_log=decision_log,

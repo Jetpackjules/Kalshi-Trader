@@ -8,6 +8,7 @@ debug_exec_trade.txt
 backtest_report_parametric.txt
 debug_trades.csv
 vm_logs/
+server_mirror/output.log
 
 # Large Data Files
 *.csv
