@@ -609,7 +609,7 @@ class LiveAdapter(BaseAdapter):
         qty = int(order.qty)
         ticker = order.ticker
 
-        def _submit_order(*, api_action: str, api_side: str, order_price: int, order_qty: int, is_close: bool) -> OrderResult:
+        def _submit_order(*, api_action: str, api_side: str, order_price: int, order_qty: int, is_close: bool, orig_action: str) -> OrderResult:
             payload = {
                 "action": api_action,
                 "ticker": ticker,
@@ -625,19 +625,20 @@ class LiveAdapter(BaseAdapter):
 
             # --- PRE-FLIGHT CASH CHECK ---
             try:
-                fee = calculate_convex_fee(order_price, int(order_qty))
-                cost = (int(order_qty) * (order_price / 100.0)) + fee
-                can_afford = False
-                if self._cash >= cost:
-                    can_afford = True
-                else:
-                    opp_side = "yes" if side == "no" else "no"
-                    pos = self._positions.get(ticker, {})
-                    opp_qty = pos.get(opp_side, 0)
-                    print(f"DEBUG: Netting Check | Ticker: {ticker} | Side: {side} | Opp Side: {opp_side} | Opp Qty: {opp_qty} | Order Qty: {order_qty}")
-                    if opp_qty >= int(order_qty):
-                        can_afford = True
-                        print(f"DEBUG: Local Netting Allowed | {side.upper()} {order_qty} vs {opp_side.upper()} {opp_qty}")
+                can_afford = True
+                cost = 0.0
+                if api_action == "buy":
+                    fee = calculate_convex_fee(order_price, int(order_qty))
+                    cost = (int(order_qty) * (order_price / 100.0)) + fee
+                    if self._cash < cost:
+                        can_afford = False
+                        opp_side = "yes" if api_side == "no" else "no"
+                        pos = self._positions.get(ticker, {})
+                        opp_qty = pos.get(opp_side, 0)
+                        print(f"DEBUG: Netting Check | Ticker: {ticker} | Side: {api_side} | Opp Side: {opp_side} | Opp Qty: {opp_qty} | Order Qty: {order_qty}")
+                        if opp_qty >= int(order_qty):
+                            can_afford = True
+                            print(f"DEBUG: Local Netting Allowed | {api_side.upper()} {order_qty} vs {opp_side.upper()} {opp_qty}")
 
                 if not can_afford:
                     if self._diag_log:
@@ -653,6 +654,25 @@ class LiveAdapter(BaseAdapter):
             path = "/trade-api/v2/portfolio/orders"
             headers = create_headers(self.private_key, "POST", path)
             try:
+                if self._diag_log:
+                    self._diag_log(
+                        "ORDER_SUBMIT",
+                        tick_ts=current_time,
+                        ticker=ticker,
+                        orig_action=orig_action,
+                        api_action=api_action,
+                        api_side=api_side,
+                        direction=api_action,
+                        payload_side=api_side,
+                        price=order_price,
+                        qty=order_qty,
+                        is_close=is_close,
+                        cash=self._cash,
+                    )
+                print(
+                    f"DEBUG: ORDER_SUBMIT | {orig_action} -> {api_action.upper()} {api_side.upper()} "
+                    f"{order_qty} @ {order_price} | {ticker}"
+                )
                 resp = self._session.post(API_URL + path, headers=headers, json=payload)
                 if resp.status_code == 201:
                     if ticker in self._open_orders_cache:
@@ -662,6 +682,7 @@ class LiveAdapter(BaseAdapter):
                             "ORDER_ACCEPTED",
                             tick_ts=current_time,
                             ticker=ticker,
+                            orig_action=orig_action,
                             action=api_action,
                             side=api_side,
                             price=order_price,
@@ -684,7 +705,7 @@ class LiveAdapter(BaseAdapter):
                 msg = f"Place order failed: {resp.status_code} {resp.text}"
                 print(f"DEBUG: API Error | {msg}")
                 if self._diag_log:
-                    self._diag_log("ERROR", msg=msg)
+                    self._diag_log("ORDER_REJECTED", tick_ts=current_time, ticker=ticker, orig_action=orig_action, action=api_action, side=api_side, price=order_price, qty=order_qty, msg=msg)
                 return OrderResult(ok=False, filled=0, status="error")
             except Exception as e:
                 if self._diag_log:
@@ -700,18 +721,19 @@ class LiveAdapter(BaseAdapter):
             if close_qty > 0:
                 close_side = opp_side
                 close_price = 100 - price
-                close_result = _submit_order(
-                    api_action="sell",
-                    api_side=close_side,
-                    order_price=close_price,
-                    order_qty=close_qty,
-                    is_close=True,
-                )
-                if not close_result.ok:
-                    return close_result
-                qty -= close_qty
-                if qty <= 0:
-                    return close_result
+            close_result = _submit_order(
+                api_action="sell",
+                api_side=close_side,
+                order_price=close_price,
+                order_qty=close_qty,
+                is_close=True,
+                orig_action=order.action,
+            )
+            if not close_result.ok:
+                return close_result
+            qty -= close_qty
+            if qty <= 0:
+                return close_result
 
         # Remainder (new exposure) uses the original buy side
         api_action = "buy"
@@ -722,6 +744,7 @@ class LiveAdapter(BaseAdapter):
             order_price=price,
             order_qty=qty,
             is_close=False,
+            orig_action=order.action,
         )
 
     def amend_order(self, order_id: str, ticker: str, action: str, side: str, price: int, qty: int) -> bool:

@@ -21,6 +21,10 @@ PRIVATE_KEY_PATH = os.environ.get("KALSHI_PRIVATE_KEY", "kalshi_prod_private_key
 WS_URL = "wss://api.elections.kalshi.com/trade-api/ws/v2"
 API_URL = "https://api.elections.kalshi.com/trade-api/v2"
 LOG_DIR = os.environ.get("KALSHI_LOG_DIR", "market_logs") # Directory to store CSVs
+# Hardcoded ladder logging settings (do not override via env)
+LADDER_DEPTH = 10
+LADDER_INTERVAL_S = 5.0
+LADDER_TRIGGER_SPREAD = 0.0  # cents
 
 # ==========================================
 # AUTHENTICATION
@@ -51,8 +55,9 @@ def create_headers(private_key, method: str, path: str) -> dict:
 class GranularLogger:
     def __init__(self):
         self.books = {} # {ticker: {'yes': {price: qty}, 'no': {price: qty}}}
-        self.last_logged_state = {} # {ticker: (best_yes_bid, best_no_bid)}
+        self.last_logged_state = {} # {ticker: (best_yes_bid, best_yes_qty, best_no_bid, best_no_qty)}
         self.last_trade_price = {} # {ticker: last_trade_price_cents}
+        self.last_ladder_log = {} # {ticker: last_log_ts}
         
         if not os.path.exists(LOG_DIR):
             os.makedirs(LOG_DIR)
@@ -87,12 +92,76 @@ class GranularLogger:
                     "timestamp", 
                     "market_ticker", 
                     "best_yes_bid", 
+                    "best_yes_bid_qty",
                     "best_no_bid", 
+                    "best_no_bid_qty",
                     "implied_no_ask", # 100 - best_yes_bid
+                    "implied_no_ask_size", # qty at best yes bid
                     "implied_yes_ask", # 100 - best_no_bid
+                    "implied_yes_ask_size", # qty at best no bid
                     "last_trade_price"
                 ])
             print(f"Created new log file: {filename}")
+
+    def get_ladder_file(self, ticker):
+        try:
+            parts = ticker.split('-')
+            if len(parts) >= 2:
+                market_date_code = f"{parts[0]}-{parts[1]}"
+            else:
+                market_date_code = "UNKNOWN"
+            filename = os.path.join(LOG_DIR, f"orderbook_ladder_{market_date_code}.csv")
+            return filename
+        except Exception:
+            return os.path.join(LOG_DIR, "orderbook_ladder_misc.csv")
+
+    def init_ladder_csv(self, ticker):
+        filename = self.get_ladder_file(ticker)
+        if not os.path.exists(filename):
+            with open(filename, 'w', newline='') as f:
+                writer = csv.writer(f)
+                writer.writerow([
+                    "timestamp",
+                    "market_ticker",
+                    "yes_bids",
+                    "no_bids"
+                ])
+            print(f"Created ladder log file: {filename}")
+
+    def log_ladder(self, ticker):
+        if LADDER_DEPTH <= 0:
+            return
+        book = self.books.get(ticker)
+        if not book:
+            return
+        yes_levels = sorted(book['yes'].items(), key=lambda x: x[0], reverse=True)[:LADDER_DEPTH]
+        no_levels = sorted(book['no'].items(), key=lambda x: x[0], reverse=True)[:LADDER_DEPTH]
+        filename = self.get_ladder_file(ticker)
+        self.init_ladder_csv(ticker)
+        try:
+            with open(filename, 'a', newline='') as f:
+                writer = csv.writer(f)
+                timestamp = datetime.now().isoformat()
+                writer.writerow([
+                    timestamp,
+                    ticker,
+                    json.dumps(yes_levels),
+                    json.dumps(no_levels)
+                ])
+        except Exception as e:
+            print(f"Error writing ladder CSV: {e}")
+
+    def maybe_log_ladder(self, ticker, spread_cents):
+        if LADDER_DEPTH <= 0:
+            return
+        if LADDER_TRIGGER_SPREAD > 0 and spread_cents < LADDER_TRIGGER_SPREAD:
+            return
+        now_ts = time.time()
+        last_ts = self.last_ladder_log.get(ticker, 0.0)
+        if LADDER_INTERVAL_S > 0 and (now_ts - last_ts) < LADDER_INTERVAL_S:
+            return
+        self.log_ladder(ticker)
+        self.last_ladder_log[ticker] = now_ts
 
     def log_state(self, ticker):
         """Log the current BBO if it has changed."""
@@ -102,13 +171,15 @@ class GranularLogger:
         # Calculate Best Yes Bid
         yes_bids = book['yes'].keys()
         best_yes_bid = max(yes_bids) if yes_bids else 0
+        best_yes_bid_qty = book['yes'].get(best_yes_bid, 0) if best_yes_bid else 0
         
         # Calculate Best No Bid
         no_bids = book['no'].keys()
         best_no_bid = max(no_bids) if no_bids else 0
+        best_no_bid_qty = book['no'].get(best_no_bid, 0) if best_no_bid else 0
 
         # Check if state changed
-        current_state = (best_yes_bid, best_no_bid)
+        current_state = (best_yes_bid, best_yes_bid_qty, best_no_bid, best_no_bid_qty)
         if self.last_logged_state.get(ticker) == current_state:
             return # No change in top of book
 
@@ -131,6 +202,11 @@ class GranularLogger:
         
         implied_no_ask = 100 - best_yes_bid if best_yes_bid > 0 else 100
         implied_yes_ask = 100 - best_no_bid if best_no_bid > 0 else 100
+        implied_no_ask_size = best_yes_bid_qty if best_yes_bid > 0 else 0
+        implied_yes_ask_size = best_no_bid_qty if best_no_bid > 0 else 0
+
+        spread_cents = implied_yes_ask - best_yes_bid if best_yes_bid > 0 else 0
+        self.maybe_log_ladder(ticker, spread_cents)
 
         # Log to CSV
         filename = self.get_log_file(ticker)
@@ -145,9 +221,13 @@ class GranularLogger:
                     timestamp,
                     ticker,
                     best_yes_bid,
+                    best_yes_bid_qty,
                     best_no_bid,
+                    best_no_bid_qty,
                     implied_no_ask,
+                    implied_no_ask_size,
                     implied_yes_ask,
+                    implied_yes_ask_size,
                     last_trade
                 ])
             # print(f"Logged {ticker}: YesBid={best_yes_bid}, NoBid={best_no_bid}")

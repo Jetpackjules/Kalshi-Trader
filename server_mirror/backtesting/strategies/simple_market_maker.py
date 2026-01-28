@@ -13,7 +13,7 @@ class Order:
     source: str = "MM"
 
 class SimpleMarketMaker:
-    def __init__(self, spread_cents: int = 4, risk_pct: float = 0.5, min_qty: int = 1, max_qty: int = 100, qty: int = None, max_price: int = 99, max_pos: int = 0, skew_factor: float = 0.0):
+    def __init__(self, spread_cents: int = 4, risk_pct: float = 0.5, min_qty: int = 1, max_qty: int = 100, qty: int = None, max_price: int = 99, max_pos: int = 0, skew_factor: float = 0.0, min_gap_cents: int | None = None):
         if qty:
             self.name = f"SimpleMM_s{spread_cents}_q{qty}_max{max_price}_lim{max_pos}_skew{skew_factor}"
         else:
@@ -27,14 +27,23 @@ class SimpleMarketMaker:
         self.max_price = max_price
         self.max_pos = max_pos
         self.skew_factor = skew_factor
+        self.min_gap_cents = min_gap_cents
+
+    def _fee_cents(self, price_cents: float) -> float:
+        p = float(price_cents) / 100.0
+        return 7.0 * p * (1.0 - p)
 
     def on_market_update(self, ticker, market_state, current_time, portfolios_inventories, active_orders, cash):
         # 1. Get Market Data
         yes_bid = float(market_state.get("yes_bid") or 0)
         yes_ask = float(market_state.get("yes_ask") or 100)
         
-        # 2. Calculate Mid Price
+        # 2. Calculate Mid Price + dynamic gap gate (fee-aware)
+        market_spread = max(0.0, yes_ask - yes_bid)
         mid_price = (yes_bid + yes_ask) / 2.0
+        fee_cents = self._fee_cents(mid_price)
+        min_gap = self.min_gap_cents if self.min_gap_cents is not None else max(self.spread_cents, (2 * fee_cents) + 1)
+        allow_open = market_spread >= min_gap
         
         # 3. Calculate Skew from Inventory
         pos = portfolios_inventories.get(ticker, {})
@@ -78,6 +87,11 @@ class SimpleMarketMaker:
         if self.fixed_qty:
             bid_qty = self.fixed_qty
             ask_qty = self.fixed_qty
+            # Reduce-only: cap size to inventory when closing.
+            if net_inv > 0:
+                ask_qty = max(1, min(ask_qty, net_inv))
+            elif net_inv < 0:
+                bid_qty = max(1, min(bid_qty, abs(net_inv)))
         else:
             # Hybrid Dynamic Logic
             # Bid Side (Buy YES)
@@ -86,10 +100,10 @@ class SimpleMarketMaker:
                 raw_bid_qty = int((cash * self.risk_pct * 100) / my_bid)
                 bid_qty = max(self.min_qty, raw_bid_qty)
                 bid_qty = min(self.max_qty, bid_qty) # Cap at max_qty
-                
-                max_affordable_bid = int((cash * 100) / my_bid)
-                if bid_qty > max_affordable_bid:
-                    bid_qty = max_affordable_bid
+                if net_inv >= 0:
+                    max_affordable_bid = int((cash * 100) / my_bid)
+                    if bid_qty > max_affordable_bid:
+                        bid_qty = max_affordable_bid
             else:
                 bid_qty = 0
             
@@ -99,9 +113,10 @@ class SimpleMarketMaker:
                 ask_qty = max(self.min_qty, raw_ask_qty)
                 ask_qty = min(self.max_qty, ask_qty) # Cap at max_qty
                 
-                max_affordable_ask = int((cash * 100) / no_price)
-                if ask_qty > max_affordable_ask:
-                    ask_qty = max_affordable_ask
+                if net_inv <= 0:
+                    max_affordable_ask = int((cash * 100) / no_price)
+                    if ask_qty > max_affordable_ask:
+                        ask_qty = max_affordable_ask
             else:
                 ask_qty = 0
         
@@ -116,6 +131,13 @@ class SimpleMarketMaker:
             bid_qty = 0
         if not allow_buy_no:
             ask_qty = 0
+
+        # 9. Gap gate: block opening orders when spread is too tight.
+        if not allow_open:
+            if net_inv >= 0:
+                bid_qty = 0
+            if net_inv <= 0:
+                ask_qty = 0
         
         orders = []
         
@@ -182,6 +204,8 @@ class SimpleMarketMakerV2:
         # 1. Get Market Data
         yes_bid = float(market_state.get("yes_bid") or 0)
         yes_ask = float(market_state.get("yes_ask") or 100)
+        no_bid = float(market_state.get("no_bid") or 0)
+        no_ask = float(market_state.get("no_ask") or 100)
         market_spread = max(0.0, yes_ask - yes_bid)
         
         # 2. Calculate Mid Price
@@ -200,6 +224,44 @@ class SimpleMarketMakerV2:
         yes_inv = int(pos.get("yes", 0))
         no_inv = int(pos.get("no", 0))
         net_inv = yes_inv - no_inv # Positive = Long YES, Negative = Long NO (Short YES)
+
+        reduce_only_threshold = 3
+
+        # 4.5. Arb trigger: cheap asks or crossed bids (inventory-only exits)
+        arb_fee_buffer = max(1, int(math.ceil(self._fee_cents(mid_price) * 2)))
+        arb_orders = []
+        cheap_asks = yes_ask > 0 and no_ask > 0 and (yes_ask + no_ask) <= (100 - arb_fee_buffer)
+        crossed_bids = yes_bid > 0 and no_bid > 0 and (yes_bid + no_bid) >= (100 + arb_fee_buffer)
+
+        # If bids are crossed, try to exit inventory at favorable prices.
+        if crossed_bids:
+            if net_inv > 0:
+                close_price = int(max(1, min(99, 100 - yes_bid)))
+                close_qty = max(1, min(net_inv, self.fixed_qty or net_inv))
+                arb_orders.append(Order(action="BUY_NO", ticker=ticker, qty=close_qty, price=close_price, expiry=None, source="MM_ARB"))
+            elif net_inv < 0:
+                close_price = int(max(1, min(99, 100 - no_bid)))
+                close_qty = max(1, min(abs(net_inv), self.fixed_qty or abs(net_inv)))
+                arb_orders.append(Order(action="BUY_YES", ticker=ticker, qty=close_qty, price=close_price, expiry=None, source="MM_ARB"))
+            if arb_orders:
+                return arb_orders
+
+        # If asks are cheap enough, buy both sides (only if we're near flat).
+        if cheap_asks and abs(net_inv) <= reduce_only_threshold:
+            yes_px = int(math.ceil(yes_ask))
+            no_px = int(math.ceil(no_ask))
+            pair_cost = (yes_px + no_px) / 100.0
+            max_pairs_cash = int((cash * 100) / max(yes_px + no_px, 1))
+            max_pairs_risk = int((cash * self.risk_pct) / max(pair_cost, 0.01))
+            arb_qty = max(self.min_qty, max_pairs_risk)
+            if self.fixed_qty:
+                arb_qty = min(arb_qty, self.fixed_qty)
+            arb_qty = min(arb_qty, max_pairs_cash)
+            if arb_qty > 0:
+                return [
+                    Order(action="BUY_YES", ticker=ticker, qty=arb_qty, price=yes_px, expiry=None, source="MM_ARB"),
+                    Order(action="BUY_NO", ticker=ticker, qty=arb_qty, price=no_px, expiry=None, source="MM_ARB"),
+                ]
         
         # 4. Calculate Skew
         # If we are Long YES (net_inv > 0), we want to sell YES -> Lower prices
@@ -261,7 +323,6 @@ class SimpleMarketMakerV2:
         # DEBUG PRINTS
         print(f"DEBUG: MM Logic | Ticker={ticker} | Mid={mid_price:.2f} | NetInv={net_inv} | Skew={skew:.2f} | MyBid={my_bid} | MyAsk={my_ask}")
 
-        reduce_only_threshold = 3
         if self.fixed_qty:
             # Treat fixed_qty as a cap, not a constant size.
             # Scale quantity by the live market spread so we take smaller size on thin gaps.

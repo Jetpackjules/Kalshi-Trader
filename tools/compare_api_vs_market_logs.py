@@ -69,12 +69,20 @@ def _load_private_key(path: str):
         return serialization.load_pem_private_key(f.read(), password=None)
 
 
-def _latest_market_rows(market_dir: str) -> dict:
-    latest = {}
+def _select_market_files(market_dir: str, latest_files: int) -> list[str]:
+    files = []
     for name in os.listdir(market_dir):
-        if not (name.startswith("market_data_") and name.endswith(".csv")):
-            continue
-        path = os.path.join(market_dir, name)
+        if name.startswith("market_data_") and name.endswith(".csv"):
+            files.append(os.path.join(market_dir, name))
+    if latest_files and latest_files > 0:
+        files.sort(key=lambda p: os.path.getmtime(p), reverse=True)
+        files = files[:latest_files]
+    return files
+
+
+def _latest_market_rows(market_dir: str, latest_files: int) -> dict:
+    latest = {}
+    for path in _select_market_files(market_dir, latest_files):
         with open(path, "r", encoding="utf-8") as f:
             reader = csv.DictReader(f)
             cols = reader.fieldnames or []
@@ -127,7 +135,7 @@ def _write_rows(path: str, rows: list[dict]) -> None:
 
 def _run_once(args) -> None:
     private_key = _load_private_key(args.key_file)
-    latest = _latest_market_rows(args.market_dir)
+    latest = _latest_market_rows(args.market_dir, args.latest_files)
     if not latest:
         print("No market rows found.")
         return
@@ -187,6 +195,12 @@ def main() -> int:
     parser.add_argument("--key-id", default=KEY_ID_DEFAULT)
     parser.add_argument("--api-url", default=API_URL_DEFAULT)
     parser.add_argument("--limit", type=int, default=0, help="Limit number of tickers per run")
+    parser.add_argument(
+        "--latest-files",
+        type=int,
+        default=0,
+        help="Only scan the N most recently modified market_data_*.csv files",
+    )
     parser.add_argument("--interval-s", type=int, default=0, help="Poll interval (0=run once)")
     parser.add_argument("--iterations", type=int, default=0, help="Iterations when interval > 0 (0=loop forever)")
     args = parser.parse_args()
