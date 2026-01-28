@@ -27,6 +27,7 @@ class UnifiedEngine:
         amend_qty_tolerance: int = 0,
         trade_live_window_s: float = 0.0,
         allow_warmup_old_ticks: bool = False,
+        max_order_age_s: float = 0.0,
         diag_log=None,
         diag_every: int = 1,
         decision_log=None,
@@ -39,6 +40,7 @@ class UnifiedEngine:
         self.amend_qty_tolerance = int(amend_qty_tolerance)
         self.trade_live_window_s = float(trade_live_window_s)
         self.allow_warmup_old_ticks = bool(allow_warmup_old_ticks)
+        self.max_order_age_s = float(max_order_age_s)
         self.last_requote_time: dict[str, float] = {}
         self.diag_log = diag_log
         self.diag_every = max(int(diag_every), 1)
@@ -207,6 +209,7 @@ class UnifiedEngine:
         active_orders = []
         pending_yes = 0
         pending_no = 0
+        now_wall = datetime.now()
         for o in open_orders:
             status = (o.get("status") or "").lower()
             remaining = int(o.get("remaining_count") or 0)
@@ -214,6 +217,25 @@ class UnifiedEngine:
                 continue
             if status in ("executed", "cancelled", "canceled", "expired", "rejected"):
                 continue
+            if self.max_order_age_s > 0:
+                created = o.get("created_time")
+                if created:
+                    try:
+                        created_ts = datetime.fromisoformat(str(created).replace("Z", "+00:00"))
+                        age_s = (now_wall - created_ts).total_seconds()
+                        if age_s > self.max_order_age_s:
+                            self.adapter.cancel_order(o.get("order_id"))
+                            if self.diag_log:
+                                self.diag_log(
+                                    "STALE_ORDER_CANCEL",
+                                    tick_ts=current_time,
+                                    ticker=ticker,
+                                    order_id=o.get("order_id"),
+                                    age_s=round(age_s, 1),
+                                )
+                            continue
+                    except Exception:
+                        pass
             side = (o.get("side") or "yes").lower()
             action = (o.get("action") or "buy").lower()
             price = o.get("yes_price") if side == "yes" else o.get("no_price")
@@ -409,9 +431,21 @@ class UnifiedEngine:
                 print(f"DEBUG: No Match Found for {want.action} {want.price} {want.qty}")
                 unsatisfied.append(want)
 
+        # Keep close-only orders live until flat, even if strategy returns empty.
+        net_inv = pos_yes - pos_no
+        close_action = None
+        if net_inv > 0:
+            close_action = "BUY_NO"   # close YES via SELL YES
+        elif net_inv < 0:
+            close_action = "BUY_YES"  # close NO via SELL NO
+
         for existing in active_orders:
-            if existing["id"] not in kept_ids:
-                self.adapter.cancel_order(existing["id"])
+            if existing["id"] in kept_ids:
+                continue
+            if close_action and existing.get("action") == close_action:
+                # Keep the exit order alive while inventory remains.
+                continue
+            self.adapter.cancel_order(existing["id"])
 
         for order in unsatisfied:
             self._emit_trade(

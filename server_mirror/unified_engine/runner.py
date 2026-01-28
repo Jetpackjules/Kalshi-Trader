@@ -224,6 +224,8 @@ def main() -> int:
     parser.add_argument("--amend-qty-tolerance", type=int, default=0, help="Keep existing order if qty diff <= this")
     parser.add_argument("--live-trade-window-s", type=float, default=0.0, help="Only trade if tick is within this many seconds of now (0 disables)")
     parser.add_argument("--warmup-old-ticks", action="store_true", help="If set, still call strategy on old ticks but do not trade")
+    parser.add_argument("--max-order-age-s", type=float, default=0.0, help="Cancel resting orders older than this many seconds (0 disables)")
+    parser.add_argument("--disable-trading-windows", action="store_true", help="Disable trading window status gating (always open)")
     parser.add_argument("--start-ts", default="", help="YYYY-mm-dd HH:MM:SS[.fff]")
     parser.add_argument("--end-ts", default="", help="YYYY-mm-dd HH:MM:SS[.fff]")
     parser.add_argument("--out-dir", default="unified_engine_out")
@@ -375,6 +377,7 @@ def main() -> int:
         amend_qty_tolerance=args.amend_qty_tolerance,
         trade_live_window_s=args.live_trade_window_s,
         allow_warmup_old_ticks=args.warmup_old_ticks,
+        max_order_age_s=args.max_order_age_s,
         diag_log=diag_log,
         diag_every=args.diag_every,
         decision_log=decision_log,
@@ -426,6 +429,12 @@ def main() -> int:
             
             # --- Trading Window Logic ---
             def get_window_status():
+                if args.disable_trading_windows:
+                    return {
+                        "state": "OPEN",
+                        "message": "Windows disabled",
+                        "color": "#10B981",
+                    }
                 now = datetime.now()
                 h = now.hour
                 # Windows: 5-8, 13-17, 21-23

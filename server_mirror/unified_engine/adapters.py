@@ -559,7 +559,8 @@ class LiveAdapter(BaseAdapter):
                         "yes_price": int(yp) if yp is not None else None,
                         "no_price": int(np) if np is not None else None,
                         "remaining_count": int(rc) if rc is not None else 0,
-                        "status": o.get("status")
+                        "status": o.get("status"),
+                        "created_time": o.get("created_time"),
                     })
                 self._open_orders_cache[ticker] = (time.time(), orders)
                 return orders
@@ -567,6 +568,24 @@ class LiveAdapter(BaseAdapter):
             if self._diag_log:
                 self._diag_log("ERROR", msg=f"Get orders failed: {e}")
         
+        return []
+
+    def get_open_orders_all(self) -> list[dict]:
+        path = "/trade-api/v2/portfolio/orders"
+        headers = create_headers(self.private_key, "GET", path)
+        try:
+            resp = self._session.get(API_URL + path, headers=headers)
+            if resp.status_code == 200:
+                data = resp.json()
+                orders = []
+                for o in data.get("orders", []):
+                    if o.get("status") not in ("resting", "open"):
+                        continue
+                    orders.append(o)
+                return orders
+        except Exception as e:
+            if self._diag_log:
+                self._diag_log("ERROR", msg=f"Get orders(all) failed: {e}")
         return []
 
     def cancel_order(self, order_id: str | None) -> None:
@@ -638,6 +657,29 @@ class LiveAdapter(BaseAdapter):
                 if resp.status_code == 201:
                     if ticker in self._open_orders_cache:
                         del self._open_orders_cache[ticker]
+                    if self._diag_log:
+                        self._diag_log(
+                            "ORDER_ACCEPTED",
+                            tick_ts=current_time,
+                            ticker=ticker,
+                            action=api_action,
+                            side=api_side,
+                            price=order_price,
+                            qty=order_qty,
+                        )
+                    self.order_history.append(
+                        {
+                            "time": current_time,
+                            "ticker": ticker,
+                            "side": api_side,
+                            "price": order_price,
+                            "qty": order_qty,
+                            "status": "accepted",
+                            "filled": 0,
+                            "order_id": None,
+                            "order_time": current_time,
+                        }
+                    )
                     return OrderResult(ok=True, filled=0, status="resting")
                 msg = f"Place order failed: {resp.status_code} {resp.text}"
                 print(f"DEBUG: API Error | {msg}")
