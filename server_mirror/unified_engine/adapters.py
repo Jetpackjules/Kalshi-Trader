@@ -604,6 +604,11 @@ class LiveAdapter(BaseAdapter):
         # Engine passes 'Order' object or dict.
         # Engine.py: self.adapter.place_order(order, ...)
         # order has .action, .ticker, .qty, .price, .side (derived)
+        # Action semantics:
+        # - BUY_YES open = buy YES (spends cash)
+        # - BUY_NO open  = buy NO (spends cash)
+        # - BUY_NO close (against YES) maps to API sell YES (generates cash)
+        # - BUY_YES close (against NO) maps to API sell NO (generates cash)
         side = "yes" if order.action == "BUY_YES" else "no"
         price = int(order.price) # API expects integer cents? Or not?
         qty = int(order.qty)
@@ -670,8 +675,8 @@ class LiveAdapter(BaseAdapter):
                         cash=self._cash,
                     )
                 print(
-                    f"DEBUG: ORDER_SUBMIT | {orig_action} -> {api_action.upper()} {api_side.upper()} "
-                    f"{order_qty} @ {order_price} | {ticker}"
+                    f"DEBUG: ORDER_SUBMIT | {orig_action} is_close={is_close} -> {api_action.upper()} {api_side.upper()} "
+                    f"{order_qty} @ {order_price} | cash={self._cash:.2f} | {ticker}"
                 )
                 resp = self._session.post(API_URL + path, headers=headers, json=payload)
                 if resp.status_code == 201:

@@ -22,7 +22,7 @@ def sync_logs():
 
     print(f"Syncing logs from {VM_IP}...")
 
-    # 1. Download logger.log
+    # 1. Download logger.log (granular logger stdout)
     print("Downloading logger.log...")
     cmd_logger = [
         "scp",
@@ -31,7 +31,7 @@ def sync_logs():
         f"{VM_USER}@{VM_IP}:~/logger.log",
         f"{LOCAL_LOG_DIR}/"
     ]
-    
+
     try:
         subprocess.run(cmd_logger, check=True)
         print("Successfully downloaded logger.log")
@@ -56,23 +56,7 @@ def sync_logs():
     except subprocess.CalledProcessError as e:
         print(f"Error downloading output.log: {e}")
 
-    # 1b. Download trades.csv
-    print("Downloading trades.csv...")
-    cmd_trades = [
-        "scp",
-        "-i", KEY_FILE,
-        "-o", "StrictHostKeyChecking=no",
-        f"{VM_USER}@{VM_IP}:~/trades.csv",
-        f"{LOCAL_LOG_DIR}/"
-    ]
-    
-    try:
-        subprocess.run(cmd_trades, check=True)
-        print("Successfully downloaded trades.csv")
-    except subprocess.CalledProcessError as e:
-        print(f"Error downloading trades.csv: {e}")
-
-    # 1c. Download trader_status.json
+    # 1b. Download trader_status.json
     print("Downloading trader_status.json...")
     cmd_status = [
         "scp",
@@ -113,23 +97,7 @@ def sync_logs():
     except subprocess.CalledProcessError as e:
         print(f"Error downloading trader_status.json: {e}")
 
-    # 1d. Download live_trader_v4.log
-    print("Downloading live_trader_v4.log...")
-    cmd_trader_log = [
-        "scp",
-        "-i", KEY_FILE,
-        "-o", "StrictHostKeyChecking=no",
-        f"{VM_USER}@{VM_IP}:~/live_trader_v4.log",
-        f"{LOCAL_LOG_DIR}/"
-    ]
-    
-    try:
-        subprocess.run(cmd_trader_log, check=True)
-        print("Successfully downloaded live_trader_v4.log")
-    except subprocess.CalledProcessError as e:
-        print(f"Error downloading live_trader_v4.log: {e}")
-
-    # 1e. Download unified_engine.log
+    # 1c. Download unified_engine.log
     print("Downloading unified_engine.log...")
     cmd_unified_log = [
         "scp",
@@ -145,7 +113,7 @@ def sync_logs():
     except subprocess.CalledProcessError as e:
         print(f"Error downloading unified_engine.log: {e}")
 
-    # 1f. Download unified_engine_out outputs
+    # 1d. Download unified_engine_out outputs (live unified engine)
     print("Downloading unified_engine_out outputs...")
     unified_out_dir = os.path.join(LOCAL_LOG_DIR, "unified_engine_out")
     if not os.path.exists(unified_out_dir):
@@ -155,7 +123,6 @@ def sync_logs():
         "unified_positions.json",
         "trades.csv",
         "decision_intents.csv",
-        "unified_orders.csv",
         "trade_debug.csv",
         "tick_ingest_log.csv",
     ]
@@ -174,25 +141,11 @@ def sync_logs():
         except subprocess.CalledProcessError as e:
             print(f"Error downloading {filename}: {e}")
 
-    # 1g. Download snapshots (unified + daily)
+    # 1e. Download snapshots (daily)
     print("Downloading snapshots...")
     snapshots_dir = os.path.join(LOCAL_LOG_DIR, "snapshots")
     if not os.path.exists(snapshots_dir):
         os.makedirs(snapshots_dir)
-
-    cmd_unified_snaps = [
-        "scp",
-        "-i", KEY_FILE,
-        "-o", "StrictHostKeyChecking=no",
-        f"{VM_USER}@{VM_IP}:~/snapshots/snapshot_unified_*.json",
-        f"{snapshots_dir}/"
-    ]
-
-    try:
-        subprocess.run(cmd_unified_snaps, check=True)
-        print("Successfully downloaded unified snapshots")
-    except subprocess.CalledProcessError as e:
-        print(f"Error downloading unified snapshots: {e}")
 
     cmd_daily_snaps = [
         "scp",

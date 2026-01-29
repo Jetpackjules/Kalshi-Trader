@@ -301,6 +301,77 @@
             color: var(--muted);
         }
 
+        .ladder-box {
+            margin-top: 14px;
+            padding: 10px 12px;
+            border-radius: 12px;
+            background: #fff;
+            border: 1px dashed var(--grid);
+        }
+
+        .ladder-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+            gap: 10px;
+        }
+
+        .ladder-card {
+            border: 1px solid #eee3d4;
+            border-radius: 10px;
+            padding: 8px 10px;
+            background: #fffaf3;
+            font-family: var(--mono);
+            font-size: 11px;
+        }
+
+        .ladder-title {
+            font-size: 11px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 6px;
+        }
+
+        .ladder-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin: 3px 0;
+        }
+
+        .ladder-label {
+            width: 18px;
+            text-align: right;
+            color: var(--muted);
+        }
+
+        .ladder-bar-wrap {
+            flex: 1;
+            height: 8px;
+            background: #f2e7d8;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .ladder-bar {
+            height: 100%;
+            border-radius: 6px;
+        }
+
+        .ladder-side-yes .ladder-bar {
+            background: rgba(42, 111, 95, 0.8);
+        }
+
+        .ladder-side-no .ladder-bar {
+            background: rgba(212, 106, 59, 0.85);
+        }
+
+        .ladder-meta {
+            min-width: 70px;
+            text-align: right;
+            color: #3a2f28;
+        }
+
         @media (max-width: 900px) {
             #chart {
                 height: 480px;
@@ -369,6 +440,25 @@
                     </div>
                 </div>
                 <div id="gapChartTomorrow" style="width: 100%; height: 300px;"></div>
+            </section>
+
+            <section class="panel">
+                <div class="panel-header">
+                    <h2>Orderbook Ladders</h2>
+                    <small>Top-of-book depth snapshots (YES + NO).</small>
+                </div>
+                <div class="ladder-box">
+                    <div class="ladder-title">Today</div>
+                    <div id="ladderToday">
+                        <small style="color: var(--muted);">Orderbook ladder will appear here.</small>
+                    </div>
+                </div>
+                <div class="ladder-box" style="margin-top: 12px;">
+                    <div class="ladder-title">Tomorrow</div>
+                    <div id="ladderTomorrow">
+                        <small style="color: var(--muted);">Orderbook ladder will appear here.</small>
+                    </div>
+                </div>
             </section>
 
             <section class="panel">
@@ -571,32 +661,42 @@
 
         function parseMarketCsv(csvText) {
             const lines = csvText.trim().split('\n');
+            if (lines.length < 2) {
+                return { markets: {}, tickPoints: [], latestMarketData: {}, lastTick: null };
+            }
+            const header = parseCsvLine(lines[0]);
+            const idx = {};
+            header.forEach((h, i) => idx[h.trim()] = i);
+
             const tickPoints = [];
             const markets = {};
             const latestMarketData = {}; // ticker -> { bid, ask }
             let lastTickMs = null;
 
             for (let i = 1; i < lines.length; i++) {
-                const row = lines[i].split(',');
-                if (row.length < 6) continue;
+                const row = lines[i];
+                if (!row) continue;
+                const parts = parseCsvLine(row);
+                const tsRaw = parts[idx['timestamp']];
+                const ticker = parts[idx['market_ticker']];
+                if (!tsRaw || !ticker) continue;
 
-                const timestamp = new Date(row[0]);
+                const timestamp = new Date(tsRaw);
                 const tsMs = timestamp.getTime();
-                const ticker = row[1];
-                const bid = parseFloat(row[2]);
-                const ask = parseFloat(row[5]);
-                const impliedNoAsk = parseFloat(row[4]);
-                const lastTrade = row.length > 6 ? parseFloat(row[6]) : null;
+
+                const bid = parseFloat(parts[idx['best_yes_bid']] ?? '0');
+                const ask = parseFloat(parts[idx['implied_yes_ask']] ?? '100');
+                const impliedNoAsk = parseFloat(parts[idx['implied_no_ask']] ?? '100');
+                const lastTrade = idx['last_trade_price'] !== undefined ? parseFloat(parts[idx['last_trade_price']]) : null;
 
                 if (!markets[ticker]) {
                     markets[ticker] = { x: [], y: [] };
                 }
-                markets[ticker].x.push(row[0]);
+                markets[ticker].x.push(tsRaw);
                 markets[ticker].y.push(impliedNoAsk);
                 tickPoints.push({ time: timestamp, ticker });
 
-                // Keep track of latest market bid/ask
-                latestMarketData[ticker] = { bid, ask, lastTs: timestamp.getTime(), lastTrade };
+                latestMarketData[ticker] = { bid, ask, lastTs: tsMs, lastTrade };
                 if (!lastTickMs || tsMs > lastTickMs) {
                     lastTickMs = tsMs;
                 }
@@ -951,6 +1051,72 @@
             return `${yyyy}-${mm}-${dd}`;
         }
 
+        function parseCsvLine(line) {
+            const out = [];
+            let cur = '';
+            let inQuotes = false;
+            for (let i = 0; i < line.length; i++) {
+                const ch = line[i];
+                if (ch === '"' ) {
+                    if (inQuotes && line[i + 1] === '"') {
+                        cur += '"';
+                        i++;
+                    } else {
+                        inQuotes = !inQuotes;
+                    }
+                } else if (ch === ',' && !inQuotes) {
+                    out.push(cur);
+                    cur = '';
+                } else {
+                    cur += ch;
+                }
+            }
+            out.push(cur);
+            return out;
+        }
+
+        function parseLadderCsv(text) {
+            const lines = text.trim().split('\n');
+            if (lines.length < 2) return {};
+            const header = parseCsvLine(lines[0]);
+            const idx = {};
+            header.forEach((h, i) => idx[h.trim()] = i);
+            const latest = {};
+            for (let i = 1; i < lines.length; i++) {
+                const row = lines[i];
+                if (!row) continue;
+                const parts = parseCsvLine(row);
+                const ticker = parts[idx['market_ticker']] || '';
+                if (!ticker) continue;
+                const ts = parts[idx['timestamp']] || '';
+                const yesRaw = parts[idx['yes_bids']] || '[]';
+                const noRaw = parts[idx['no_bids']] || '[]';
+                try {
+                    const yes = JSON.parse(yesRaw);
+                    const no = JSON.parse(noRaw);
+                    if (!latest[ticker] || (ts && ts > latest[ticker].timestamp)) {
+                        latest[ticker] = { timestamp: ts, yes, no };
+                    }
+                } catch (e) {
+                    continue;
+                }
+            }
+            return latest;
+        }
+
+        async function fetchLadderFile(filename) {
+            if (!filename) return null;
+            const ladderFile = filename.replace('market_data_', 'orderbook_ladder_');
+            try {
+                const resp = await fetch(`${LOG_DIR}${ladderFile}?t=${Date.now()}`);
+                if (!resp.ok) return null;
+                const text = await resp.text();
+                return parseLadderCsv(text);
+            } catch (e) {
+                return null;
+            }
+        }
+
         async function loadGapMarketData() {
             try {
                 const response = await fetch(`${LOG_DIR}manifest.json?t=${Date.now()}`);
@@ -992,7 +1158,8 @@
                     const resp = await fetch(`${LOG_DIR}${filename}?t=${Date.now()}`);
                     const text = await resp.text();
                     const parsed = parseMarketCsv(text);
-                    return { file: filename, marketData: parsed.latestMarketData, lastTick: parsed.lastTick };
+                    const ladder = await fetchLadderFile(filename);
+                    return { file: filename, marketData: parsed.latestMarketData, lastTick: parsed.lastTick, ladder };
                 }
 
                 gapCache.today = await fetchMarketFile(todayFile);
@@ -1017,9 +1184,11 @@
                 orders: latestOrders,
                 positions: latestPositions,
                 marketDataOverride: todayData ? todayData.marketData : null,
+                ladderData: todayData ? todayData.ladder : null,
                 fileLabel: todayData ? todayData.file : null,
                 recentWindowMs,
-                includeAll: true
+                includeAll: true,
+                ladderTarget: 'ladderToday'
             });
 
             renderGapChartTo({
@@ -1029,9 +1198,11 @@
                 orders: latestOrders,
                 positions: latestPositions,
                 marketDataOverride: tomorrowData ? tomorrowData.marketData : null,
+                ladderData: tomorrowData ? tomorrowData.ladder : null,
                 fileLabel: tomorrowData ? tomorrowData.file : null,
                 recentWindowMs,
-                includeAll: true
+                includeAll: true,
+                ladderTarget: 'ladderTomorrow'
             });
         }
 
@@ -1042,9 +1213,11 @@
             const orders = opts.orders || [];
             const positions = opts.positions || {};
             const marketDataOverride = opts.marketDataOverride || null;
+            const ladderData = opts.ladderData || null;
             const fileLabel = opts.fileLabel || null;
             const recentWindowMs = opts.recentWindowMs || 3600 * 1000;
             const includeAll = !!opts.includeAll;
+            const ladderTarget = opts.ladderTarget || null;
 
             const nowMs = Date.now();
             // 1. Collect tickers from the selected file only
@@ -1254,6 +1427,74 @@
                 gapCount.innerText = `${filteredCount} markets`;
             }
             Plotly.newPlot(chartId, traces, layout, { displayModeBar: false });
+
+            if (ladderTarget) {
+                renderLadderBox(ladderTarget, tickers, ladderData);
+            }
+        }
+
+        function renderLadderBox(containerId, tickers, ladderData) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            if (!ladderData) {
+                container.innerHTML = '<small style="color: var(--muted);">No ladder data found.</small>';
+                return;
+            }
+            const cards = [];
+            tickers.forEach(ticker => {
+                const ladder = ladderData[ticker];
+                if (!ladder) return;
+                const shortName = ticker.split('-').pop();
+                const yesLevels = Array.isArray(ladder.yes) ? ladder.yes.slice(0, 5) : [];
+                const noLevels = Array.isArray(ladder.no) ? ladder.no.slice(0, 5) : [];
+                const maxQty = Math.max(
+                    1,
+                    ...yesLevels.map(l => l[1] || 0),
+                    ...noLevels.map(l => l[1] || 0)
+                );
+
+                const rows = [];
+                yesLevels.forEach((lvl, idx) => {
+                    const price = lvl[0];
+                    const qty = lvl[1];
+                    const width = Math.min(100, (qty / maxQty) * 100);
+                    rows.push(`
+                        <div class="ladder-row ladder-side-yes">
+                            <div class="ladder-label">Y${idx + 1}</div>
+                            <div class="ladder-bar-wrap">
+                                <div class="ladder-bar" style="width:${width}%"></div>
+                            </div>
+                            <div class="ladder-meta">${price}c · ${qty}</div>
+                        </div>
+                    `);
+                });
+                noLevels.forEach((lvl, idx) => {
+                    const price = lvl[0];
+                    const qty = lvl[1];
+                    const width = Math.min(100, (qty / maxQty) * 100);
+                    rows.push(`
+                        <div class="ladder-row ladder-side-no">
+                            <div class="ladder-label">N${idx + 1}</div>
+                            <div class="ladder-bar-wrap">
+                                <div class="ladder-bar" style="width:${width}%"></div>
+                            </div>
+                            <div class="ladder-meta">${price}c · ${qty}</div>
+                        </div>
+                    `);
+                });
+
+                cards.push(`
+                    <div class="ladder-card">
+                        <div class="ladder-title">${shortName}</div>
+                        ${rows.join('')}
+                    </div>
+                `);
+            });
+            if (!cards.length) {
+                container.innerHTML = '<small style="color: var(--muted);">No ladder data available for these markets.</small>';
+                return;
+            }
+            container.innerHTML = `<div class="ladder-grid">${cards.join('')}</div>`;
         }
 
 

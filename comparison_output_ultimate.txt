@@ -1,7 +1,0 @@
-Loaded 2 trades from Mimic Backtest
-Loaded 0 trades from Live Bot
---------------------------------------------------------------------------------
-MIMIC BACKTEST                      | LIVE BOT                            | STATUS    
---------------------------------------------------------------------------------
-08:21:04 KXHIGHNY-26JAN13-B47.5 BUY_NO 1@64.0 | MISSING                             | EXTRA
-08:21:11 KXHIGHNY-26JAN13-B47.5 BUY_NO 1@65.0 | MISSING                             | EXTRA

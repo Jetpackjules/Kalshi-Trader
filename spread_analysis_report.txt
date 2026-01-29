@@ -1,278 +1,0 @@
-Found 45 files to analyze.
-[1/45] Processing market_data_KXHIGHNY-25DEC05.csv...[2/45] Processing market_data_KXHIGHNY-25DEC06.csv...[3/45] Processing market_data_KXHIGHNY-25DEC07.csv...[4/45] Processing market_data_KXHIGHNY-25DEC08.csv...[5/45] Processing market_data_KXHIGHNY-25DEC09.csv...[6/45] Processing market_data_KXHIGHNY-25DEC10.csv...[7/45] Processing market_data_KXHIGHNY-25DEC11.csv...[8/45] Processing market_data_KXHIGHNY-25DEC12.csv...[9/45] Processing market_data_KXHIGHNY-25DEC13.csv...[10/45] Processing market_data_KXHIGHNY-25DEC14.csv...[11/45] Processing market_data_KXHIGHNY-25DEC15.csv...[12/45] Processing market_data_KXHIGHNY-25DEC16.csv...[13/45] Processing market_data_KXHIGHNY-25DEC17.csv...[14/45] Processing market_data_KXHIGHNY-25DEC18.csv...[15/45] Processing market_data_KXHIGHNY-25DEC19.csv...[16/45] Processing market_data_KXHIGHNY-25DEC20.csv...[17/45] Processing market_data_KXHIGHNY-25DEC21.csv...[18/45] Processing market_data_KXHIGHNY-25DEC22.csv...[19/45] Processing market_data_KXHIGHNY-25DEC23.csv...[20/45] Processing market_data_KXHIGHNY-25DEC24.csv...[21/45] Processing market_data_KXHIGHNY-25DEC25.csv...[22/45] Processing market_data_KXHIGHNY-25DEC26.csv...[23/45] Processing market_data_KXHIGHNY-25DEC27.csv...[24/45] Processing market_data_KXHIGHNY-25DEC28.csv...[25/45] Processing market_data_KXHIGHNY-25DEC29.csv...[26/45] Processing market_data_KXHIGHNY-25DEC30.csv...[27/45] Processing market_data_KXHIGHNY-25DEC31.csv...[28/45] Processing market_data_KXHIGHNY-26JAN01.csv...[29/45] Processing market_data_KXHIGHNY-26JAN02.csv...[30/45] Processing market_data_KXHIGHNY-26JAN03.csv...[31/45] Processing market_data_KXHIGHNY-26JAN04.csv...[32/45] Processing market_data_KXHIGHNY-26JAN05.csv...[33/45] Processing market_data_KXHIGHNY-26JAN06.csv...[34/45] Processing market_data_KXHIGHNY-26JAN07.csv...[35/45] Processing market_data_KXHIGHNY-26JAN08.csv...[36/45] Processing market_data_KXHIGHNY-26JAN09.csv...[37/45] Processing market_data_KXHIGHNY-26JAN10.csv...[38/45] Processing market_data_KXHIGHNY-26JAN11.csv...[39/45] Processing market_data_KXHIGHNY-26JAN12.csv...[40/45] Processing market_data_KXHIGHNY-26JAN13.csv...[41/45] Processing market_data_KXHIGHNY-26JAN14.csv...[42/45] Processing market_data_KXHIGHNY-26JAN15.csv...[43/45] Processing market_data_KXHIGHNY-26JAN16.csv...[44/45] Processing market_data_KXHIGHNY-26JAN17.csv...[45/45] Processing market_data_KXHIGHNY-26JAN18.csv...
-====================================================================================================
-Ticker                    | Avg Spread | Trades   | Ticks    | Vol/Tick | Range     
-----------------------------------------------------------------------------------------------------
-KXHIGHNY-26JAN16-B35.5    | 4.51       | 231      | 10284    | 0.0225   | 0-88      
-KXHIGHNY-26JAN16-B33.5    | 4.79       | 231      | 11450    | 0.0202   | 17-100    
-KXHIGHNY-26JAN17-B38.5    | 3.96       | 204      | 15633    | 0.0130   | 2-98      
-KXHIGHNY-26JAN13-B45.5    | 4.90       | 198      | 14240    | 0.0139   | 0-74      
-KXHIGHNY-26JAN11-B46.5    | 6.08       | 188      | 12481    | 0.0151   | 28-100    
-KXHIGHNY-26JAN12-B41.5    | 4.36       | 187      | 15728    | 0.0119   | 32-100    
-KXHIGHNY-26JAN13-B47.5    | 5.74       | 182      | 17017    | 0.0107   | 22-100    
-KXHIGHNY-26JAN12-B43.5    | 4.09       | 157      | 13271    | 0.0118   | 0-49      
-KXHIGHNY-26JAN17-B40.5    | 4.90       | 154      | 9854     | 0.0156   | 2-68      
-KXHIGHNY-26JAN11-B44.5    | 5.86       | 142      | 10780    | 0.0132   | 0-52      
-KXHIGHNY-26JAN16-T33      | 3.86       | 141      | 4906     | 0.0287   | 0-37      
-KXHIGHNY-26JAN11-B48.5    | 6.01       | 138      | 11894    | 0.0116   | 0-36      
-KXHIGHNY-26JAN16-B37.5    | 4.75       | 129      | 3838     | 0.0336   | 0-29      
-KXHIGHNY-26JAN12-B39.5    | 3.88       | 117      | 9443     | 0.0124   | 0-57      
-KXHIGHNY-26JAN13-B49.5    | 5.85       | 104      | 7435     | 0.0140   | 0-30      
-KXHIGHNY-26JAN17-B36.5    | 5.54       | 103      | 10616    | 0.0097   | 0-50      
-KXHIGHNY-26JAN10-B52.5    | 5.27       | 100      | 3255     | 0.0307   | 22-100    
-KXHIGHNY-26JAN13-B43.5    | 5.44       | 99       | 5747     | 0.0172   | 0-35      
-KXHIGHNY-26JAN15-B47.5    | 4.86       | 93       | 6372     | 0.0146   | 2-100     
-KXHIGHNY-26JAN15-B45.5    | 5.74       | 90       | 5159     | 0.0174   | 0-72      
-KXHIGHNY-26JAN12-B45.5    | 3.59       | 89       | 3160     | 0.0282   | 0-16      
-KXHIGHNY-26JAN17-B42.5    | 3.66       | 89       | 6129     | 0.0145   | 0-50      
-KXHIGHNY-26JAN10-T52      | 4.23       | 75       | 2703     | 0.0277   | 0-72      
-KXHIGHNY-26JAN15-T48      | 3.61       | 75       | 3379     | 0.0222   | 0-18      
-KXHIGHNY-26JAN10-B54.5    | 6.09       | 73       | 5243     | 0.0139   | 0-25      
-KXHIGHNY-26JAN15-B43.5    | 4.11       | 72       | 2737     | 0.0263   | 0-46      
-KXHIGHNY-26JAN11-T49      | 6.42       | 58       | 4308     | 0.0135   | 0-16      
-KXHIGHNY-26JAN13-T50      | 3.90       | 58       | 2981     | 0.0195   | 0-28      
-KXHIGHNY-26JAN11-B42.5    | 6.25       | 51       | 3848     | 0.0133   | 0-30      
-KXHIGHNY-26JAN17-T36      | 4.54       | 48       | 2988     | 0.0161   | 0-50      
-KXHIGHNY-26JAN16-B39.5    | 4.40       | 47       | 1140     | 0.0412   | 0-12      
-KXHIGHNY-26JAN15-B41.5    | 3.12       | 46       | 2025     | 0.0227   | 0-39      
-KXHIGHNY-26JAN12-T39      | 2.33       | 45       | 1984     | 0.0227   | 0-10      
-KXHIGHNY-26JAN17-T43      | 3.09       | 44       | 2201     | 0.0200   | 0-50      
-KXHIGHNY-26JAN12-T46      | 4.47       | 33       | 1430     | 0.0231   | 0-12      
-KXHIGHNY-26JAN15-T41      | 3.19       | 28       | 771      | 0.0363   | 0-8       
-KXHIGHNY-26JAN16-T40      | 3.56       | 25       | 873      | 0.0286   | 0-12      
-KXHIGHNY-26JAN18-B33.5    | 6.73       | 25       | 1818     | 0.0138   | 15-32     
-KXHIGHNY-26JAN13-T43      | 6.92       | 24       | 1821     | 0.0132   | 0-26      
-KXHIGHNY-26JAN14-B49.5    | 6.88       | 24       | 1797     | 0.0134   | 27-50     
-KXHIGHNY-26JAN18-B35.5    | 6.56       | 22       | 1720     | 0.0128   | 24-52     
-KXHIGHNY-26JAN14-B51.5    | 8.00       | 19       | 1041     | 0.0183   | 4-50      
-KXHIGHNY-26JAN18-B37.5    | 7.33       | 18       | 1572     | 0.0115   | 16-32     
-KXHIGHNY-26JAN14-B45.5    | 5.25       | 15       | 755      | 0.0199   | 4-50      
-KXHIGHNY-26JAN14-B47.5    | 7.59       | 14       | 384      | 0.0365   | 27-50     
-KXHIGHNY-26JAN18-B39.5    | 5.20       | 14       | 1844     | 0.0076   | 2-22      
-KXHIGHNY-26JAN14-T52      | 6.47       | 13       | 410      | 0.0317   | 2-50      
-KXHIGHNY-26JAN18-T33      | 9.67       | 13       | 838      | 0.0155   | 2-22      
-KXHIGHNY-26JAN11-T42      | 5.05       | 12       | 1779     | 0.0067   | 0-9       
-KXHIGHNY-26JAN10-B56.5    | 5.88       | 10       | 1014     | 0.0099   | 0-23      
-KXHIGHNY-26JAN14-T45      | 7.37       | 10       | 306      | 0.0327   | 0-50      
-KXHIGHNY-26JAN18-T40      | 5.23       | 10       | 576      | 0.0174   | 2-12      
-KXHIGHNY-26JAN10-B58.5    | 5.69       | 5        | 435      | 0.0115   | 0-23      
-KXHIGHNY-26JAN10-T59      | 6.46       | 4        | 399      | 0.0100   | 0-22      
-KXHIGHNY-25DEC05-T37      | 2.33       | 0        | 1546     | 0.0000   | 0-50      
-KXHIGHNY-25DEC05-B32.5    | 6.89       | 0        | 14997    | 0.0000   | 12-100    
-KXHIGHNY-25DEC05-B34.5    | 3.81       | 0        | 4715     | 0.0000   | 0-50      
-KXHIGHNY-25DEC05-T30      | 3.66       | 0        | 2390     | 0.0000   | 0-50      
-KXHIGHNY-25DEC05-B36.5    | 3.36       | 0        | 1399     | 0.0000   | 0-50      
-KXHIGHNY-25DEC05-B30.5    | 5.83       | 0        | 15295    | 0.0000   | 0-74      
-KXHIGHNY-25DEC06-B43.5    | 7.33       | 0        | 8627     | 0.0000   | 0-50      
-KXHIGHNY-25DEC06-B39.5    | 6.17       | 0        | 4892     | 0.0000   | 0-50      
-KXHIGHNY-25DEC06-B41.5    | 5.48       | 0        | 5168     | 0.0000   | 31-100    
-KXHIGHNY-25DEC06-B45.5    | 3.48       | 0        | 1131     | 0.0000   | 0-50      
-KXHIGHNY-25DEC06-T46      | 6.32       | 0        | 167      | 0.0000   | 0-50      
-KXHIGHNY-25DEC06-T39      | 14.45      | 0        | 8487     | 0.0000   | 0-50      
-KXHIGHNY-25DEC07-B41.5    | 5.76       | 0        | 6902     | 0.0000   | 0-85      
-KXHIGHNY-25DEC07-B39.5    | 3.47       | 0        | 1950     | 0.0000   | 0-46      
-KXHIGHNY-25DEC07-T37      | 8.09       | 0        | 57       | 0.0000   | 0-32      
-KXHIGHNY-25DEC07-T44      | 8.15       | 0        | 1475     | 0.0000   | 0-34      
-KXHIGHNY-25DEC07-B43.5    | 5.68       | 0        | 8623     | 0.0000   | 8-100     
-KXHIGHNY-25DEC07-B37.5    | 4.52       | 0        | 841      | 0.0000   | 0-32      
-KXHIGHNY-25DEC08-T40      | 8.03       | 0        | 542      | 0.0000   | 0-32      
-KXHIGHNY-25DEC08-B39.5    | 7.46       | 0        | 12933    | 0.0000   | 0-94      
-KXHIGHNY-25DEC08-B33.5    | 6.10       | 0        | 1605     | 0.0000   | 0-35      
-KXHIGHNY-25DEC08-B35.5    | 5.57       | 0        | 3074     | 0.0000   | 0-68      
-KXHIGHNY-25DEC08-B37.5    | 5.69       | 0        | 9027     | 0.0000   | 5-100     
-KXHIGHNY-25DEC08-T33      | 5.51       | 0        | 1130     | 0.0000   | 0-32      
-KXHIGHNY-25DEC09-T32      | 4.47       | 0        | 5301     | 0.0000   | 0-50      
-KXHIGHNY-25DEC09-B36.5    | 5.97       | 0        | 19932    | 0.0000   | 0-57      
-KXHIGHNY-25DEC09-B34.5    | 6.86       | 0        | 37379    | 0.0000   | 20-100    
-KXHIGHNY-25DEC09-B38.5    | 4.23       | 0        | 4657     | 0.0000   | 0-50      
-KXHIGHNY-25DEC09-B32.5    | 5.51       | 0        | 36888    | 0.0000   | 0-66      
-KXHIGHNY-25DEC09-T39      | 5.07       | 0        | 3423     | 0.0000   | 0-50      
-KXHIGHNY-25DEC10-B46.5    | 5.04       | 0        | 14324    | 0.0000   | 4-100     
-KXHIGHNY-25DEC10-B40.5    | 5.00       | 0        | 3511     | 0.0000   | 0-32      
-KXHIGHNY-25DEC10-T40      | 5.94       | 0        | 1894     | 0.0000   | 0-32      
-KXHIGHNY-25DEC10-B42.5    | 4.98       | 0        | 8736     | 0.0000   | 0-50      
-KXHIGHNY-25DEC10-B44.5    | 5.54       | 0        | 12785    | 0.0000   | 0-58      
-KXHIGHNY-25DEC10-T47      | 4.68       | 0        | 3707     | 0.0000   | 0-32      
-KXHIGHNY-25DEC11-B42.5    | 7.06       | 0        | 9137     | 0.0000   | 0-48      
-KXHIGHNY-25DEC11-B38.5    | 5.97       | 0        | 8073     | 0.0000   | 0-61      
-KXHIGHNY-25DEC11-B40.5    | 8.33       | 0        | 10196    | 0.0000   | 16-100    
-KXHIGHNY-25DEC11-T45      | 19.83      | 0        | 266      | 0.0000   | 0-33      
-KXHIGHNY-25DEC11-T38      | 6.92       | 0        | 1077     | 0.0000   | 0-33      
-KXHIGHNY-25DEC11-B44.5    | 5.46       | 0        | 1614     | 0.0000   | 0-34      
-KXHIGHNY-25DEC12-T39      | 2.74       | 0        | 2344     | 0.0000   | 0-32      
-KXHIGHNY-25DEC12-B34.5    | 4.54       | 0        | 17200    | 0.0000   | 20-100    
-KXHIGHNY-25DEC12-B36.5    | 5.84       | 0        | 18942    | 0.0000   | 0-80      
-KXHIGHNY-25DEC12-T32      | 3.99       | 0        | 1208     | 0.0000   | 0-26      
-KXHIGHNY-25DEC12-B38.5    | 3.37       | 0        | 4763     | 0.0000   | 0-36      
-KXHIGHNY-25DEC12-B32.5    | 3.38       | 0        | 5871     | 0.0000   | 0-36      
-KXHIGHNY-25DEC13-T43      | 3.32       | 0        | 2298     | 0.0000   | 0-50      
-KXHIGHNY-25DEC13-B38.5    | 4.72       | 0        | 7078     | 0.0000   | 0-81      
-KXHIGHNY-25DEC13-T36      | 7.16       | 0        | 2297     | 0.0000   | 0-50      
-KXHIGHNY-25DEC13-B42.5    | 3.65       | 0        | 13773    | 0.0000   | 0-50      
-KXHIGHNY-25DEC13-B36.5    | 3.31       | 0        | 7227     | 0.0000   | 0-50      
-KXHIGHNY-25DEC13-B40.5    | 5.58       | 0        | 7851     | 0.0000   | 20-100    
-KXHIGHNY-25DEC14-B34.5    | 5.10       | 0        | 22611    | 0.0000   | 0-84      
-KXHIGHNY-25DEC14-B36.5    | 5.58       | 0        | 5951     | 0.0000   | 0-68      
-KXHIGHNY-25DEC14-T34      | 6.99       | 0        | 27646    | 0.0000   | 4-100     
-KXHIGHNY-25DEC14-T41      | 11.40      | 0        | 1157     | 0.0000   | 0-32      
-KXHIGHNY-25DEC14-B40.5    | 14.42      | 0        | 687      | 0.0000   | 0-32      
-KXHIGHNY-25DEC14-B38.5    | 5.28       | 0        | 3114     | 0.0000   | 0-34      
-KXHIGHNY-25DEC15-B26.5    | 4.01       | 0        | 6676     | 0.0000   | 0-24      
-KXHIGHNY-25DEC15-B28.5    | 5.52       | 0        | 11783    | 0.0000   | 20-100    
-KXHIGHNY-25DEC15-T26      | 3.78       | 0        | 5276     | 0.0000   | 0-21      
-KXHIGHNY-25DEC15-T33      | 5.51       | 0        | 1341     | 0.0000   | 0-21      
-KXHIGHNY-25DEC15-B32.5    | 4.02       | 0        | 7019     | 0.0000   | 0-24      
-KXHIGHNY-25DEC15-B30.5    | 4.36       | 0        | 11006    | 0.0000   | 0-72      
-KXHIGHNY-25DEC16-T28      | 3.39       | 0        | 1364     | 0.0000   | 0-22      
-KXHIGHNY-25DEC16-B32.5    | 3.26       | 0        | 6732     | 0.0000   | 20-100    
-KXHIGHNY-25DEC16-B30.5    | 4.09       | 0        | 8216     | 0.0000   | 0-52      
-KXHIGHNY-25DEC16-B28.5    | 3.78       | 0        | 2806     | 0.0000   | 0-23      
-KXHIGHNY-25DEC16-B34.5    | 3.93       | 0        | 6137     | 0.0000   | 0-38      
-KXHIGHNY-25DEC16-T35      | 4.07       | 0        | 2902     | 0.0000   | 0-22      
-KXHIGHNY-25DEC17-B45.5    | 4.76       | 0        | 15599    | 0.0000   | 0-86      
-KXHIGHNY-25DEC17-T50      | 4.87       | 0        | 17731    | 0.0000   | 0-21      
-KXHIGHNY-25DEC17-B47.5    | 5.29       | 0        | 16241    | 0.0000   | 2-100     
-KXHIGHNY-25DEC17-B49.5    | 2.84       | 0        | 13360    | 0.0000   | 0-21      
-KXHIGHNY-25DEC17-B43.5    | 4.37       | 0        | 17387    | 0.0000   | 0-57      
-KXHIGHNY-25DEC17-T43      | 3.01       | 0        | 6223     | 0.0000   | 0-38      
-KXHIGHNY-25DEC18-T50      | 7.65       | 0        | 25483    | 0.0000   | 0-92      
-KXHIGHNY-25DEC18-B50.5    | 5.77       | 0        | 30818    | 0.0000   | 8-100     
-KXHIGHNY-25DEC18-T57      | 2.51       | 0        | 1155     | 0.0000   | 0-25      
-KXHIGHNY-25DEC18-B56.5    | 3.67       | 0        | 2115     | 0.0000   | 0-25      
-KXHIGHNY-25DEC18-B54.5    | 3.25       | 0        | 3738     | 0.0000   | 0-30      
-KXHIGHNY-25DEC18-B52.5    | 3.42       | 0        | 9396     | 0.0000   | 0-42      
-KXHIGHNY-25DEC19-T61      | 2.25       | 0        | 1138     | 0.0000   | 0-33      
-KXHIGHNY-25DEC19-B54.5    | 6.70       | 0        | 7829     | 0.0000   | 0-34      
-KXHIGHNY-25DEC19-B56.5    | 7.29       | 0        | 16337    | 0.0000   | 0-88      
-KXHIGHNY-25DEC19-T54      | 3.45       | 0        | 1628     | 0.0000   | 0-33      
-KXHIGHNY-25DEC19-B60.5    | 4.37       | 0        | 4557     | 0.0000   | 0-33      
-KXHIGHNY-25DEC19-B58.5    | 6.94       | 0        | 15643    | 0.0000   | 10-100    
-KXHIGHNY-25DEC20-B38.5    | 5.45       | 0        | 22366    | 0.0000   | 2-100     
-KXHIGHNY-25DEC20-T36      | 3.58       | 0        | 1748     | 0.0000   | 0-26      
-KXHIGHNY-25DEC20-B36.5    | 7.33       | 0        | 16350    | 0.0000   | 0-99      
-KXHIGHNY-25DEC20-B42.5    | 5.06       | 0        | 4886     | 0.0000   | 0-36      
-KXHIGHNY-25DEC20-T43      | 6.21       | 0        | 2078     | 0.0000   | 0-21      
-KXHIGHNY-25DEC20-B40.5    | 6.38       | 0        | 13741    | 0.0000   | 0-43      
-KXHIGHNY-25DEC21-T47      | 3.14       | 0        | 4762     | 0.0000   | 0-33      
-KXHIGHNY-25DEC21-B46.5    | 5.48       | 0        | 19074    | 0.0000   | 20-100    
-KXHIGHNY-25DEC21-B42.5    | 3.99       | 0        | 7004     | 0.0000   | 0-38      
-KXHIGHNY-25DEC21-B44.5    | 5.55       | 0        | 12865    | 0.0000   | 0-80      
-KXHIGHNY-25DEC21-T40      | 2.18       | 0        | 1260     | 0.0000   | 0-33      
-KXHIGHNY-25DEC21-B40.5    | 4.42       | 0        | 4564     | 0.0000   | 0-33      
-KXHIGHNY-25DEC22-B38.5    | 4.68       | 0        | 16458    | 0.0000   | 20-100    
-KXHIGHNY-25DEC22-B42.5    | 3.23       | 0        | 4683     | 0.0000   | 0-22      
-KXHIGHNY-25DEC22-T43      | 1.66       | 0        | 946      | 0.0000   | 0-20      
-KXHIGHNY-25DEC22-B40.5    | 4.33       | 0        | 17503    | 0.0000   | 0-46      
-KXHIGHNY-25DEC22-B36.5    | 3.69       | 0        | 8250     | 0.0000   | 0-30      
-KXHIGHNY-25DEC22-T36      | 3.10       | 0        | 2515     | 0.0000   | 0-20      
-KXHIGHNY-25DEC23-B44.5    | 6.68       | 0        | 5599     | 0.0000   | 0-34      
-KXHIGHNY-25DEC23-B38.5    | 5.63       | 0        | 10992    | 0.0000   | 0-60      
-KXHIGHNY-25DEC23-B40.5    | 4.87       | 0        | 18403    | 0.0000   | 30-100    
-KXHIGHNY-25DEC23-B42.5    | 3.93       | 0        | 9111     | 0.0000   | 0-44      
-KXHIGHNY-25DEC23-T45      | 1.87       | 0        | 2053     | 0.0000   | 0-34      
-KXHIGHNY-25DEC23-T38      | 4.17       | 0        | 3821     | 0.0000   | 0-36      
-KXHIGHNY-25DEC24-B46.5    | 7.63       | 0        | 11297    | 0.0000   | 2-100     
-KXHIGHNY-25DEC24-B40.5    | 3.95       | 0        | 5380     | 0.0000   | 0-37      
-KXHIGHNY-25DEC24-B44.5    | 6.74       | 0        | 11625    | 0.0000   | 0-83      
-KXHIGHNY-25DEC24-T47      | 4.86       | 0        | 4097     | 0.0000   | 0-32      
-KXHIGHNY-25DEC24-B42.5    | 5.50       | 0        | 11066    | 0.0000   | 0-57      
-KXHIGHNY-25DEC24-T40      | 6.03       | 0        | 846      | 0.0000   | 0-56      
-KXHIGHNY-25DEC25-B47.5    | 8.07       | 0        | 32907    | 0.0000   | 0-84      
-KXHIGHNY-25DEC25-T41      | 10.65      | 0        | 2499     | 0.0000   | 0-33      
-KXHIGHNY-25DEC25-B45.5    | 6.71       | 0        | 20533    | 0.0000   | 0-58      
-KXHIGHNY-25DEC25-B41.5    | 4.88       | 0        | 1943     | 0.0000   | 0-34      
-KXHIGHNY-25DEC25-B43.5    | 5.46       | 0        | 13943    | 0.0000   | 0-38      
-KXHIGHNY-25DEC25-T48      | 8.32       | 0        | 19659    | 0.0000   | 2-100     
-KXHIGHNY-25DEC26-B27.5    | 4.06       | 0        | 4133     | 0.0000   | 0-50      
-KXHIGHNY-25DEC26-B29.5    | 4.91       | 0        | 47015    | 0.0000   | 22-98     
-KXHIGHNY-25DEC26-B33.5    | 3.86       | 0        | 29527    | 0.0000   | 0-50      
-KXHIGHNY-25DEC26-T34      | 3.20       | 0        | 5847     | 0.0000   | 0-50      
-KXHIGHNY-25DEC26-B31.5    | 4.62       | 0        | 23172    | 0.0000   | 0-62      
-KXHIGHNY-25DEC26-T27      | 5.60       | 0        | 1183     | 0.0000   | 0-50      
-KXHIGHNY-25DEC27-B33.5    | 4.06       | 0        | 4864     | 0.0000   | 0-53      
-KXHIGHNY-25DEC27-B35.5    | 6.09       | 0        | 4033     | 0.0000   | 0-34      
-KXHIGHNY-25DEC27-T29      | 2.84       | 0        | 255      | 0.0000   | 0-34      
-KXHIGHNY-25DEC27-B31.5    | 5.37       | 0        | 5473     | 0.0000   | 22-100    
-KXHIGHNY-25DEC27-B29.5    | 4.44       | 0        | 2243     | 0.0000   | 0-34      
-KXHIGHNY-25DEC27-T36      | 2.77       | 0        | 385      | 0.0000   | 0-34      
-KXHIGHNY-25DEC28-B37.5    | 5.56       | 0        | 39708    | 0.0000   | 0-70      
-KXHIGHNY-25DEC28-B39.5    | 5.35       | 0        | 42609    | 0.0000   | 10-100    
-KXHIGHNY-25DEC28-T37      | 4.85       | 0        | 16994    | 0.0000   | 0-56      
-KXHIGHNY-25DEC28-B41.5    | 3.98       | 0        | 11319    | 0.0000   | 0-36      
-KXHIGHNY-25DEC28-T44      | 4.96       | 0        | 227      | 0.0000   | 0-20      
-KXHIGHNY-25DEC28-B43.5    | 6.13       | 0        | 2716     | 0.0000   | 0-20      
-KXHIGHNY-25DEC29-B46.5    | 4.78       | 0        | 9371     | 0.0000   | 0-52      
-KXHIGHNY-25DEC29-T53      | 4.27       | 0        | 1151     | 0.0000   | 0-52      
-KXHIGHNY-25DEC29-B52.5    | 3.99       | 0        | 4058     | 0.0000   | 0-52      
-KXHIGHNY-25DEC29-B50.5    | 5.01       | 0        | 14441    | 0.0000   | 0-70      
-KXHIGHNY-25DEC29-T46      | 4.34       | 0        | 2326     | 0.0000   | 0-52      
-KXHIGHNY-25DEC29-B48.5    | 5.45       | 0        | 23998    | 0.0000   | 22-100    
-KXHIGHNY-25DEC30-T30      | 3.53       | 0        | 8757     | 0.0000   | 0-14      
-KXHIGHNY-25DEC30-B32.5    | 5.19       | 0        | 33738    | 0.0000   | 25-100    
-KXHIGHNY-25DEC30-B30.5    | 4.42       | 0        | 25434    | 0.0000   | 0-46      
-KXHIGHNY-25DEC30-B34.5    | 5.35       | 0        | 26916    | 0.0000   | 0-53      
-KXHIGHNY-25DEC30-B36.5    | 3.66       | 0        | 3907     | 0.0000   | 0-20      
-KXHIGHNY-25DEC30-T37      | 1.97       | 0        | 789      | 0.0000   | 0-10      
-KXHIGHNY-25DEC31-B35.5    | 3.14       | 0        | 10196    | 0.0000   | 0-35      
-KXHIGHNY-25DEC31-T38      | 4.16       | 0        | 176      | 0.0000   | 0-21      
-KXHIGHNY-25DEC31-B33.5    | 5.40       | 0        | 29010    | 0.0000   | 8-99      
-KXHIGHNY-25DEC31-B31.5    | 5.72       | 0        | 28987    | 0.0000   | 0-90      
-KXHIGHNY-25DEC31-B37.5    | 3.54       | 0        | 6314     | 0.0000   | 0-22      
-KXHIGHNY-25DEC31-T31      | 3.05       | 0        | 5528     | 0.0000   | 0-21      
-KXHIGHNY-26JAN01-T37      | 6.22       | 0        | 693      | 0.0000   | 0-21      
-KXHIGHNY-26JAN01-T30      | 6.35       | 0        | 457      | 0.0000   | 0-21      
-KXHIGHNY-26JAN01-B32.5    | 4.80       | 0        | 4973     | 0.0000   | 0-68      
-KXHIGHNY-26JAN01-B30.5    | 3.36       | 0        | 6461     | 0.0000   | 0-24      
-KXHIGHNY-26JAN01-B36.5    | 4.93       | 0        | 1880     | 0.0000   | 2-100     
-KXHIGHNY-26JAN01-B34.5    | 6.02       | 0        | 6925     | 0.0000   | 0-87      
-KXHIGHNY-26JAN02-B28.5    | 3.20       | 0        | 5937     | 0.0000   | 0-28      
-KXHIGHNY-26JAN02-B32.5    | 3.85       | 0        | 8634     | 0.0000   | 0-46      
-KXHIGHNY-26JAN02-B34.5    | 3.52       | 0        | 6185     | 0.0000   | 0-10      
-KXHIGHNY-26JAN02-T35      | 4.45       | 0        | 2642     | 0.0000   | 0-12      
-KXHIGHNY-26JAN02-T28      | 4.93       | 0        | 3610     | 0.0000   | 0-9       
-KXHIGHNY-26JAN02-B30.5    | 3.77       | 0        | 8930     | 0.0000   | 43-100    
-KXHIGHNY-26JAN03-B29.5    | 7.16       | 0        | 26961    | 0.0000   | 2-100     
-KXHIGHNY-26JAN03-B31.5    | 7.93       | 0        | 33970    | 0.0000   | 0-84      
-KXHIGHNY-26JAN03-T36      | 5.16       | 0        | 712      | 0.0000   | 0-21      
-KXHIGHNY-26JAN03-B33.5    | 4.46       | 0        | 10943    | 0.0000   | 0-62      
-KXHIGHNY-26JAN03-B35.5    | 3.63       | 0        | 4929     | 0.0000   | 0-21      
-KXHIGHNY-26JAN03-T29      | 6.05       | 0        | 1019     | 0.0000   | 0-21      
-KXHIGHNY-26JAN04-B33.5    | 4.59       | 0        | 6462     | 0.0000   | 0-70      
-KXHIGHNY-26JAN04-T38      | 6.28       | 0        | 2115     | 0.0000   | 0-21      
-KXHIGHNY-26JAN04-T31      | 8.50       | 0        | 817      | 0.0000   | 0-21      
-KXHIGHNY-26JAN04-B31.5    | 5.87       | 0        | 4218     | 0.0000   | 0-26      
-KXHIGHNY-26JAN04-B35.5    | 6.22       | 0        | 10929    | 0.0000   | 25-100    
-KXHIGHNY-26JAN04-B37.5    | 5.90       | 0        | 5347     | 0.0000   | 0-22      
-KXHIGHNY-26JAN05-B37.5    | 6.66       | 0        | 19670    | 0.0000   | 0-96      
-KXHIGHNY-26JAN05-T33      | 8.78       | 0        | 2563     | 0.0000   | 0-26      
-KXHIGHNY-26JAN05-B35.5    | 5.47       | 0        | 17001    | 0.0000   | 0-96      
-KXHIGHNY-26JAN05-B33.5    | 5.10       | 0        | 4332     | 0.0000   | 0-40      
-KXHIGHNY-26JAN05-T40      | 5.59       | 0        | 1471     | 0.0000   | 0-24      
-KXHIGHNY-26JAN05-B39.5    | 6.54       | 0        | 9435     | 0.0000   | 0-100     
-KXHIGHNY-26JAN06-B43.5    | 5.09       | 0        | 17153    | 0.0000   | 0-57      
-KXHIGHNY-26JAN06-B45.5    | 4.11       | 0        | 7327     | 0.0000   | 0-36      
-KXHIGHNY-26JAN06-B39.5    | 6.51       | 0        | 9862     | 0.0000   | 0-96      
-KXHIGHNY-26JAN06-T46      | 4.35       | 0        | 4627     | 0.0000   | 0-15      
-KXHIGHNY-26JAN06-B41.5    | 5.95       | 0        | 20681    | 0.0000   | 10-100    
-KXHIGHNY-26JAN06-T39      | 6.24       | 0        | 1827     | 0.0000   | 0-20      
-KXHIGHNY-26JAN07-B51.5    | 5.01       | 0        | 5935     | 0.0000   | 0-52      
-KXHIGHNY-26JAN07-B45.5    | 5.84       | 0        | 4544     | 0.0000   | 0-52      
-KXHIGHNY-26JAN07-T52      | 4.69       | 0        | 1869     | 0.0000   | 0-50      
-KXHIGHNY-26JAN07-T45      | 5.39       | 0        | 1198     | 0.0000   | 0-50      
-KXHIGHNY-26JAN07-B49.5    | 5.00       | 0        | 9340     | 0.0000   | 22-100    
-KXHIGHNY-26JAN07-B47.5    | 5.02       | 0        | 9306     | 0.0000   | 0-52      
-KXHIGHNY-26JAN08-B50.5    | 4.81       | 0        | 14024    | 0.0000   | 12-100    
-KXHIGHNY-26JAN08-B48.5    | 4.06       | 0        | 9219     | 0.0000   | 0-52      
-KXHIGHNY-26JAN08-B46.5    | 4.25       | 0        | 5462     | 0.0000   | 0-34      
-KXHIGHNY-26JAN08-T53      | 2.77       | 0        | 1778     | 0.0000   | 0-9       
-KXHIGHNY-26JAN08-B52.5    | 4.42       | 0        | 9073     | 0.0000   | 0-38      
-KXHIGHNY-26JAN08-T46      | 6.24       | 0        | 723      | 0.0000   | 0-18      
-KXHIGHNY-26JAN09-T49      | 3.56       | 0        | 3403     | 0.0000   | 0-50      
-KXHIGHNY-26JAN09-B49.5    | 5.05       | 0        | 21353    | 0.0000   | 0-61      
-KXHIGHNY-26JAN09-B51.5    | 4.94       | 0        | 20132    | 0.0000   | 0-70      
-KXHIGHNY-26JAN09-B53.5    | 4.59       | 0        | 20566    | 0.0000   | 6-100     
-KXHIGHNY-26JAN09-B55.5    | 4.12       | 0        | 14775    | 0.0000   | 0-52      
-KXHIGHNY-26JAN09-T56      | 3.56       | 0        | 4096     | 0.0000   | 0-50      
-====================================================================================================
-Global Average Spread: 5.36 cents
-Total Detected Trades: 4196

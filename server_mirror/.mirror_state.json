@@ -4,16 +4,20 @@
     "remote_size": 0
   },
   "backtesting/engine.py": {
-    "remote_mtime": 1767651788,
-    "remote_size": 56332
+    "remote_mtime": 1769640425,
+    "remote_size": 69050
   },
   "backtesting/strategies/__init__.py": {
     "remote_mtime": 1767649633,
     "remote_size": 0
   },
+  "backtesting/strategies/simple_market_maker.py": {
+    "remote_mtime": 1769660699,
+    "remote_size": 38741
+  },
   "backtesting/strategies/v3_variants.py": {
-    "remote_mtime": 1767649633,
-    "remote_size": 7671
+    "remote_mtime": 1769640422,
+    "remote_size": 14918
   },
   "backtesting/v3_variants.py": {
     "remote_mtime": 1767651789,
@@ -23,13 +27,17 @@
     "remote_mtime": 1766266367,
     "remote_size": 88
   },
-  "crash.log": {
-    "remote_mtime": 1767317742,
-    "remote_size": 38218
+  "check_kalshi_balance.py": {
+    "remote_mtime": 1769382296,
+    "remote_size": 1818
+  },
+  "config.json": {
+    "remote_mtime": 1769286986,
+    "remote_size": 128
   },
   "dashboard.html": {
-    "remote_mtime": 1767718104,
-    "remote_size": 30110
+    "remote_mtime": 1769588707,
+    "remote_size": 58741
   },
   "debug_positions.py": {
     "remote_mtime": 1765868655,
@@ -40,8 +48,8 @@
     "remote_size": 1059
   },
   "granular_logger.py": {
-    "remote_mtime": 1767929663,
-    "remote_size": 13408
+    "remote_mtime": 1769589137,
+    "remote_size": 16727
   },
   "live_state.json": {
     "remote_mtime": 1767252309,
@@ -51,25 +59,13 @@
     "remote_mtime": 1765868849,
     "remote_size": 19372
   },
-  "live_trader_v4.log": {
-    "remote_mtime": 1767483371,
-    "remote_size": 10373949
-  },
   "live_trader_v4.py": {
     "remote_mtime": 1767642998,
     "remote_size": 43667
   },
-  "live_trader_v5.log": {
-    "remote_mtime": 1767425060,
-    "remote_size": 173
-  },
   "live_trader_v5.py": {
     "remote_mtime": 1767478072,
     "remote_size": 33727
-  },
-  "live_trader_v6.log": {
-    "remote_mtime": 1767542185,
-    "remote_size": 3127084
   },
   "live_trader_v6.py": {
     "remote_mtime": 1767642999,
@@ -79,45 +75,29 @@
     "remote_mtime": 1767316863,
     "remote_size": 34491
   },
-  "logger.log": {
-    "remote_mtime": 1767676139,
-    "remote_size": 114516
-  },
   "logger.py": {
     "remote_mtime": 1765571452,
     "remote_size": 11067
-  },
-  "observer_bot.log": {
-    "remote_mtime": 1766981457,
-    "remote_size": 0
   },
   "observer_bot.py": {
     "remote_mtime": 1766944101,
     "remote_size": 4328
   },
   "observer_status.json": {
-    "remote_mtime": 1767929665,
-    "remote_size": 161
+    "remote_mtime": 1769662030,
+    "remote_size": 166
   },
   "output.log": {
-    "remote_mtime": 1767937146,
-    "remote_size": 24114178
+    "remote_mtime": 1769662058,
+    "remote_size": 560095590
   },
   "read_status.py": {
     "remote_mtime": 1767718877,
     "remote_size": 641
   },
-  "screen_debug.log": {
-    "remote_mtime": 1766522152,
-    "remote_size": 220
-  },
-  "server.log": {
-    "remote_mtime": 1767249809,
-    "remote_size": 196
-  },
-  "server_app.log": {
-    "remote_mtime": 1767676469,
-    "remote_size": 68494
+  "run_bot.sh": {
+    "remote_mtime": 1769640426,
+    "remote_size": 580
   },
   "server_app.py": {
     "remote_mtime": 1767743058,
@@ -191,13 +171,9 @@
     "remote_mtime": 1766270648,
     "remote_size": 335
   },
-  "startup_error.log": {
-    "remote_mtime": 1766266464,
-    "remote_size": 430
-  },
   "trader_status.json": {
-    "remote_mtime": 1767937146,
-    "remote_size": 1044
+    "remote_mtime": 1769662030,
+    "remote_size": 1021
   },
   "trades.csv": {
     "remote_mtime": 1767313591,
@@ -207,41 +183,33 @@
     "remote_mtime": 1767487107,
     "remote_size": 5
   },
-  "unified_engine.log": {
-    "remote_mtime": 1767669172,
-    "remote_size": 3993592
-  },
   "unified_engine/__init__.py": {
     "remote_mtime": 1767656236,
     "remote_size": 56
   },
   "unified_engine/adapters.py": {
-    "remote_mtime": 1767922653,
-    "remote_size": 18861
+    "remote_mtime": 1769660698,
+    "remote_size": 32209
   },
   "unified_engine/engine.py": {
-    "remote_mtime": 1767922654,
-    "remote_size": 7748
+    "remote_mtime": 1769660697,
+    "remote_size": 26612
   },
   "unified_engine/runner.py": {
-    "remote_mtime": 1767922652,
-    "remote_size": 17177
+    "remote_mtime": 1769640418,
+    "remote_size": 24611
   },
   "unified_engine/tick_sources.py": {
-    "remote_mtime": 1767922655,
-    "remote_size": 9004
+    "remote_mtime": 1769640421,
+    "remote_size": 14610
   },
   "unified_engine_out/trades.csv": {
-    "remote_mtime": 1767937146,
+    "remote_mtime": 1769662030,
     "remote_size": 1
   },
   "unified_engine_out/unified_positions.json": {
-    "remote_mtime": 1767937146,
-    "remote_size": 837
-  },
-  "web_server.log": {
-    "remote_mtime": 1765859574,
-    "remote_size": 354518
+    "remote_mtime": 1769662030,
+    "remote_size": 491
   },
   "web_server.py": {
     "remote_mtime": 1765409851,

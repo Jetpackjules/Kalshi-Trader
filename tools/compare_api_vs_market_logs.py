@@ -69,20 +69,44 @@ def _load_private_key(path: str):
         return serialization.load_pem_private_key(f.read(), password=None)
 
 
-def _select_market_files(market_dir: str, latest_files: int) -> list[str]:
+def _parse_market_date_code(stem: str) -> datetime | None:
+    parts = stem.split("-")
+    if len(parts) < 2:
+        return None
+    date_code = parts[-1].upper()
+    try:
+        return datetime.strptime(date_code, "%y%b%d")
+    except ValueError:
+        return None
+
+
+def _select_market_files(market_dir: str, latest_files: int, recent_days: int) -> list[str]:
     files = []
     for name in os.listdir(market_dir):
         if name.startswith("market_data_") and name.endswith(".csv"):
             files.append(os.path.join(market_dir, name))
-    if latest_files and latest_files > 0:
+    if recent_days and recent_days > 0:
+        dated = []
+        for path in files:
+            stem = os.path.basename(path)[len("market_data_") : -4]
+            market_date = _parse_market_date_code(stem)
+            if market_date:
+                dated.append((market_date, path))
+        if dated:
+            dated.sort(key=lambda item: item[0], reverse=True)
+            keep_dates = sorted({d for d, _ in dated}, reverse=True)[:recent_days]
+            files = [path for d, path in dated if d in keep_dates]
+        else:
+            files = []
+    if latest_files and latest_files > 0 and not files:
         files.sort(key=lambda p: os.path.getmtime(p), reverse=True)
         files = files[:latest_files]
     return files
 
 
-def _latest_market_rows(market_dir: str, latest_files: int) -> dict:
+def _latest_market_rows(market_dir: str, latest_files: int, recent_days: int) -> dict:
     latest = {}
-    for path in _select_market_files(market_dir, latest_files):
+    for path in _select_market_files(market_dir, latest_files, recent_days):
         with open(path, "r", encoding="utf-8") as f:
             reader = csv.DictReader(f)
             cols = reader.fieldnames or []
@@ -135,7 +159,7 @@ def _write_rows(path: str, rows: list[dict]) -> None:
 
 def _run_once(args) -> None:
     private_key = _load_private_key(args.key_file)
-    latest = _latest_market_rows(args.market_dir, args.latest_files)
+    latest = _latest_market_rows(args.market_dir, args.latest_files, args.recent_days)
     if not latest:
         print("No market rows found.")
         return
@@ -200,6 +224,12 @@ def main() -> int:
         type=int,
         default=0,
         help="Only scan the N most recently modified market_data_*.csv files",
+    )
+    parser.add_argument(
+        "--recent-days",
+        type=int,
+        default=0,
+        help="Only scan the most recent N market days (based on filename date)",
     )
     parser.add_argument("--interval-s", type=int, default=0, help="Poll interval (0=run once)")
     parser.add_argument("--iterations", type=int, default=0, help="Iterations when interval > 0 (0=loop forever)")
