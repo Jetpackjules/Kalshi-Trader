@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import math
@@ -425,8 +425,9 @@ class SimAdapter(BaseAdapter):
 
 
 class LiveAdapter(BaseAdapter):
-    def __init__(self, key_path: str, diag_log=None):
+    def __init__(self, key_path: str, diag_log=None, fills_log=None):
         self._diag_log = diag_log
+        self._fills_log = fills_log
         try:
             with open(key_path, 'rb') as f:
                 self.private_key = serialization.load_pem_private_key(f.read(), password=None)
@@ -443,7 +444,17 @@ class LiveAdapter(BaseAdapter):
         self._sync_interval = 60.0
         
         self._open_orders_cache = {} # {ticker: (timestamp, orders)}
-        self._orders_cache_ttl = 2.0
+        self._orders_cache_ttl = 10.0
+
+        # Fills polling
+        self._fills_last_poll = 0.0
+        self._fills_poll_interval = 10.0
+        self._fills_limit = 50
+        self._fills_cursor = None
+        self._fills_initialized = False
+        # Dedupe fills by time/order_id in case cursor is missing or unreliable.
+        self._fills_last_seen_time = None
+        self._fills_last_seen_ids = set()
         
         # Track session trades
         self.trades = []
@@ -451,6 +462,122 @@ class LiveAdapter(BaseAdapter):
 
         # Initial Sync
         self._sync_state()
+
+    def process_tick(self, ticker: str, market_state: dict, current_time: datetime) -> None:
+        # Poll fills at low frequency for logging/attribution.
+        self._poll_fills()
+
+    def _poll_fills(self) -> None:
+        if not self._fills_log:
+            return
+        now = time.time()
+        # Optimization: Don't poll aggressively for fills (history only)
+        if now - self._fills_last_poll < self._fills_poll_interval:
+            return
+        self._fills_last_poll = now
+
+        min_ts_param = ""
+        if self._fills_last_seen_time:
+             ts_val = int(self._fills_last_seen_time.timestamp())
+             min_ts_param = f"&min_ts={ts_val}"
+
+        path = f"/trade-api/v2/portfolio/fills?limit={self._fills_limit}{min_ts_param}"
+        headers = create_headers(self.private_key, "GET", path)
+        try:
+            resp = self._session.get(API_URL + path, headers=headers)
+        except Exception as e:
+            if self._diag_log:
+                self._diag_log("ERROR", msg=f"fills poll exception: {e}")
+            return
+
+        if resp.status_code != 200:
+            if self._diag_log:
+                self._diag_log("ERROR", msg=f"fills poll failed: {resp.status_code}")
+            return
+
+        data = resp.json() if resp.text else {}
+        fills = data.get("fills", [])
+        # We ignore cursor from API, we only want forward-moving time filtering.
+
+        parsed = []
+        for f in fills:
+            ts = self._parse_fill_time(
+                f.get("created_time") or f.get("fill_time") or f.get("time")
+            )
+            parsed.append((ts, f))
+
+        parsed.sort(key=lambda x: x[0] or datetime.min.replace(tzinfo=timezone.utc))
+
+        for ts, f in parsed:
+            if ts is None:
+                continue
+            # If no cursor support, fall back to last seen time gate.
+            if not self._fills_cursor and self._fills_last_seen_time and ts <= self._fills_last_seen_time:
+                continue
+
+            # Extra check: If we use min_ts, we might get the same second fills again.
+            # Dedupe by Order ID + TS.
+            key = (
+                f.get("order_id"),
+                ts.isoformat(),
+                f.get("side"),
+                f.get("price"),
+                f.get("count"),
+            )
+            if key in self._fills_last_seen_ids:
+                continue
+
+            self._fills_last_seen_ids.add(key)
+            if len(self._fills_last_seen_ids) > 5000: # Use literal if constant missing
+                # Trim to avoid unbounded growth.
+                self._fills_last_seen_ids = set(list(self._fills_last_seen_ids)[-2000:])
+
+            if not self._fills_last_seen_time or ts > self._fills_last_seen_time:
+                self._fills_last_seen_time = ts
+
+            fill_time = None
+            if hasattr(self, "_format_fill_time"):
+                 fill_time = self._format_fill_time(ts)
+            else:
+                 fill_time = ts.isoformat()
+            
+            liquidity = f.get("liquidity")
+            if not liquidity:
+                if f.get("is_taker") is True:
+                    liquidity = "taker"
+                elif f.get("is_maker") is True:
+                    liquidity = "maker"
+
+            self._fills_log({
+                "fill_time": fill_time,
+                "ticker": f.get("ticker"),
+                "side": f.get("side"),
+                "price": f.get("price"),
+                "qty": f.get("count") or f.get("qty"),
+                "liquidity": liquidity,
+                "order_id": f.get("order_id"),
+                "client_order_id": f.get("client_order_id"),
+                "fee": f.get("fee"),
+                "raw_fee": f.get("raw_fee"),
+                "source": "api",
+            })
+
+        self._fills_initialized = True
+
+    @staticmethod
+    def _parse_fill_time(ts: str | None) -> datetime | None:
+        if not ts:
+            return None
+        s = ts.strip()
+        if s.endswith("Z"):
+            s = s[:-1] + "+00:00"
+        try:
+            dt = datetime.fromisoformat(s)
+        except Exception:
+            return None
+        if dt.tzinfo is None:
+            return dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(timezone.utc)
 
     def _sync_state(self):
         try:
@@ -530,7 +657,7 @@ class LiveAdapter(BaseAdapter):
 
         # Fetch from API
         # We fetch all orders and filter locally to avoid API filtering issues
-        path = "/trade-api/v2/portfolio/orders"
+        path = "/trade-api/v2/portfolio/orders?status=open"
         headers = create_headers(self.private_key, "GET", path)
         try:
             resp = self._session.get(API_URL + path, headers=headers)
@@ -554,6 +681,7 @@ class LiveAdapter(BaseAdapter):
                     
                     orders.append({
                         "order_id": o.get("order_id"),
+                        "client_order_id": o.get("client_order_id"),
                         "ticker": o.get("ticker"),
                         "side": o.get("side"),
                         "yes_price": int(yp) if yp is not None else None,
@@ -571,7 +699,7 @@ class LiveAdapter(BaseAdapter):
         return []
 
     def get_open_orders_all(self) -> list[dict]:
-        path = "/trade-api/v2/portfolio/orders"
+        path = "/trade-api/v2/portfolio/orders?status=open"
         headers = create_headers(self.private_key, "GET", path)
         try:
             resp = self._session.get(API_URL + path, headers=headers)
@@ -613,6 +741,8 @@ class LiveAdapter(BaseAdapter):
         price = int(order.price) # API expects integer cents? Or not?
         qty = int(order.qty)
         ticker = order.ticker
+        client_order_id = getattr(order, "client_order_id", None)
+        order_is_close = bool(getattr(order, "is_close", False))
 
         def _submit_order(*, api_action: str, api_side: str, order_price: int, order_qty: int, is_close: bool, orig_action: str) -> OrderResult:
             payload = {
@@ -623,6 +753,7 @@ class LiveAdapter(BaseAdapter):
                 "side": api_side,
                 "yes_price": order_price if api_side == "yes" else None,
                 "no_price": order_price if api_side == "no" else None,
+                "client_order_id": client_order_id,
             }
             if is_close:
                 print(f"DEBUG: Using Native Sell (GTC) | {api_action.upper()} {api_side.upper()} {order_qty}")
@@ -656,7 +787,7 @@ class LiveAdapter(BaseAdapter):
                 print(f"DEBUG: Pre-flight check error: {e}")
             # -----------------------------
 
-            path = "/trade-api/v2/portfolio/orders"
+        path = "/trade-api/v2/portfolio/orders?status=open"
             headers = create_headers(self.private_key, "POST", path)
             try:
                 if self._diag_log:
@@ -673,6 +804,7 @@ class LiveAdapter(BaseAdapter):
                         qty=order_qty,
                         is_close=is_close,
                         cash=self._cash,
+                        client_order_id=client_order_id,
                     )
                 print(
                     f"DEBUG: ORDER_SUBMIT | {orig_action} is_close={is_close} -> {api_action.upper()} {api_side.upper()} "
@@ -703,6 +835,7 @@ class LiveAdapter(BaseAdapter):
                             "status": "accepted",
                             "filled": 0,
                             "order_id": None,
+                            "client_order_id": client_order_id,
                             "order_time": current_time,
                         }
                     )
@@ -716,6 +849,29 @@ class LiveAdapter(BaseAdapter):
                 if self._diag_log:
                     self._diag_log("ERROR", msg=f"Place order exception: {e}")
                 return OrderResult(ok=False, filled=0, status="exception")
+
+        # If engine marked this as a close, honor it explicitly (no open remainder).
+        if order_is_close:
+            if order.action == "BUY_NO":
+                close_price = max(1, min(99, 100 - price))
+                return _submit_order(
+                    api_action="sell",
+                    api_side="yes",
+                    order_price=close_price,
+                    order_qty=qty,
+                    is_close=True,
+                    orig_action=order.action,
+                )
+            if order.action == "BUY_YES":
+                close_price = max(1, min(99, 100 - price))
+                return _submit_order(
+                    api_action="sell",
+                    api_side="no",
+                    order_price=close_price,
+                    order_qty=qty,
+                    is_close=True,
+                    orig_action=order.action,
+                )
 
         # Smart Order Splitting: close opposing inventory first, then open remainder.
         pos = self._positions.get(ticker, {})

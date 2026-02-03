@@ -75,7 +75,7 @@ def analyze_performance():
         # Wait, we only BUY in this strategy (Buy YES or Buy NO).
         # We rely on SETTLEMENT for profit?
         # Or does the strategy SELL?
-        # SimpleMarketMaker ONLY buys YES and buys NO. It never sends "sell" orders.
+        # SimpleMarketMakerV2 only emits BUY_YES / BUY_NO intents; the adapter maps closes to sells.
         # It relies on netting or settlement.
         # So all fills are "buys".
         # PnL comes from:

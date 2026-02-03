@@ -124,6 +124,7 @@ def sync_logs():
         "trades.csv",
         "decision_intents.csv",
         "trade_debug.csv",
+        "fills.csv",
         "tick_ingest_log.csv",
     ]
 

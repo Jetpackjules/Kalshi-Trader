@@ -175,6 +175,84 @@ def _build_trade_logger(path: str | None):
     return _log
 
 
+def _build_order_event_logger(path: str | None):
+    if not path or path.strip().lower() in {"none", "off"}:
+        return None
+    dir_name = os.path.dirname(path)
+    if dir_name:
+        os.makedirs(dir_name, exist_ok=True)
+    fieldnames = [
+        "event_id",
+        "event_time",
+        "tick_time",
+        "event",
+        "ticker",
+        "action",
+        "price",
+        "qty",
+        "is_close",
+        "reason",
+        "cash",
+        "pos_yes",
+        "pos_no",
+        "pending_yes",
+        "pending_no",
+        "yes_ask",
+        "no_ask",
+        "yes_bid",
+        "no_bid",
+        "client_order_id",
+        "order_id",
+        "api_action",
+        "api_side",
+    ]
+    file_exists = os.path.isfile(path)
+    handle = open(path, "a", newline="", encoding="utf-8")
+    writer = csv.DictWriter(handle, fieldnames=fieldnames)
+    if not file_exists:
+        writer.writeheader()
+        handle.flush()
+
+    def _log(row: dict) -> None:
+        writer.writerow(row)
+        handle.flush()
+
+    return _log
+
+
+def _build_fill_logger(path: str | None):
+    if not path or path.strip().lower() in {"none", "off"}:
+        return None
+    dir_name = os.path.dirname(path)
+    if dir_name:
+        os.makedirs(dir_name, exist_ok=True)
+    fieldnames = [
+        "fill_time",
+        "ticker",
+        "side",
+        "price",
+        "qty",
+        "liquidity",
+        "order_id",
+        "client_order_id",
+        "fee",
+        "raw_fee",
+        "source",
+    ]
+    file_exists = os.path.isfile(path)
+    handle = open(path, "a", newline="", encoding="utf-8")
+    writer = csv.DictWriter(handle, fieldnames=fieldnames)
+    if not file_exists:
+        writer.writeheader()
+        handle.flush()
+
+    def _log(row: dict) -> None:
+        writer.writerow(row)
+        handle.flush()
+
+    return _log
+
+
 def _build_ingest_logger(path: str | None):
     if not path or path.strip().lower() in {"none", "off"}:
         return None
@@ -232,6 +310,8 @@ def main() -> int:
     parser.add_argument("--decision-log", default="", help="CSV path for decision intents (blank = out_dir/decision_intents.csv)")
     parser.add_argument("--trade-log", default="", help="CSV path for trade debug log (blank = out_dir/trade_debug.csv)")
     parser.add_argument("--ingest-log", default="", help="CSV path for tick ingest log (blank = out_dir/tick_ingest_log.csv)")
+    parser.add_argument("--order-event-log", default="", help="CSV path for order event log (blank = out_dir/order_events.csv)")
+    parser.add_argument("--fills-log", default="", help="CSV path for fills log (blank = out_dir/fills.csv)")
     parser.add_argument("--diag-log", action="store_true", help="Emit per-tick diagnostic lines")
     parser.add_argument("--diag-every", type=int, default=1, help="Ticks between diagnostics")
     parser.add_argument("--diag-heartbeat-s", type=float, default=30.0, help="Seconds between follow heartbeats")
@@ -256,6 +336,10 @@ def main() -> int:
     decision_log = _build_decision_logger(decision_log_path)
     trade_log_path = args.trade_log or os.path.join(args.out_dir, "trade_debug.csv")
     trade_log = _build_trade_logger(trade_log_path)
+    order_event_log_path = getattr(args, "order_event_log", "") or os.path.join(args.out_dir, "order_events.csv")
+    order_event_log = _build_order_event_logger(order_event_log_path)
+    fills_log_path = getattr(args, "fills_log", "") or os.path.join(args.out_dir, "fills.csv")
+    fills_log = _build_fill_logger(fills_log_path)
     ingest_log_path = args.ingest_log or os.path.join(args.out_dir, "tick_ingest_log.csv")
     ingest_log = _build_ingest_logger(ingest_log_path)
 
@@ -286,7 +370,7 @@ def main() -> int:
     if args.live:
         from unified_engine.adapters import LiveAdapter
         print("!!! WARNING: RUNNING IN LIVE TRADING MODE !!!")
-        adapter = LiveAdapter(key_path=args.key_file, diag_log=diag_log)
+        adapter = LiveAdapter(key_path=args.key_file, diag_log=diag_log, fills_log=fills_log)
         
         # --- SNAPSHOT ON LAUNCH ---
         try:
@@ -382,6 +466,7 @@ def main() -> int:
         diag_every=args.diag_every,
         decision_log=decision_log,
         trade_log=trade_log,
+        order_event_log=order_event_log,
     )
 
     out_dir = Path(args.out_dir)
@@ -583,6 +668,26 @@ def main() -> int:
         # Update status frequently to keep dashboard fresh
         if count % status_every_ticks == 0:
             _write_status()
+
+        # KILL SWITCH CHECK (Every ~15 ticks or ~1 second depending on speed)
+        # Check trading_enabled.txt
+        if count % 15 == 0:
+            try:
+                if os.path.exists("trading_enabled.txt"):
+                    with open("trading_enabled.txt", "r") as f:
+                        content = f.read().strip().lower()
+                    enabled = (content == "true")
+                else:
+                    # Default to enabled if file missing, or disabled?
+                    # Safer to default to True IF running in live mode, 
+                    # but create the file if missing?
+                    # Let's assume True if missing to avoid accidental stops.
+                    enabled = True
+                
+                if hasattr(engine, "set_trading_enabled"):
+                    engine.set_trading_enabled(enabled)
+            except Exception:
+                pass
 
     # Final write
     _write_status()

@@ -392,6 +392,8 @@
                     <span class="status-dot" id="liveStatusDot"></span>
                     <strong id="liveStatusText">Live: Unknown</strong>
                 </div>
+                <button id="stopButton" class="chip" style="cursor: pointer; border-width: 2px; font-weight: bold;"
+                    onclick="toggleTrading()">Loading...</button>
                 <div class="chip" id="windowChip" style="min-width: 140px; justify-content: center;">Window: --</div>
                 <div class="chip" id="clockChip">Time: --</div>
                 <div class="chip">
@@ -577,6 +579,23 @@
         let latestOrders = [];
         let latestPositions = {};
         let gapCache = { today: null, tomorrow: null };
+        const MONTHS = { JAN: 0, FEB: 1, MAR: 2, APR: 3, MAY: 4, JUN: 5, JUL: 6, AUG: 7, SEP: 8, OCT: 9, NOV: 10, DEC: 11 };
+
+        function fileDateMs(filename) {
+            // Expect market_data_KXHIGHNY-26JAN29.csv
+            const match = filename.match(/-(\d{2})([A-Z]{3})(\d{2})\.csv$/);
+            if (!match) return 0;
+            const yy = parseInt(match[1], 10);
+            const mon = MONTHS[match[2]];
+            const dd = parseInt(match[3], 10);
+            if (mon === undefined) return 0;
+            const year = 2000 + yy;
+            return Date.UTC(year, mon, dd);
+        }
+
+        function sortFilesByDate(files) {
+            return files.slice().sort((a, b) => fileDateMs(a) - fileDateMs(b));
+        }
 
         function formatTime(date) {
             return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -585,6 +604,32 @@
         function updateClock() {
             const now = new Date();
             document.getElementById('clockChip').innerText = `Time: ${formatTime(now)}`;
+        }
+
+        async function toggleTrading() {
+            const btn = document.getElementById('stopButton');
+            const isRunning = btn.innerText.includes("STOP");
+            const action = isRunning ? "stop" : "start";
+
+            if (!confirm(`Are you sure you want to ${action.toUpperCase()} trading?`)) return;
+
+            try {
+                btn.innerText = "Processing...";
+                const res = await fetch('/api/control', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: action })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    // Optimistic update, will be overwritten by next poll
+                    updateLiveStatus();
+                } else {
+                    alert("Error: " + data.error);
+                }
+            } catch (e) {
+                alert("Failed to send command: " + e);
+            }
         }
 
         async function updateLiveStatus() {
@@ -601,6 +646,21 @@
                             status === 'STOPPED' ? 'status-stopped' :
                                 ''
                 );
+
+                // Button Logic
+                const btn = document.getElementById('stopButton');
+                if (status === 'RUNNING') {
+                    btn.innerText = "⛔ STOP TRADING";
+                    btn.style.borderColor = "#b24a42"; // Red
+                    btn.style.color = "#b24a42";
+                    btn.style.background = "#fff";
+                } else {
+                    btn.innerText = "✅ RESUME TRADING";
+                    btn.style.borderColor = "#2a6f5f"; // Green
+                    btn.style.color = "#2a6f5f";
+                    btn.style.background = "#fff";
+                }
+
                 document.getElementById('liveEquity').innerText = data.equity ? `$${data.equity.toFixed(2)}` : '-';
                 document.getElementById('liveTrades').innerText = data.trades_today || '0';
                 document.getElementById('liveBudget').innerText = data.daily_budget ? `$${data.daily_budget.toFixed(2)}` : '-';
@@ -638,14 +698,15 @@
                 const select = document.getElementById('fileSelect');
                 const saved = select.value;
                 select.innerHTML = '';
-                const files = data.files.slice().reverse();
+                const marketFiles = (data.files || []).filter(f => f.startsWith('market_data_') && f.endsWith('.csv'));
+                const files = sortFilesByDate(marketFiles).reverse();
                 files.forEach(file => {
                     const option = document.createElement('option');
                     option.value = file;
                     option.text = file.replace('market_data_KXHIGHNY-', '').replace('.csv', '');
                     select.appendChild(option);
                 });
-                if (saved && data.files.includes(saved)) {
+                if (saved && marketFiles.includes(saved)) {
                     select.value = saved;
                 } else if (files.length) {
                     select.value = files[0];
@@ -733,8 +794,10 @@
                 // 2. Always try to load the LATEST file from manifest to get current quotes
                 const manifestResponse = await fetch(`${LOG_DIR}manifest.json?t=${Date.now()}`);
                 const manifest = await manifestResponse.json();
-                if (manifest.files && manifest.files.length > 0) {
-                    const recentFiles = manifest.files.slice(-RECENT_FILES_TO_SCAN);
+                const marketFiles = (manifest.files || []).filter(f => f.startsWith('market_data_') && f.endsWith('.csv'));
+                if (marketFiles.length > 0) {
+                    const sortedByDate = sortFilesByDate(marketFiles);
+                    const recentFiles = sortedByDate.slice(-RECENT_FILES_TO_SCAN);
                     for (const recentFile of recentFiles) {
                         if (recentFile === filename) continue;
                         try {
@@ -1013,7 +1076,7 @@
         setInterval(loadTrades, 6000);
         setInterval(updateClock, 1000);
         setInterval(updateTimeline, 60000);
-            setInterval(updateShadowSnapshot, 45000);
+        setInterval(updateShadowSnapshot, 45000);
         setInterval(updateHealth, 15000);
         setInterval(loadGapMarketData, 60000);
         function formatMarketDateCode(date) {
@@ -1057,7 +1120,7 @@
             let inQuotes = false;
             for (let i = 0; i < line.length; i++) {
                 const ch = line[i];
-                if (ch === '"' ) {
+                if (ch === '"') {
                     if (inQuotes && line[i + 1] === '"') {
                         cur += '"';
                         i++;
@@ -1122,7 +1185,8 @@
                 const response = await fetch(`${LOG_DIR}manifest.json?t=${Date.now()}`);
                 const data = await response.json();
                 const files = data.files || [];
-                if (!files.length) return;
+                const marketFiles = files.filter(f => f.startsWith('market_data_') && f.endsWith('.csv'));
+                if (!marketFiles.length) return;
 
                 const tz = 'America/New_York';
                 const todayYmd = ymdInTz(new Date(), tz);
@@ -1130,8 +1194,9 @@
                 tomorrowDate.setDate(tomorrowDate.getDate() + 1);
                 const tomorrowYmd = ymdInTz(tomorrowDate, tz);
 
-                const latestFile = files[files.length - 1] || null;
-                const prevFile = files.length > 1 ? files[files.length - 2] : null;
+                const sortedFiles = sortFilesByDate(marketFiles);
+                const latestFile = sortedFiles[sortedFiles.length - 1] || null;
+                const prevFile = sortedFiles.length > 1 ? sortedFiles[sortedFiles.length - 2] : null;
 
                 const latestCode = latestFile ? (latestFile.match(/-(\d{2}[A-Z]{3}\d{2})\.csv$/) || [])[1] : null;
                 const prevCode = prevFile ? (prevFile.match(/-(\d{2}[A-Z]{3}\d{2})\.csv$/) || [])[1] : null;

@@ -1,0 +1,17 @@
+Payload size summary (bytes):
+orders_all: avg=78473B p95=78473B statuses=[200] ok=5/5
+orders_open: avg=25B p95=25B statuses=[200] ok=5/5
+fills: avg=94786B p95=94786B statuses=[200] ok=5/5
+orders_all / orders_open ~= 3138.9x
+
+Polling fills (min_ts mode):
+poll 1/10: status=200 bytes=94786 new_fills=175
+poll 2/10: status=200 bytes=498 new_fills=0
+poll 3/10: status=200 bytes=498 new_fills=0
+poll 4/10: status=200 bytes=498 new_fills=0
+poll 5/10: status=200 bytes=498 new_fills=0
+poll 6/10: status=200 bytes=498 new_fills=0
+poll 7/10: status=200 bytes=498 new_fills=0
+poll 8/10: status=200 bytes=498 new_fills=0
+poll 9/10: status=200 bytes=498 new_fills=0
+poll 10/10: status=200 bytes=498 new_fills=0

@@ -5,6 +5,8 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 from typing import Iterable
 import math
+import hashlib
+import re
 
 
 @dataclass
@@ -16,6 +18,8 @@ class Order:
     expiry: datetime | None
     source: str = "MM"
     time: datetime | None = None
+    client_order_id: str | None = None
+    is_close: bool | None = None
 
 
 class UnifiedEngine:
@@ -41,6 +45,7 @@ class UnifiedEngine:
         diag_every: int = 1,
         decision_log=None,
         trade_log=None,
+        order_event_log=None,
     ):
         self.strategy = strategy
         self.adapter = adapter
@@ -63,11 +68,21 @@ class UnifiedEngine:
         self.diag_every = max(int(diag_every), 1)
         self.decision_log = decision_log
         self.trade_log = trade_log
+        self.order_event_log = order_event_log
         self._decision_seq = 0
         self._trade_seq = 0
         self._stale_seq = 0
+        self._order_event_seq = 0
+        self._order_seq = 0
+        self._run_id = datetime.now(self.LOCAL_TZ).strftime("%Y%m%d_%H%M%S")
         self.metric_interval_s = 30.0
         self._last_metric_ts: dict[str, float] = {}
+        self.trading_enabled = True # Default to True
+
+    def set_trading_enabled(self, enabled: bool) -> None:
+        if self.trading_enabled != enabled:
+            print(f"DEBUG: Trading Enabled changed to {enabled}")
+        self.trading_enabled = bool(enabled)
 
     def _now_local_naive(self) -> datetime:
         return datetime.now(self.LOCAL_TZ).replace(tzinfo=None)
@@ -98,11 +113,20 @@ class UnifiedEngine:
         est_cost = (order.qty * (price_cents + fee_cents)) / 100.0
         return cash >= (est_cost + buffer_dollars)
 
-    def _is_close_action(self, action: str, net_inv: int) -> bool:
-        if net_inv > 0 and action == "BUY_NO":
-            return True
-        if net_inv < 0 and action == "BUY_YES":
-            return True
+    def _is_close_action(
+        self,
+        action: str,
+        pos_yes: int,
+        pos_no: int,
+        pending_yes: int = 0,
+        pending_no: int = 0,
+    ) -> bool:
+        eff_yes = int(pos_yes or 0) + int(pending_yes or 0)
+        eff_no = int(pos_no or 0) + int(pending_no or 0)
+        if action == "BUY_NO":
+            return eff_yes > 0
+        if action == "BUY_YES":
+            return eff_no > 0
         return False
 
     def _can_take_action(self, ticker: str, now_ts: float) -> bool:
@@ -124,6 +148,85 @@ class UnifiedEngine:
         times = self._action_times.get(ticker, [])
         times.append(now_ts)
         self._action_times[ticker] = times
+
+    def _next_client_order_id(self, *, ticker: str, action: str, source: str | None, now: datetime) -> str:
+        """Generate a short, API-safe client_order_id (alnum/_/- only, <=64 chars)."""
+        self._order_seq += 1
+        ts_ms = int(now.timestamp() * 1000)
+
+        safe_source = (source or "MM")
+        safe_source = re.sub(r"[^A-Za-z0-9_-]", "_", safe_source)
+        safe_ticker = re.sub(r"[^A-Za-z0-9_-]", "_", ticker)
+        safe_action = re.sub(r"[^A-Za-z0-9_-]", "_", action)
+
+        core = f"{self._run_id}-{safe_ticker}-{safe_source}-{safe_action}-{ts_ms}-{self._order_seq}"
+        core = re.sub(r"[^A-Za-z0-9_-]", "_", core)
+
+        if len(core) > 64:
+            digest = hashlib.sha1(core.encode("utf-8")).hexdigest()[:10]
+            short_run = re.sub(r"[^A-Za-z0-9]", "", self._run_id)[:8]
+            short_ticker = safe_ticker[-10:]
+            short_action = safe_action[:4]
+            core = f"{short_run}-{short_ticker}-{short_action}-{ts_ms % 100000000}-{self._order_seq}-{digest}"
+            core = re.sub(r"[^A-Za-z0-9_-]", "_", core)
+
+        return core[:64]
+
+    def _emit_order_event(
+        self,
+        *,
+        event: str,
+        tick_time: datetime,
+        ticker: str,
+        action: str | None,
+        price: float | None,
+        qty: int | None,
+        is_close: bool | None,
+        reason: str | None = None,
+        cash: float | None = None,
+        pos_yes: int | None = None,
+        pos_no: int | None = None,
+        pending_yes: int | None = None,
+        pending_no: int | None = None,
+        market_state: dict | None = None,
+        client_order_id: str | None = None,
+        order_id: str | None = None,
+        api_action: str | None = None,
+        api_side: str | None = None,
+    ) -> None:
+        if not self.order_event_log:
+            return
+        self._order_event_seq += 1
+        yes_ask = market_state.get("yes_ask") if market_state else None
+        no_ask = market_state.get("no_ask") if market_state else None
+        yes_bid = market_state.get("yes_bid") if market_state else None
+        no_bid = market_state.get("no_bid") if market_state else None
+        row = {
+            "event_id": self._order_event_seq,
+            "event_time": self._now_local_naive().isoformat(),
+            "tick_time": self._ensure_local_naive(tick_time).isoformat(),
+            "event": event,
+            "ticker": ticker,
+            "action": action,
+            "price": price,
+            "qty": qty,
+            "is_close": is_close,
+            "reason": reason,
+            "cash": cash,
+            "pos_yes": pos_yes,
+            "pos_no": pos_no,
+            "pending_yes": pending_yes,
+            "pending_no": pending_no,
+            "yes_ask": yes_ask,
+            "no_ask": no_ask,
+            "yes_bid": yes_bid,
+            "no_bid": no_bid,
+            "client_order_id": client_order_id,
+            "order_id": order_id,
+            "api_action": api_action,
+            "api_side": api_side,
+        }
+        self.order_event_log(row)
 
     def _recent_open_reject(self, ticker: str, now_ts: float) -> bool:
         last = self._last_open_reject.get(ticker)
@@ -390,14 +493,33 @@ class UnifiedEngine:
                 return
 
         cash = float(self.adapter.get_cash())
-        desired_orders = self.strategy.on_market_update(
-            ticker,
-            market_state,
-            current_time,
-            portfolios_inventories,
-            active_orders,
-            cash,
-        )
+        if not self.trading_enabled:
+            # Kill Switch Active: Skip strategy logic
+            if self.diag_log:
+                # Throttle this log? 
+                pass
+            
+            # Still update adapter but send NO orders?
+            # Actually, we should just return early or pass empty desired orders.
+            # Passing empty desired orders ensures valid cancellation of *other* orders if needed?
+            # No, if we want to FREEZE, we should do nothing.
+            # If we want to "Stop Trading", usually implies "Cancel All" or "Stop Placing New".
+            # Let's assume "Stop Placing New". Existing orders might need management?
+            # Safer to just return "keep" (None) to engine logic?
+            # If we return None, engine does "keep".
+            
+            desired_orders = None
+            if self.diag_log and (self._stale_seq % self.diag_every == 0): 
+                 self.diag_log("DECISION", tick_ts=current_time, ticker=ticker, desired="stopped")
+        else:
+            desired_orders = self.strategy.on_market_update(
+                ticker,
+                market_state,
+                current_time,
+                portfolios_inventories,
+                active_orders,
+                cash,
+            )
 
         # Periodic per-ticker metric line to make audit/debugging easy.
         if self.diag_log:
@@ -432,11 +554,15 @@ class UnifiedEngine:
             if desired_orders is None:
                 self.diag_log("DECISION", tick_ts=current_time, ticker=ticker, desired="keep")
             else:
+                gate_reason = getattr(self.strategy, "last_gate_reason", None)
+                gate_detail = getattr(self.strategy, "last_gate_detail", None)
                 self.diag_log(
                     "DECISION",
                     tick_ts=current_time,
                     ticker=ticker,
                     desired=len(desired_orders),
+                    gate=gate_reason,
+                    gate_detail=gate_detail,
                 )
 
         pos_yes = int(pos.get("yes") or 0)
@@ -552,6 +678,26 @@ class UnifiedEngine:
                     # 2. Amendable Match (Same Action, Different Price/Qty)
                     if hasattr(self.adapter, "amend_order"):
                         if not self._can_take_action(ticker, current_time.timestamp()):
+                            self._emit_order_event(
+                                event="AMEND_SKIP",
+                                tick_time=current_time,
+                                ticker=ticker,
+                                action=want.action,
+                                price=want.price,
+                                qty=want.qty,
+                                is_close=is_close_existing,
+                                reason="action_budget",
+                                cash=cash,
+                                pos_yes=pos_yes,
+                                pos_no=pos_no,
+                                pending_yes=pending_yes,
+                                pending_no=pending_no,
+                                market_state=market_state,
+                                client_order_id=getattr(want, "client_order_id", None),
+                                order_id=existing.get("id"),
+                                api_action=existing.get("api_action"),
+                                api_side=existing.get("api_side"),
+                            )
                             kept_ids.add(existing["id"])
                             matched = True
                             break
@@ -563,6 +709,26 @@ class UnifiedEngine:
                                  raw_price = 100 - want.price
                         
                         print(f"DEBUG: Amending {existing['id']} | Want: {want.price} (Raw: {raw_price}) | Have: {existing['price']}")
+                        self._emit_order_event(
+                            event="AMEND",
+                            tick_time=current_time,
+                            ticker=ticker,
+                            action=want.action,
+                            price=want.price,
+                            qty=want.qty,
+                            is_close=is_close_existing,
+                            reason="repriced",
+                            cash=cash,
+                            pos_yes=pos_yes,
+                            pos_no=pos_no,
+                            pending_yes=pending_yes,
+                            pending_no=pending_no,
+                            market_state=market_state,
+                            client_order_id=getattr(want, "client_order_id", None),
+                            order_id=existing.get("id"),
+                            api_action=existing.get("api_action"),
+                            api_side=existing.get("api_side"),
+                        )
                         success = self.adapter.amend_order(
                             order_id=existing["id"],
                             ticker=ticker,
@@ -607,12 +773,79 @@ class UnifiedEngine:
                 continue
             if not self._can_take_action(ticker, current_time.timestamp()):
                 continue
+            self._emit_order_event(
+                event="CANCEL",
+                tick_time=current_time,
+                ticker=ticker,
+                action=existing.get("action"),
+                price=existing.get("price"),
+                qty=existing.get("qty"),
+                is_close=existing.get("api_action") == "sell",
+                reason="stale_or_unmatched",
+                cash=cash,
+                pos_yes=pos_yes,
+                pos_no=pos_no,
+                pending_yes=pending_yes,
+                pending_no=pending_no,
+                market_state=market_state,
+                client_order_id=existing.get("client_order_id"),
+                order_id=existing.get("id"),
+                api_action=existing.get("api_action"),
+                api_side=existing.get("api_side"),
+            )
             self.adapter.cancel_order(existing["id"])
             self._record_action(ticker, current_time.timestamp())
 
+        eff_yes = pos_yes + pending_yes
+        eff_no = pos_no + pending_no
+
         for order in unsatisfied:
-            is_close = self._is_close_action(order.action, net_inv)
+            is_close = self._is_close_action(
+                order.action,
+                pos_yes,
+                pos_no,
+                pending_yes,
+                pending_no,
+            )
+            order.is_close = is_close
             now_ts = current_time.timestamp()
+            if not order.client_order_id:
+                order.client_order_id = self._next_client_order_id(
+                    ticker=order.ticker,
+                    action=order.action,
+                    source=getattr(order, "source", None),
+                    now=current_time,
+                )
+            if not is_close and (eff_yes > 0 or eff_no > 0):
+                if self.diag_log:
+                    self.diag_log(
+                        "ORDER_SKIP",
+                        tick_ts=current_time,
+                        ticker=ticker,
+                        action=order.action,
+                        price=order.price,
+                        qty=order.qty,
+                        reason="reduce_only_inventory",
+                        cash=cash,
+                    )
+                self._emit_order_event(
+                    event="SKIP",
+                    tick_time=current_time,
+                    ticker=ticker,
+                    action=order.action,
+                    price=order.price,
+                    qty=order.qty,
+                    is_close=is_close,
+                    reason="reduce_only_inventory",
+                    cash=cash,
+                    pos_yes=pos_yes,
+                    pos_no=pos_no,
+                    pending_yes=pending_yes,
+                    pending_no=pending_no,
+                    market_state=market_state,
+                    client_order_id=order.client_order_id,
+                )
+                continue
             if not is_close and self._recent_open_reject(ticker, now_ts):
                 if self.diag_log:
                     self.diag_log(
@@ -625,6 +858,23 @@ class UnifiedEngine:
                         reason="open_reject_cooldown",
                         cash=cash,
                     )
+                self._emit_order_event(
+                    event="SKIP",
+                    tick_time=current_time,
+                    ticker=ticker,
+                    action=order.action,
+                    price=order.price,
+                    qty=order.qty,
+                    is_close=is_close,
+                    reason="open_reject_cooldown",
+                    cash=cash,
+                    pos_yes=pos_yes,
+                    pos_no=pos_no,
+                    pending_yes=pending_yes,
+                    pending_no=pending_no,
+                    market_state=market_state,
+                    client_order_id=order.client_order_id,
+                )
                 continue
             if not is_close and not self._can_afford_open(order, cash):
                 if self.diag_log:
@@ -638,9 +888,60 @@ class UnifiedEngine:
                         reason="insufficient_cash_preflight",
                         cash=cash,
                     )
+                self._emit_order_event(
+                    event="SKIP",
+                    tick_time=current_time,
+                    ticker=ticker,
+                    action=order.action,
+                    price=order.price,
+                    qty=order.qty,
+                    is_close=is_close,
+                    reason="insufficient_cash_preflight",
+                    cash=cash,
+                    pos_yes=pos_yes,
+                    pos_no=pos_no,
+                    pending_yes=pending_yes,
+                    pending_no=pending_no,
+                    market_state=market_state,
+                    client_order_id=order.client_order_id,
+                )
                 continue
             if not self._can_take_action(ticker, now_ts):
+                self._emit_order_event(
+                    event="SKIP",
+                    tick_time=current_time,
+                    ticker=ticker,
+                    action=order.action,
+                    price=order.price,
+                    qty=order.qty,
+                    is_close=is_close,
+                    reason="action_budget",
+                    cash=cash,
+                    pos_yes=pos_yes,
+                    pos_no=pos_no,
+                    pending_yes=pending_yes,
+                    pending_no=pending_no,
+                    market_state=market_state,
+                    client_order_id=order.client_order_id,
+                )
                 continue
+            self._emit_order_event(
+                event="PLACE",
+                tick_time=current_time,
+                ticker=ticker,
+                action=order.action,
+                price=order.price,
+                qty=order.qty,
+                is_close=is_close,
+                reason=None,
+                cash=cash,
+                pos_yes=pos_yes,
+                pos_no=pos_no,
+                pending_yes=pending_yes,
+                pending_no=pending_no,
+                market_state=market_state,
+                client_order_id=order.client_order_id,
+            )
             self._emit_trade(
                 tick_time=current_time,
                 tick_seq=tick_seq,

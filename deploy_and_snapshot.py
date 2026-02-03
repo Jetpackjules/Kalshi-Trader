@@ -70,6 +70,18 @@ def main():
         scp_cmd = f'scp -i {KEY_PATH} -o StrictHostKeyChecking=no {local_path} {SERVER_ADDR}:{remote_path}'
         run_command(scp_cmd, f"Uploading {os.path.basename(local_path)}")
 
+    # 2b. Reset output log on fresh deploy so each run starts clean
+    reset_log_cmd = f'ssh -i {KEY_PATH} -o StrictHostKeyChecking=no {SERVER_ADDR} "truncate -s 0 ~/output.log"'
+    run_command(reset_log_cmd, "Resetting output.log")
+
+    # 2c. Reset trade_debug log on fresh deploy
+    reset_trade_debug_cmd = f'ssh -i {KEY_PATH} -o StrictHostKeyChecking=no {SERVER_ADDR} "mkdir -p ~/unified_engine_out && truncate -s 0 ~/unified_engine_out/trade_debug.csv"'
+    run_command(reset_trade_debug_cmd, "Resetting trade_debug.csv")
+
+    # 2d. Reset fills log on fresh deploy
+    reset_fills_cmd = f'ssh -i {KEY_PATH} -o StrictHostKeyChecking=no {SERVER_ADDR} "mkdir -p ~/unified_engine_out && truncate -s 0 ~/unified_engine_out/fills.csv"'
+    run_command(reset_fills_cmd, "Resetting fills.csv")
+
     # 3. Start the Unified Engine
     # Using run_bot.sh to handle quoting and startup
     start_cmd = f'ssh -i {KEY_PATH} -o StrictHostKeyChecking=no {SERVER_ADDR} "chmod +x ~/run_bot.sh && ~/run_bot.sh"'

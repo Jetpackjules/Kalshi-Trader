@@ -1,0 +1,100 @@
+[DIAG] event=TICK_IN log_ts=2026-02-01T11:18:38.756576 tick_ts=2026-02-01T11:18:28.271973 ticker=KXHIGHNY-26FEB01-B22.5
+[DIAG] event=TICK_IN log_ts=2026-02-01T11:18:38.756625 tick_ts=2026-02-01T11:18:28.272086 ticker=KXHIGHNY-26FEB01-B24.5
+[DIAG] event=TICK_IN log_ts=2026-02-01T11:18:38.756705 tick_ts=2026-02-01T11:18:28.272196 ticker=KXHIGHNY-26FEB01-B22.5
+[DIAG] event=TICK_IN log_ts=2026-02-01T11:18:38.756979 tick_ts=2026-02-01T11:18:28.272345 ticker=KXHIGHNY-26FEB01-B24.5
+[DIAG] event=TICK_IN log_ts=2026-02-01T11:18:38.757053 tick_ts=2026-02-01T11:18:31.753958 ticker=KXHIGHNY-26FEB01-B24.5
+[DIAG] event=DECISION log_ts=2026-02-01T11:18:38.757223 tick_ts=2026-02-01T11:18:31.753958 ticker=KXHIGHNY-26FEB01-B24.5 desired=1 gate=None gate_detail=None
+DEBUG: No Match Found for BUY_YES 48 1
+DEBUG: Using Native Sell (GTC) | SELL NO 1
+[DIAG] event=ORDER_SUBMIT log_ts=2026-02-01T11:18:38.759037 tick_ts=2026-02-01T11:18:31.753958 ticker=KXHIGHNY-26FEB01-B24.5 orig_action=BUY_YES api_action=sell api_side=no direction=sell payload_side=no price=52 qty=1 is_close=True cash=1.02 client_order_id=20260201-EB01-B24_5-BUY_-73511753-30-526da6c563
+DEBUG: ORDER_SUBMIT | BUY_YES is_close=True -> SELL NO 1 @ 52 | cash=1.02 | KXHIGHNY-26FEB01-B24.5
+[DIAG] event=ORDER_ACCEPTED log_ts=2026-02-01T11:18:38.812337 tick_ts=2026-02-01T11:18:31.753958 ticker=KXHIGHNY-26FEB01-B24.5 orig_action=BUY_YES action=sell side=no price=52 qty=1
+--- Status @ 11:18:39.008 ---
+Equity: $3.57
+Cash: $1.02
+Portfolio Value: $2.55
+Daily Budget: $2.82
+Exposure: $3.83
+[DIAG] event=TICK_IN log_ts=2026-02-01T11:18:39.008945 tick_ts=2026-02-01T11:18:31.754873 ticker=KXHIGHNY-26FEB01-B24.5
+[DIAG] event=TICK_IN log_ts=2026-02-01T11:18:39.255654 tick_ts=2026-02-01T11:18:35.254641 ticker=KXHIGHNY-26FEB01-B24.5
+[DIAG] event=TICK_IN log_ts=2026-02-01T11:18:39.255782 tick_ts=2026-02-01T11:18:35.255299 ticker=KXHIGHNY-26FEB01-B24.5
+[DIAG] event=TICK_IN log_ts=2026-02-01T11:18:39.255876 tick_ts=2026-02-01T11:18:36.782340 ticker=KXHIGHNY-26FEB01-B24.5
+[DIAG] event=DECISION log_ts=2026-02-01T11:18:39.256061 tick_ts=2026-02-01T11:18:36.782340 ticker=KXHIGHNY-26FEB01-B24.5 desired=1 gate=None gate_detail=None
+DEBUG: No Match Found for BUY_YES 48 1
+[DIAG] event=TICK_IN log_ts=2026-02-01T11:18:39.256356 tick_ts=2026-02-01T11:18:36.782557 ticker=KXHIGHNY-26FEB01-B24.5
+[DIAG] event=TICK_IN log_ts=2026-02-01T11:18:39.256415 tick_ts=2026-02-01T11:18:36.782703 ticker=KXHIGHNY-26FEB01-B24.5
+[DIAG] event=TICK_IN log_ts=2026-02-01T11:18:39.256466 tick_ts=2026-02-01T11:18:37.007287 ticker=KXHIGHNY-26FEB01-B26.5
+[DIAG] event=DECISION log_ts=2026-02-01T11:18:39.256562 tick_ts=2026-02-01T11:18:37.007287 ticker=KXHIGHNY-26FEB01-B26.5 desired=0 gate=net_edge_gate gate_detail=allow_open=False spread=3.0 min_gap=4.0 net_inv=0 cash=1.02 exit_yes_liq=0 exit_no_liq=331
+[DIAG] event=TICK_IN log_ts=2026-02-01T11:18:39.256646 tick_ts=2026-02-01T11:18:37.012818 ticker=KXHIGHNY-26FEB01-B24.5
+[DIAG] event=TICK_IN log_ts=2026-02-01T11:18:39.256697 tick_ts=2026-02-01T11:18:37.013113 ticker=KXHIGHNY-26FEB01-B24.5
+[DIAG] event=TICK_IN log_ts=2026-02-01T11:18:39.256740 tick_ts=2026-02-01T11:18:37.013229 ticker=KXHIGHNY-26FEB01-B24.5
+--- Status @ 11:18:39.312 ---
+Equity: $3.57
+Cash: $1.02
+Portfolio Value: $2.55
+Daily Budget: $2.82
+Exposure: $3.83
+[DIAG] event=TICK_IN log_ts=2026-02-01T11:18:39.312390 tick_ts=2026-02-01T11:18:37.014025 ticker=KXHIGHNY-26FEB01-B26.5
+[DIAG] event=TICK_IN log_ts=2026-02-01T11:18:39.312467 tick_ts=2026-02-01T11:18:37.254885 ticker=KXHIGHNY-26FEB01-B22.5
+[DIAG] event=METRIC log_ts=2026-02-01T11:18:39.312691 tick_ts=2026-02-01T11:18:37.254885 ticker=KXHIGHNY-26FEB01-B22.5 cash=1.02 pos_yes=0 pos_no=0 pending_yes=0 pending_no=0 net_inv=0 actions_last_60s=0 open_orders=0 buy_orders=0 sell_orders=0 recent_open_reject=False
+[DIAG] event=DECISION log_ts=2026-02-01T11:18:39.312722 tick_ts=2026-02-01T11:18:37.254885 ticker=KXHIGHNY-26FEB01-B22.5 desired=0 gate=size_zero_or_other gate_detail=allow_open=True spread=7.0 min_gap=6.5 net_inv=0 cash=1.02 exit_yes_liq=39 exit_no_liq=47
+[DIAG] event=TICK_IN log_ts=2026-02-01T11:18:39.312854 tick_ts=2026-02-01T11:18:37.260190 ticker=KXHIGHNY-26FEB01-B22.5
+[DIAG] event=TICK_IN log_ts=2026-02-01T11:18:39.312903 tick_ts=2026-02-01T11:18:38.505823 ticker=KXHIGHNY-26FEB01-B24.5
+[DIAG] event=TICK_IN log_ts=2026-02-01T11:18:39.312972 tick_ts=2026-02-01T11:18:38.506474 ticker=KXHIGHNY-26FEB01-B24.5
+[DIAG] event=TICK_IN log_ts=2026-02-01T11:18:39.313036 tick_ts=2026-02-01T11:18:38.805886 ticker=KXHIGHNY-26FEB01-B24.5
+[DIAG] event=TICK_IN log_ts=2026-02-01T11:18:39.313092 tick_ts=2026-02-01T11:18:38.808150 ticker=KXHIGHNY-26FEB01-B24.5
+[DIAG] event=TICK_IN log_ts=2026-02-01T11:18:39.313269 tick_ts=2026-02-01T11:18:06.021821 ticker=KXHIGHNY-26FEB02-B31.5
+[DIAG] event=METRIC log_ts=2026-02-01T11:18:40.272703 tick_ts=2026-02-01T11:18:06.021821 ticker=KXHIGHNY-26FEB02-B31.5 cash=1.02 pos_yes=0 pos_no=0 pending_yes=0 pending_no=0 net_inv=0 actions_last_60s=0 open_orders=0 buy_orders=0 sell_orders=0 recent_open_reject=False
+[DIAG] event=DECISION log_ts=2026-02-01T11:18:40.272799 tick_ts=2026-02-01T11:18:06.021821 ticker=KXHIGHNY-26FEB02-B31.5 desired=0 gate=net_edge_gate gate_detail=allow_open=False spread=3.0 min_gap=6.2 net_inv=0 cash=1.02 exit_yes_liq=339 exit_no_liq=27
+[DIAG] event=TICK_IN log_ts=2026-02-01T11:18:40.272996 tick_ts=2026-02-01T11:18:06.022161 ticker=KXHIGHNY-26FEB02-B31.5
+[DIAG] event=TICK_IN log_ts=2026-02-01T11:18:40.273057 tick_ts=2026-02-01T11:18:07.504111 ticker=KXHIGHNY-26FEB02-B31.5
+--- Status @ 11:18:40.508 ---
+Equity: $3.57
+Cash: $1.02
+Portfolio Value: $2.55
+Daily Budget: $2.82
+Exposure: $3.83
+[DIAG] event=TICK_IN log_ts=2026-02-01T11:18:40.508705 tick_ts=2026-02-01T11:18:07.508196 ticker=KXHIGHNY-26FEB02-B31.5
+[DIAG] event=TICK_IN log_ts=2026-02-01T11:18:40.508848 tick_ts=2026-02-01T11:18:11.021176 ticker=KXHIGHNY-26FEB02-B29.5
+[DIAG] event=METRIC log_ts=2026-02-01T11:18:40.757271 tick_ts=2026-02-01T11:18:11.021176 ticker=KXHIGHNY-26FEB02-B29.5 cash=1.02 pos_yes=0 pos_no=0 pending_yes=0 pending_no=0 net_inv=0 actions_last_60s=0 open_orders=0 buy_orders=0 sell_orders=0 recent_open_reject=False
+[DIAG] event=DECISION log_ts=2026-02-01T11:18:40.757346 tick_ts=2026-02-01T11:18:11.021176 ticker=KXHIGHNY-26FEB02-B29.5 desired=0 gate=net_edge_gate gate_detail=allow_open=False spread=1.0 min_gap=4.7 net_inv=0 cash=1.02 exit_yes_liq=234 exit_no_liq=523
+[DIAG] event=TICK_IN log_ts=2026-02-01T11:18:40.757498 tick_ts=2026-02-01T11:18:11.021430 ticker=KXHIGHNY-26FEB02-T36
+[DIAG] event=METRIC log_ts=2026-02-01T11:18:40.811358 tick_ts=2026-02-01T11:18:11.021430 ticker=KXHIGHNY-26FEB02-T36 cash=1.02 pos_yes=0 pos_no=0 pending_yes=0 pending_no=0 net_inv=0 actions_last_60s=0 open_orders=0 buy_orders=0 sell_orders=0 recent_open_reject=False
+[DIAG] event=DECISION log_ts=2026-02-01T11:18:40.811465 tick_ts=2026-02-01T11:18:11.021430 ticker=KXHIGHNY-26FEB02-T36 desired=0 gate=net_edge_gate gate_detail=allow_open=False spread=1.0 min_gap=4.0 net_inv=0 cash=1.02 exit_yes_liq=1939 exit_no_liq=378
+[DIAG] event=TICK_IN log_ts=2026-02-01T11:18:40.811620 tick_ts=2026-02-01T11:18:11.022445 ticker=KXHIGHNY-26FEB02-B29.5
+[DIAG] event=TICK_IN log_ts=2026-02-01T11:18:40.811671 tick_ts=2026-02-01T11:18:11.022717 ticker=KXHIGHNY-26FEB02-T36
+[DIAG] event=TICK_IN log_ts=2026-02-01T11:18:40.811786 tick_ts=2026-02-01T11:18:12.754078 ticker=KXHIGHNY-26FEB02-T36
+[DIAG] event=TICK_IN log_ts=2026-02-01T11:18:40.811835 tick_ts=2026-02-01T11:18:12.754267 ticker=KXHIGHNY-26FEB02-B29.5
+[DIAG] event=TICK_IN log_ts=2026-02-01T11:18:40.811866 tick_ts=2026-02-01T11:18:12.755358 ticker=KXHIGHNY-26FEB02-T36
+[DIAG] event=TICK_IN log_ts=2026-02-01T11:18:40.811896 tick_ts=2026-02-01T11:18:12.755580 ticker=KXHIGHNY-26FEB02-B29.5
+[DIAG] event=TICK_IN log_ts=2026-02-01T11:18:40.811926 tick_ts=2026-02-01T11:18:16.756722 ticker=KXHIGHNY-26FEB02-B33.5
+[DIAG] event=DECISION log_ts=2026-02-01T11:18:41.006944 tick_ts=2026-02-01T11:18:16.756722 ticker=KXHIGHNY-26FEB02-B33.5 desired=0 gate=net_edge_gate gate_detail=allow_open=False spread=1.0 min_gap=6.3 net_inv=0 cash=1.02 exit_yes_liq=234 exit_no_liq=342
+--- Status @ 11:18:41.259 ---
+Equity: $3.57
+Cash: $1.02
+Portfolio Value: $2.55
+Daily Budget: $2.82
+Exposure: $3.83
+[DIAG] event=TICK_IN log_ts=2026-02-01T11:18:41.260011 tick_ts=2026-02-01T11:18:16.757834 ticker=KXHIGHNY-26FEB02-B33.5
+[DIAG] event=TICK_IN log_ts=2026-02-01T11:18:41.260160 tick_ts=2026-02-01T11:18:18.017664 ticker=KXHIGHNY-26FEB02-T36
+[DIAG] event=DECISION log_ts=2026-02-01T11:18:41.260380 tick_ts=2026-02-01T11:18:18.017664 ticker=KXHIGHNY-26FEB02-T36 desired=0 gate=net_edge_gate gate_detail=allow_open=False spread=1.0 min_gap=4.0 net_inv=0 cash=1.02 exit_yes_liq=1939 exit_no_liq=378
+[DIAG] event=TICK_IN log_ts=2026-02-01T11:18:41.260610 tick_ts=2026-02-01T11:18:18.260750 ticker=KXHIGHNY-26FEB02-T36
+[DIAG] event=TICK_IN log_ts=2026-02-01T11:18:41.260693 tick_ts=2026-02-01T11:18:19.253962 ticker=KXHIGHNY-26FEB02-T36
+[DIAG] event=TICK_IN log_ts=2026-02-01T11:18:41.260749 tick_ts=2026-02-01T11:18:19.255144 ticker=KXHIGHNY-26FEB02-T36
+[DIAG] event=TICK_IN log_ts=2026-02-01T11:18:41.260800 tick_ts=2026-02-01T11:18:20.025295 ticker=KXHIGHNY-26FEB02-B35.5
+[DIAG] event=METRIC log_ts=2026-02-01T11:18:41.505742 tick_ts=2026-02-01T11:18:20.025295 ticker=KXHIGHNY-26FEB02-B35.5 cash=1.02 pos_yes=0 pos_no=0 pending_yes=0 pending_no=0 net_inv=0 actions_last_60s=0 open_orders=0 buy_orders=0 sell_orders=0 recent_open_reject=False
+[DIAG] event=DECISION log_ts=2026-02-01T11:18:41.505829 tick_ts=2026-02-01T11:18:20.025295 ticker=KXHIGHNY-26FEB02-B35.5 desired=0 gate=net_edge_gate gate_detail=allow_open=False spread=1.0 min_gap=4.2 net_inv=0 cash=1.02 exit_yes_liq=450 exit_no_liq=312
+[DIAG] event=TICK_IN log_ts=2026-02-01T11:18:41.506001 tick_ts=2026-02-01T11:18:20.026002 ticker=KXHIGHNY-26FEB02-B35.5
+[DIAG] event=TICK_IN log_ts=2026-02-01T11:18:41.506522 tick_ts=2026-02-01T11:18:21.253609 ticker=KXHIGHNY-26FEB02-B35.5
+[DIAG] event=TICK_IN log_ts=2026-02-01T11:18:41.506768 tick_ts=2026-02-01T11:18:21.254168 ticker=KXHIGHNY-26FEB02-B35.5
+[DIAG] event=FOLLOW_WAIT log_ts=2026-02-01T11:18:41.508649 tick_ts=2026-02-01T11:18:21.254168 source=market_logs
+[DIAG] event=TICK_IN log_ts=2026-02-01T11:18:42.513216 tick_ts=2026-02-01T11:18:42.024852 ticker=KXHIGHNY-26FEB02-T29
+[DIAG] event=METRIC log_ts=2026-02-01T11:18:42.781555 tick_ts=2026-02-01T11:18:42.024852 ticker=KXHIGHNY-26FEB02-T29 cash=1.02 pos_yes=0 pos_no=0 pending_yes=0 pending_no=0 net_inv=0 actions_last_60s=0 open_orders=0 buy_orders=0 sell_orders=0 recent_open_reject=False
+[DIAG] event=DECISION log_ts=2026-02-01T11:18:42.781610 tick_ts=2026-02-01T11:18:42.024852 ticker=KXHIGHNY-26FEB02-T29 desired=0 gate=net_edge_gate gate_detail=allow_open=False spread=1.0 min_gap=4.0 net_inv=0 cash=1.02 exit_yes_liq=683 exit_no_liq=173
+--- Status @ 11:18:43.086 ---
+Equity: $3.57
+Cash: $1.02
+Portfolio Value: $2.55
+Daily Budget: $2.82
+Exposure: $3.83
+[DIAG] event=TICK_IN log_ts=2026-02-01T11:18:43.086900 tick_ts=2026-02-01T11:18:42.026134 ticker=KXHIGHNY-26FEB02-T29

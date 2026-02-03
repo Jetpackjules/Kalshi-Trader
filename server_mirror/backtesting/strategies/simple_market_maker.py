@@ -15,173 +15,7 @@ class Order:
     price: float
     expiry: datetime | None
     source: str = "MM"
-
-class SimpleMarketMaker:
-    def __init__(self, spread_cents: int = 4, risk_pct: float = 0.5, min_qty: int = 1, max_qty: int = 100, qty: int = None, max_price: int = 99, max_pos: int = 0, skew_factor: float = 0.0, min_gap_cents: int | None = None):
-        if qty:
-            self.name = f"SimpleMM_s{spread_cents}_q{qty}_max{max_price}_lim{max_pos}_skew{skew_factor}"
-        else:
-            self.name = f"SimpleMM_s{spread_cents}_r{int(risk_pct*100)}_min{min_qty}_max{max_qty}_p{max_price}_lim{max_pos}_skew{skew_factor}"
-        
-        self.spread_cents = spread_cents
-        self.risk_pct = risk_pct
-        self.min_qty = min_qty
-        self.max_qty = max_qty
-        self.fixed_qty = qty
-        self.max_price = max_price
-        self.max_pos = max_pos
-        self.skew_factor = skew_factor
-        self.min_gap_cents = min_gap_cents
-
-    def _fee_cents(self, price_cents: float) -> float:
-        p = float(price_cents) / 100.0
-        return 7.0 * p * (1.0 - p)
-
-    def on_market_update(self, ticker, market_state, current_time, portfolios_inventories, active_orders, cash):
-        # 1. Get Market Data
-        yes_bid = float(market_state.get("yes_bid") or 0)
-        yes_ask = float(market_state.get("yes_ask") or 100)
-        
-        # 2. Calculate Mid Price + dynamic gap gate (fee-aware)
-        market_spread = max(0.0, yes_ask - yes_bid)
-        mid_price = (yes_bid + yes_ask) / 2.0
-        fee_cents = self._fee_cents(mid_price)
-        min_gap = self.min_gap_cents if self.min_gap_cents is not None else max(self.spread_cents, (2 * fee_cents) + 1)
-        allow_open = market_spread >= min_gap
-        
-        # 3. Calculate Skew from Inventory
-        pos = portfolios_inventories.get(ticker, {})
-        yes_inv = int(pos.get("yes", 0))
-        no_inv = int(pos.get("no", 0))
-        net_inv = yes_inv - no_inv # Positive = Long YES
-        
-        # Skew: If Long YES (net_inv > 0), we want to lower prices (sell).
-        # So we subtract from mid.
-        skew = -(net_inv * self.skew_factor)
-        
-        # 4. Determine Our Quotes
-        half_spread = self.spread_cents / 2.0
-        my_bid = int(mid_price - half_spread + skew)
-        my_ask = int(mid_price + half_spread + skew)
-        
-        # 4. Safety Checks
-        if my_bid < 1: my_bid = 1
-        if my_ask > 99: my_ask = 99
-        if my_bid >= my_ask:
-            my_ask = my_bid + 1
-            
-        no_price = 100 - my_ask
-        
-        # 5. Check Inventory Limits (The "Poverty Simulation")
-        # If max_pos is set, check current position
-        pos = portfolios_inventories.get(ticker, {})
-        yes_inv = int(pos.get("yes", 0))
-        no_inv = int(pos.get("no", 0))
-        
-        allow_buy_yes = True
-        allow_buy_no = True
-        
-        if self.max_pos > 0:
-            if yes_inv >= self.max_pos:
-                allow_buy_yes = False
-            if no_inv >= self.max_pos:
-                allow_buy_no = False
-            
-        # 6. Calculate Quantity
-        if self.fixed_qty:
-            bid_qty = self.fixed_qty
-            ask_qty = self.fixed_qty
-            # Reduce-only: cap size to inventory when closing.
-            if net_inv > 0:
-                ask_qty = max(1, min(ask_qty, net_inv))
-            elif net_inv < 0:
-                bid_qty = max(1, min(bid_qty, abs(net_inv)))
-        else:
-            # Hybrid Dynamic Logic
-            # Bid Side (Buy YES)
-            if my_bid > 0:
-                # my_bid is in cents; convert to dollars for sizing.
-                raw_bid_qty = int((cash * self.risk_pct * 100) / my_bid)
-                bid_qty = max(self.min_qty, raw_bid_qty)
-                bid_qty = min(self.max_qty, bid_qty) # Cap at max_qty
-                if net_inv >= 0:
-                    max_affordable_bid = int((cash * 100) / my_bid)
-                    if bid_qty > max_affordable_bid:
-                        bid_qty = max_affordable_bid
-            else:
-                bid_qty = 0
-            
-            # Ask Side (Buy NO)
-            if no_price > 0:
-                raw_ask_qty = int((cash * self.risk_pct * 100) / no_price)
-                ask_qty = max(self.min_qty, raw_ask_qty)
-                ask_qty = min(self.max_qty, ask_qty) # Cap at max_qty
-                
-                if net_inv <= 0:
-                    max_affordable_ask = int((cash * 100) / no_price)
-                    if ask_qty > max_affordable_ask:
-                        ask_qty = max_affordable_ask
-            else:
-                ask_qty = 0
-        
-        # 7. Apply Max Price Filter
-        if my_bid > self.max_price:
-            bid_qty = 0
-        if no_price > self.max_price:
-            ask_qty = 0
-            
-        # 8. Apply Inventory Limits
-        if not allow_buy_yes:
-            bid_qty = 0
-        if not allow_buy_no:
-            ask_qty = 0
-
-        # 9. Gap gate: block opening orders when spread is too tight.
-        if not allow_open:
-            if net_inv >= 0:
-                bid_qty = 0
-            if net_inv <= 0:
-                ask_qty = 0
-        
-        orders = []
-        
-        if bid_qty > 0:
-            orders.append(Order(
-                action="BUY_YES",
-                ticker=ticker,
-                qty=bid_qty,
-                price=my_bid,
-                expiry=None
-            ))
-        
-        if ask_qty > 0:
-            orders.append(Order(
-                action="BUY_NO",
-                ticker=ticker,
-                qty=ask_qty,
-                price=no_price,
-                expiry=None
-            ))
-        
-        return orders
-
-def simple_mm_hybrid(**kwargs):
-    spread = kwargs.get("spread_cents", 4)
-    risk = kwargs.get("risk_pct", 0.5)
-    min_q = kwargs.get("min_qty", 5)
-    max_q = kwargs.get("max_qty", 100)
-    max_p = kwargs.get("max_price", 99)
-    max_pos = kwargs.get("max_pos", 0)
-    skew = kwargs.get("skew_factor", 0.0)
-    return SimpleMarketMaker(spread_cents=spread, risk_pct=risk, min_qty=min_q, max_qty=max_q, max_price=max_p, max_pos=max_pos, skew_factor=skew)
-
-def simple_mm_fixed(**kwargs):
-    spread = kwargs.get("spread_cents", 4)
-    qty = kwargs.get("qty", 10)
-    max_p = kwargs.get("max_price", 99)
-    max_pos = kwargs.get("max_pos", 0)
-    skew = kwargs.get("skew_factor", 0.0)
-    return SimpleMarketMaker(spread_cents=spread, qty=qty, max_price=max_p, max_pos=max_pos, skew_factor=skew)
+    client_order_id: str | None = None
 
 
 class LadderCache:
@@ -303,6 +137,8 @@ class SimpleMarketMakerV2:
         self._ladder_cache = LadderCache(log_dir=os.environ.get("KALSHI_LOG_DIR", "market_logs"),
                                          refresh_interval_s=ladder_refresh_s)
         self.debug = os.environ.get("MM_DEBUG") == "1"
+        self.last_gate_reason = None
+        self.last_gate_detail = None
         # Reduce-only lock & stuck-close probes.
         self.reduce_only_lock_after_s = 30.0
         self.reduce_only_unlock_after_s = 60.0
@@ -349,6 +185,8 @@ class SimpleMarketMakerV2:
         return ladder
 
     def on_market_update(self, ticker, market_state, current_time, portfolios_inventories, active_orders, cash):
+        self.last_gate_reason = None
+        self.last_gate_detail = None
         # 1. Get Market Data
         yes_bid = float(market_state.get("yes_bid") or 0)
         yes_ask = float(market_state.get("yes_ask") or 100)
@@ -361,6 +199,7 @@ class SimpleMarketMakerV2:
         no_bids = ladder["no"] if ladder else []
         exit_yes_liq = self._available_within(yes_bids, self.exit_slip_cents) if yes_bids else 0
         exit_no_liq = self._available_within(no_bids, self.exit_slip_cents) if no_bids else 0
+        ladder_ok = ladder is not None
         
         # 2. Calculate Mid Price
         mid_price = (yes_bid + yes_ask) / 2.0
@@ -387,6 +226,9 @@ class SimpleMarketMakerV2:
             (2 * fee_cents) + self.open_edge_buffer_cents,
         )
         allow_open = market_spread >= min_gap
+        # Require a fresh ladder for opening; we can still close without it.
+        if not ladder_ok:
+            allow_open = False
 
         # When opening, we also use a fee-aware quoting spread (in cents). This ensures our *own*
         # intended capture is not smaller than the round-trip fee curve + buffer.
@@ -403,7 +245,8 @@ class SimpleMarketMakerV2:
         yes_inv = int(pos.get("yes", 0))
         no_inv = int(pos.get("no", 0))
         net_inv = yes_inv - no_inv # Positive = Long YES, Negative = Long NO (Short YES)
-        if ladder is None and net_inv != 0:
+        # If we're holding inventory and ladder is missing/stale, force reduce-only.
+        if not ladder_ok and net_inv != 0:
             allow_open = False
         now_ts = current_time.timestamp()
         # Reduce-only lock when spreads stay bad for a while.
@@ -426,7 +269,9 @@ class SimpleMarketMakerV2:
         if self._reduce_only_lock.get(ticker):
             allow_open = False
 
-        reduce_only_threshold = 3
+        # Inventory-first regime: never open new risk while holding inventory.
+        # This keeps the strategy in "flat -> capture -> flat" mode.
+        reduce_only_threshold = 0
 
         # 4.5. Arb trigger: cheap asks or crossed bids (inventory-only exits)
         arb_fee_buffer = max(1, int(math.ceil(self._fee_cents(mid_price) * 2)))
@@ -722,14 +567,20 @@ class SimpleMarketMakerV2:
                     if my_bid >= my_ask:
                         my_bid = max(1, my_ask - 1)
 
-        # Quote lifetime economics: if our current intended round-trip edge is not fee-positive,
-        # don't keep posting just to "be present." This avoids low-edge churn.
+        # Quote lifetime economics: only open if expected edge beats fees + slippage + buffer.
         if net_inv == 0 and (bid_qty > 0 or ask_qty > 0):
             implied_yes_ask = float(100 - no_price)
             gross_edge_c = float(implied_yes_ask) - float(my_bid)
             fee_edge_c = self._fee_cents(my_bid) + self._fee_cents(implied_yes_ask)
-            net_edge_c = gross_edge_c - fee_edge_c
-            if net_edge_c < 1.0:
+            req_bid_slip = 0
+            req_ask_slip = 0
+            if bid_qty > 0 and yes_bids:
+                req_bid_slip = self._required_slip(yes_bids, bid_qty) or 0
+            if ask_qty > 0 and no_bids:
+                req_ask_slip = self._required_slip(no_bids, ask_qty) or 0
+            slip_c = max(self.open_slip_cents, req_bid_slip, req_ask_slip)
+            net_edge_c = gross_edge_c - (fee_edge_c + slip_c + max(0, self.open_edge_buffer_cents))
+            if net_edge_c < 0:
                 bid_qty = 0
                 ask_qty = 0
 
@@ -841,6 +692,27 @@ class SimpleMarketMakerV2:
             self._stuck_close_since.pop(ticker, None)
             self._stuck_close_last.pop(ticker, None)
         
+        if not orders:
+            reasons = []
+            if ladder is None:
+                reasons.append("ladder_stale_or_missing")
+            if not allow_open and net_inv == 0:
+                reasons.append("net_edge_gate")
+            if net_inv == 0 and exit_yes_liq and exit_yes_liq < self.ladder_min_depth_qty:
+                reasons.append("depth_gate_yes")
+            if net_inv == 0 and exit_no_liq and exit_no_liq < self.ladder_min_depth_qty:
+                reasons.append("depth_gate_no")
+            if my_bid > self.max_price or no_price > self.max_price:
+                reasons.append("max_price")
+            if net_inv != 0:
+                reasons.append("close_blocked_or_no_fill")
+            if not reasons:
+                reasons.append("size_zero_or_other")
+            self.last_gate_reason = "|".join(reasons)
+            self.last_gate_detail = (
+                f"allow_open={allow_open} spread={market_spread:.1f} min_gap={min_gap:.1f} "
+                f"net_inv={net_inv} cash={cash:.2f} exit_yes_liq={exit_yes_liq} exit_no_liq={exit_no_liq}"
+            )
         return orders
 
 def simple_mm_v2_fixed(**kwargs):

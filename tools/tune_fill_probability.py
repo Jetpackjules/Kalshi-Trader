@@ -13,7 +13,7 @@ def run_tuning():
     for p in probs:
         cmd = [
             "python", "run_unified_backtest.py",
-            "--strategy", "server_mirror.backtesting.strategies.simple_market_maker:simple_mm_fixed",
+            "--strategy", "server_mirror.backtesting.strategies.simple_market_maker:simple_mm_v2_fixed",
             "--strategy-kwargs", '{"qty": 10, "spread_cents": 4}',
             "--start-ts", "2026-01-21 00:00:00",
             "--snapshot", "vm_logs/snapshots/snapshot_2026-01-21_012019.json",
