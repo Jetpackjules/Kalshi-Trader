@@ -1,0 +1,17 @@
+DEBUG: Sync Cash | Old: 0.00 | New (API): 1.83
+DEBUG: Canceling all existing orders on startup...
+Authenticated successfully.
+Fetching active markets...
+Found 1000 open markets.
+Scanning orderbooks for all 1000 markets...
+
+
+Analysis Complete. Sorting by Opportunity Score...
+
+TICKER                                   | SPREAD | LIQ    | SCORE    | TITLE
+------------------------------------------------------------------------------------------------------------------------
+KXMVESPORTSMULTIGAMEEXTENDED-S20268D6DB8D2A76-F0B3FFA923D | 99     | 250    | 24750    | yes Hunter Henry,yes Kyle Williams,yes Jaxon Smith-Njigba,ye
+KXMVESPORTSMULTIGAMEEXTENDED-S20267E9D81129D7-75C6D9C1D1D | 99     | 250    | 24750    | yes Drake Maye: 2+,yes Drake Maye: 250+,yes Rhamondre Steven
+KXMVESPORTSMULTIGAMEEXTENDED-S202679B690DF106-086ED2DEF41 | 19     | 443    | 8417     | yes Kenneth Walker III,yes Sam Darnold: 200+,yes Stefon Digg
+KXMVESPORTSMULTIGAMEEXTENDED-S2026171AE3C96C6-B418F978E09 | 16     | 252    | 4040     | yes Jaxon Smith-Njigba,yes Kenneth Walker III,yes Drake Maye
+KXMVESPORTSMULTIGAMEEXTENDED-S202637D7B4D819E-305F4EC1F4D | 7      | 244    | 1711     | yes Stefon Diggs,yes Kenneth Walker III,yes Sam Darnold: 225

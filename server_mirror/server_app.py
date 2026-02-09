@@ -126,28 +126,49 @@ def control_trader():
 @app.route('/api/trades', methods=['GET'])
 def get_trades():
     try:
-        trades_file = os.path.join("unified_engine_out", "trades.csv")
-        if not os.path.exists(trades_file):
-            # Fallback to root trades.csv if not found in subfolder
-            trades_file = "trades.csv"
-            
+        # Switch to trade_debug.csv as trades.csv is empty
+        trades_file = os.path.join("unified_engine_out", "trade_debug.csv")
         if not os.path.exists(trades_file):
             return jsonify([])
 
         trades = []
         with open(trades_file, 'r') as f:
             lines = f.readlines()
-            if len(lines) > 1:
-                headers = lines[0].strip().split(',')
-                # Map 'time' to 'timestamp' for frontend compatibility
+            
+            # trade_debug.csv columns (from runner.py):
+            # 0:trade_id, 1:trade_time, 2:tick_time, ..., 6:ticker, 7:action, 8:price, 9:qty, 10:cash, ...
+            
+            # Since file might create header only if missing, check first line.
+            start_idx = 0
+            if lines and "trade_id" in lines[0]:
+                start_idx = 1
                 
-                for line in reversed(lines[1:]): # Show newest first
-                    parts = line.strip().split(',')
-                    if len(parts) == len(headers):
-                        trade = dict(zip(headers, parts))
-                        if 'time' in trade:
-                            trade['timestamp'] = trade['time']
-                        trades.append(trade)
+            for line in reversed(lines[start_idx:]): # Newest first
+                parts = line.strip().split(',')
+                if len(parts) < 10: 
+                    continue
+                
+                # Map debug columns to frontend expectation
+                # Frontend expects: timestamp, ticker, action, price, qty, cost
+                try:
+                    price = float(parts[8])
+                    qty = int(parts[9])
+                    cost = (price * qty) / 100.0
+                    
+                    trades.append({
+                        "timestamp": parts[1], # trade_time
+                        "ticker": parts[6],
+                        "action": parts[7],
+                        "price": parts[8],
+                        "qty": parts[9],
+                        "cost": f"{cost:.2f}"
+                    })
+                except (ValueError, IndexError):
+                    continue
+                    
+                if len(trades) >= 50: # Limit to 50
+                    break
+                    
         return jsonify(trades)
     except Exception as e:
         return jsonify({"error": str(e)}), 500

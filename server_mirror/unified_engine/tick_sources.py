@@ -2,12 +2,60 @@ from __future__ import annotations
 
 import csv
 import os
+import re
 import time
 from datetime import datetime
 from pathlib import Path
 from typing import Iterable
 
 import pandas as pd
+
+_MONTHS = {
+    "JAN": 1,
+    "FEB": 2,
+    "MAR": 3,
+    "APR": 4,
+    "MAY": 5,
+    "JUN": 6,
+    "JUL": 7,
+    "AUG": 8,
+    "SEP": 9,
+    "OCT": 10,
+    "NOV": 11,
+    "DEC": 12,
+}
+
+
+def _extract_market_date(name: str) -> datetime | None:
+    match = re.search(r"-(\d{2})([A-Z]{3})(\d{2})", name)
+    if not match:
+        return None
+    yy, mon_txt, dd = match.groups()
+    month = _MONTHS.get(mon_txt)
+    if not month:
+        return None
+    try:
+        year = 2000 + int(yy)
+        day = int(dd)
+        return datetime(year, month, day)
+    except ValueError:
+        return None
+
+
+def _latest_market_files(paths: list[Path], n: int) -> list[Path]:
+    if not paths:
+        return []
+    scored: list[tuple[datetime, Path]] = []
+    for path in paths:
+        dt = _extract_market_date(path.name)
+        if dt is None:
+            try:
+                dt = datetime.fromtimestamp(path.stat().st_mtime)
+            except OSError:
+                dt = datetime.min
+        scored.append((dt, path))
+    scored.sort(key=lambda item: item[0])
+    return [p for _, p in scored[-n:]]
 
 
 
@@ -238,10 +286,15 @@ def iter_ticks_from_market_logs(
         if not start_at_end:
             backfill_state[path] = {"first_ts": None, "last_ts": None, "rows": 0, "done": False}
 
-    initial_files = set(log_path.glob(file_pattern))
+    if follow:
+        initial_files = set(_latest_market_files(list(log_path.glob(file_pattern)), 2))
+    else:
+        initial_files = set(log_path.glob(file_pattern))
 
     while True:
         files = sorted(log_path.glob(file_pattern))
+        if follow:
+            files = _latest_market_files(files, 2)
         for path in files:
             if path not in file_offsets:
                 _init_file(path, start_at_end=(path in initial_files))

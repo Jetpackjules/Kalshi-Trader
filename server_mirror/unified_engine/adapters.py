@@ -425,7 +425,7 @@ class SimAdapter(BaseAdapter):
 
 
 class LiveAdapter(BaseAdapter):
-    def __init__(self, key_path: str, diag_log=None, fills_log=None):
+    def __init__(self, key_path: str, diag_log=None, fills_log=None, fills_poll_interval=10.0):
         self._diag_log = diag_log
         self._fills_log = fills_log
         try:
@@ -448,20 +448,47 @@ class LiveAdapter(BaseAdapter):
 
         # Fills polling
         self._fills_last_poll = 0.0
-        self._fills_poll_interval = 10.0
+        self._fills_poll_interval = float(fills_poll_interval)
         self._fills_limit = 50
         self._fills_cursor = None
         self._fills_initialized = False
         # Dedupe fills by time/order_id in case cursor is missing or unreliable.
         self._fills_last_seen_time = None
         self._fills_last_seen_ids = set()
+        # Map order_id -> client_order_id to backfill fills when API omits client IDs.
+        self._client_id_by_order_id = {}
         
+        # Track session trades
         # Track session trades
         self.trades = []
         self.order_history = []
+        
+        # Pending Deductions (Race Condition Fix)
+        self._pending_deductions = [] # list of {"time": ts, "cost": amt}
 
         # Initial Sync
         self._sync_state()
+        
+        # Cleanup: Cancel any existing orders from previous runs (orphans)
+        self._cancel_all_startup()
+
+    def _cancel_all_startup(self):
+        try:
+            print("DEBUG: Canceling all existing orders on startup...")
+            # Fetch all orders (no ticker filter to catch everything)
+            path = "/trade-api/v2/portfolio/orders?status=active"
+            headers = create_headers(self.private_key, "GET", path)
+            resp = self._session.get(API_URL + path, headers=headers)
+            if resp.status_code == 200:
+                orders = resp.json().get("orders", [])
+                for o in orders:
+                    oid = o.get("order_id")
+                    print(f"DEBUG: Canceling orphan order {oid} ({o.get('ticker')} {o.get('type')})")
+                    self.cancel_order(oid)
+            else:
+                print(f"DEBUG: Failed to fetch startup orders: {resp.text}")
+        except Exception as e:
+            print(f"DEBUG: Startup cleanup failed: {e}")
 
     def process_tick(self, ticker: str, market_state: dict, current_time: datetime) -> None:
         # Poll fills at low frequency for logging/attribution.
@@ -471,6 +498,9 @@ class LiveAdapter(BaseAdapter):
         if not self._fills_log:
             return
         now = time.time()
+        
+
+
         # Optimization: Don't poll aggressively for fills (history only)
         if now - self._fills_last_poll < self._fills_poll_interval:
             return
@@ -548,19 +578,30 @@ class LiveAdapter(BaseAdapter):
                 elif f.get("is_maker") is True:
                     liquidity = "maker"
 
-            self._fills_log({
-                "fill_time": fill_time,
-                "ticker": f.get("ticker"),
-                "side": f.get("side"),
-                "price": f.get("price"),
-                "qty": f.get("count") or f.get("qty"),
-                "liquidity": liquidity,
-                "order_id": f.get("order_id"),
-                "client_order_id": f.get("client_order_id"),
-                "fee": f.get("fee"),
-                "raw_fee": f.get("raw_fee"),
-                "source": "api",
-            })
+            # Backfill client_order_id if missing, using cached order_id -> client_order_id.
+            client_order_id = (
+                f.get("client_order_id")
+                or f.get("clientOrderId")
+                or f.get("client_order")
+                or f.get("client_id")
+            )
+            if not client_order_id and f.get("order_id"):
+                client_order_id = self._client_id_by_order_id.get(f.get("order_id"))
+
+            if self._fills_log:
+                self._fills_log({
+                    "fill_time": fill_time,
+                    "ticker": f.get("ticker"),
+                    "side": f.get("side"),
+                    "price": f.get("price"),
+                    "qty": f.get("count") or f.get("qty"),
+                    "liquidity": liquidity,
+                    "order_id": f.get("order_id"),
+                    "client_order_id": client_order_id or "",
+                    "fee": f.get("fee"),
+                    "raw_fee": f.get("raw_fee"),
+                    "source": "api",
+                })
 
         self._fills_initialized = True
 
@@ -635,7 +676,19 @@ class LiveAdapter(BaseAdapter):
         if time.time() - self._last_sync_time > self._sync_interval:
             print("DEBUG: get_cash triggering sync...")
             self._sync_state()
-        return self._cash
+            
+        # Deduct pending orders (Fix for race condition)
+        # We trust our local deduction for 5 seconds until API catches up.
+        now = time.time()
+        self._pending_deductions = [d for d in self._pending_deductions if now - d["time"] < 5.0]
+        pending = sum(d["cost"] for d in self._pending_deductions)
+        
+        effective_cash = self._cash - pending
+        if pending > 0:
+             # Debug log for verification
+             pass 
+             
+        return max(0.0, effective_cash)
 
     def get_portfolio_value(self) -> float:
         if time.time() - self._last_sync_time > self._sync_interval:
@@ -648,55 +701,65 @@ class LiveAdapter(BaseAdapter):
         return self._positions
 
     def get_open_orders(self, ticker: str, market_state: dict, current_time: datetime) -> list[dict]:
-        # Check cache
-        cached = self._open_orders_cache.get(ticker)
-        if cached:
-            ts, orders = cached
-            if time.time() - ts < self._orders_cache_ttl:
-                return orders
-
-        # Fetch from API
-        # We fetch all orders and filter locally to avoid API filtering issues
-        path = "/trade-api/v2/portfolio/orders?status=open"
-        headers = create_headers(self.private_key, "GET", path)
-        try:
-            resp = self._session.get(API_URL + path, headers=headers)
-            if resp.status_code == 200:
-                data = resp.json()
-                orders = []
-                for o in data.get("orders", []):
-                    # Filter by ticker and status
-                    if o.get("ticker") != ticker:
-                        continue
-                    if o.get("status") not in ("resting", "open"):
-                        continue
-                        
-                    # Map API order to Engine order format
-                    # API: { "order_id": "...", "ticker": "...", "side": "yes", "yes_price": 50, "remaining_count": 10, ... }
-                    
-                    # Safe casting
-                    yp = o.get("yes_price")
-                    np = o.get("no_price")
-                    rc = o.get("remaining_count")
-                    
-                    orders.append({
-                        "order_id": o.get("order_id"),
-                        "client_order_id": o.get("client_order_id"),
-                        "ticker": o.get("ticker"),
-                        "side": o.get("side"),
-                        "yes_price": int(yp) if yp is not None else None,
-                        "no_price": int(np) if np is not None else None,
-                        "remaining_count": int(rc) if rc is not None else 0,
-                        "status": o.get("status"),
-                        "created_time": o.get("created_time"),
-                    })
-                self._open_orders_cache[ticker] = (time.time(), orders)
-                return orders
-        except Exception as e:
-            if self._diag_log:
-                self._diag_log("ERROR", msg=f"Get orders failed: {e}")
+        # Improved Caching: Use logic that caches ALL orders once, then filters locally.
         
-        return []
+        # Check Global Cache (avoids N api calls for N tickers)
+        # self._global_orders_cache = (timestamp, all_orders_list)
+        if not hasattr(self, "_global_orders_cache"):
+            self._global_orders_cache = (0.0, [])
+
+        cache_ts, all_orders = self._global_orders_cache
+        now = time.time()
+        
+        # If cache is old, refresh it
+        if now - cache_ts > self._orders_cache_ttl:
+            path = "/trade-api/v2/portfolio/orders?status=open"
+            headers = create_headers(self.private_key, "GET", path)
+            try:
+                resp = self._session.get(API_URL + path, headers=headers)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    all_orders = []
+                    for o in data.get("orders", []):
+                         # Status filter
+                         if o.get("status") not in ("resting", "open"):
+                             continue
+                         
+                         # Safe casting and normalizing
+                         yp = o.get("yes_price")
+                         np = o.get("no_price")
+                         rc = o.get("remaining_count")
+                         
+                         norm_order = {
+                            "order_id": o.get("order_id"),
+                            "client_order_id": o.get("client_order_id"),
+                            "ticker": o.get("ticker"),
+                            "side": o.get("side"),
+                            "yes_price": int(yp) if yp is not None else None,
+                            "no_price": int(np) if np is not None else None,
+                            "remaining_count": int(rc) if rc is not None else 0,
+                            "status": o.get("status"),
+                            "created_time": o.get("created_time"),
+                            "action": o.get("action"), # Keep original action for cancellation logic
+                         }
+                         all_orders.append(norm_order)
+                         
+                         # Backfill client ID cache
+                         if o.get("order_id") and o.get("client_order_id"):
+                             self._client_id_by_order_id[o.get("order_id")] = o.get("client_order_id")
+                             
+                    self._global_orders_cache = (now, all_orders)
+                else:
+                    # On error, keep old cache or empty?
+                    if self._diag_log:
+                        self._diag_log("ERROR", msg=f"Get orders failed: {resp.status_code}")
+            except Exception as e:
+                if self._diag_log:
+                    self._diag_log("ERROR", msg=f"Get orders exception: {e}")
+        
+        # Filter from Global Cache
+        ticker_orders = [o for o in all_orders if o.get("ticker") == ticker]
+        return ticker_orders
 
     def get_open_orders_all(self) -> list[dict]:
         path = "/trade-api/v2/portfolio/orders?status=open"
@@ -726,6 +789,39 @@ class LiveAdapter(BaseAdapter):
             self._open_orders_cache = {} # Clear all to be safe
         except Exception:
             pass
+            
+    def cancel_all_orders(self) -> None:
+        """Emergency cleanup: fetch all open/resting orders and cancel them."""
+        orders = []
+        for s in ["open", "resting"]:
+            path = f"/trade-api/v2/portfolio/orders?status={s}"
+            headers = create_headers(self.private_key, "GET", path)
+            try:
+                resp = self._session.get(API_URL + path, headers=headers)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    orders.extend(data.get("orders", []))
+            except Exception as e:
+                if self._diag_log:
+                    self._diag_log("ERROR", msg=f"CancelAll fetch {s} failed: {e}")
+
+        # Dedupe
+        seen = set()
+        unique = []
+        for o in orders:
+            oid = o.get("order_id")
+            if oid not in seen:
+                seen.add(oid)
+                unique.append(o)
+                
+        if unique and self._diag_log:
+            self._diag_log("INFO", msg=f"CancelAll: Found {len(unique)} orders to nuke.")
+        elif unique:
+            print(f"CancelAll: Found {len(unique)} orders to nuke.")
+
+        for o in unique:
+            self.cancel_order(o.get("order_id"))
+            time.sleep(0.05) # Rate limit safety
 
     def place_order(self, order, market_state: dict, current_time: datetime) -> OrderResult:
         # order is an object or dict from Engine
@@ -757,6 +853,10 @@ class LiveAdapter(BaseAdapter):
             }
             if is_close:
                 print(f"DEBUG: Using Native Sell (GTC) | {api_action.upper()} {api_side.upper()} {order_qty}")
+                # Ensure close orders only reduce existing inventory.
+                payload["reduce_only"] = True
+                # Kalshi only allows reduce_only with IoC.
+                payload["time_in_force"] = "immediate_or_cancel"
             payload = {k: v for k, v in payload.items() if v is not None}
 
             # --- PRE-FLIGHT CASH CHECK ---
@@ -766,7 +866,7 @@ class LiveAdapter(BaseAdapter):
                 if api_action == "buy":
                     fee = calculate_convex_fee(order_price, int(order_qty))
                     cost = (int(order_qty) * (order_price / 100.0)) + fee
-                    if self._cash < cost:
+                    if self.get_cash() < cost:
                         can_afford = False
                         opp_side = "yes" if api_side == "no" else "no"
                         pos = self._positions.get(ticker, {})
@@ -787,7 +887,7 @@ class LiveAdapter(BaseAdapter):
                 print(f"DEBUG: Pre-flight check error: {e}")
             # -----------------------------
 
-        path = "/trade-api/v2/portfolio/orders?status=open"
+            path = "/trade-api/v2/portfolio/orders"
             headers = create_headers(self.private_key, "POST", path)
             try:
                 if self._diag_log:
@@ -812,6 +912,19 @@ class LiveAdapter(BaseAdapter):
                 )
                 resp = self._session.post(API_URL + path, headers=headers, json=payload)
                 if resp.status_code == 201:
+                    # Fix: Add to pending deductions immediately
+                    if api_action == "buy":
+                        calc_fee = calculate_convex_fee(order_price, int(order_qty))
+                        calc_cost = (int(order_qty) * (order_price / 100.0)) + calc_fee
+                        self._pending_deductions.append({"time": time.time(), "cost": calc_cost})
+                        print(f"DEBUG: Added Pending Deduction | Cost: {calc_cost:.2f} | Count: {len(self._pending_deductions)}")
+                    try:
+                        resp_data = resp.json() if resp.text else {}
+                    except Exception:
+                        resp_data = {}
+                    order_id = resp_data.get("order_id") or resp_data.get("id")
+                    if order_id and client_order_id:
+                        self._client_id_by_order_id[order_id] = client_order_id
                     if ticker in self._open_orders_cache:
                         del self._open_orders_cache[ticker]
                     if self._diag_log:
@@ -843,7 +956,17 @@ class LiveAdapter(BaseAdapter):
                 msg = f"Place order failed: {resp.status_code} {resp.text}"
                 print(f"DEBUG: API Error | {msg}")
                 if self._diag_log:
-                    self._diag_log("ORDER_REJECTED", tick_ts=current_time, ticker=ticker, orig_action=orig_action, action=api_action, side=api_side, price=order_price, qty=order_qty, msg=msg)
+                    self._diag_log(
+                        "ORDER_REJECTED",
+                        tick_ts=current_time,
+                        ticker=ticker,
+                        orig_action=orig_action,
+                        action=api_action,
+                        side=api_side,
+                        price=order_price,
+                        qty=order_qty,
+                        msg=msg,
+                    )
                 return OrderResult(ok=False, filled=0, status="error")
             except Exception as e:
                 if self._diag_log:

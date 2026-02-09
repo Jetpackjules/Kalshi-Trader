@@ -103,11 +103,13 @@ class LadderCache:
         return self.cache.get(ticker)
 
 class SimpleMarketMakerV2:
-    def __init__(self, spread_cents: int = 4, risk_pct: float = 0.5, min_qty: int = 1, qty: int = None, max_price: int = 99, skew_factor: float = 0.1, min_gap_cents: int | None = None,
+    def __init__(self, spread_cents: int = 5, risk_pct: float = 0.5, min_qty: int = 1, qty: int = None, 
+                 max_price: int = 95, min_price: int = 5,
+                 skew_factor: float = 0.1, min_gap_cents: int | None = None,
                  ladder_depth: int = 10, ladder_stale_s: float = 10.0, ladder_refresh_s: float = 2.0,
                  ladder_min_depth_qty: int = 10, exit_slip_cents: int = 1, exit_safety_factor: float = 0.5,
                  open_slip_cents: int = 1,
-                 open_edge_buffer_cents: int = 3,
+                 open_edge_buffer_cents: int = 3, # Lowered to 3 to allow 5c gaps at 50c
                  maker_only_opens: bool = True,
                  enable_taker_arb: bool = False):
         if qty:
@@ -120,17 +122,18 @@ class SimpleMarketMakerV2:
         self.min_qty = min_qty
         self.fixed_qty = qty
         self.max_price = max_price
+        self.min_price = min_price
         self.skew_factor = skew_factor
         self.min_gap_cents = min_gap_cents
         self.ladder_depth = ladder_depth
         self.ladder_stale_s = ladder_stale_s
         self.ladder_refresh_s = ladder_refresh_s
         self.ladder_min_depth_qty = ladder_min_depth_qty
+        self.ladder_min_depth_qty = ladder_min_depth_qty
         self.exit_slip_cents = exit_slip_cents
         self.exit_safety_factor = exit_safety_factor
         self.open_slip_cents = open_slip_cents
-        # Extra cents required beyond round-trip fee before opening. This is a cheap way to
-        # avoid negative-EV "micro-edge" churn (fees are convex around ~50c).
+        # Reduced buffer to 3c to allow 5c gaps at 50c (Fee=0.9, Slip=1, Buffer=3 -> Total=4.9 < 5).
         self.open_edge_buffer_cents = int(open_edge_buffer_cents)
         self.maker_only_opens = bool(maker_only_opens)
         self.enable_taker_arb = bool(enable_taker_arb)
@@ -150,10 +153,12 @@ class SimpleMarketMakerV2:
         self._stuck_close_since = {}
         self._stuck_close_last = {}
 
-    def _fee_cents(self, price_cents: float) -> float:
+    def _fee_cents(self, price_cents: float | int, is_maker: bool = False) -> float:
         # Approx Kalshi convex fee in cents per contract.
+        # Taker: 7% coefficient. Maker: 1.75% coefficient (4x cheaper).
+        rate = 1.75 if is_maker else 7.0
         p = float(price_cents) / 100.0
-        return 7.0 * p * (1.0 - p)
+        return rate * p * (1.0 - p)
 
     def _required_slip(self, levels, qty):
         if not levels or qty <= 0:
@@ -220,7 +225,8 @@ class SimpleMarketMakerV2:
             imbalance = abs(best_yes_bid_q - implied_yes_ask_q) / denom
             imbalance_spread = int(round(imbalance * 2.0))  # 0..2ish
         # Dynamic gap gate: only open new positions when spread is wide enough to cover fees.
-        fee_cents = self._fee_cents(mid_price)
+        # We enforce Maker-Only entry, so we should use Maker fees for the gap calculation.
+        fee_cents = self._fee_cents(mid_price, is_maker=True)
         min_gap = self.min_gap_cents if self.min_gap_cents is not None else max(
             self.spread_cents,
             (2 * fee_cents) + self.open_edge_buffer_cents,
@@ -451,8 +457,15 @@ class SimpleMarketMakerV2:
 
         else:
             # Hybrid Dynamic Logic
+            # Calculate spread-based scaling multiplier (bet bigger on wider spreads)
+            spread_scaling = 1.0
+            if my_bid > 0 and no_price > 0:
+                current_spread = (100 - no_price) - my_bid
+                if current_spread > self.spread_cents:
+                    spread_scaling = current_spread / max(1, float(self.spread_cents))
+            
             if my_bid > 0:
-                raw_bid_qty = int((cash * self.risk_pct * 100) / my_bid)
+                raw_bid_qty = int((cash * self.risk_pct * spread_scaling * 100) / my_bid)
                 bid_qty = max(self.min_qty, raw_bid_qty)
                 # If we're closing a NO position, allow at least 1 share regardless of cash.
                 if net_inv < 0:
@@ -474,7 +487,7 @@ class SimpleMarketMakerV2:
                     if ask_qty > 0:
                         ask_qty = min(ask_qty, 200) # Cap
                 else:
-                    raw_ask_qty = int((cash * self.risk_pct * 100) / no_price)
+                    raw_ask_qty = int((cash * self.risk_pct * spread_scaling * 100) / no_price)
                     ask_qty = max(self.min_qty, raw_ask_qty)
                     max_affordable_ask = int((cash * 100) / no_price)
                     if ask_qty > max_affordable_ask:
@@ -506,11 +519,24 @@ class SimpleMarketMakerV2:
                 if required_slip is None or required_slip > self.open_slip_cents:
                     ask_qty = min(ask_qty, self._available_within(no_bids, self.open_slip_cents))
         
-        # 8. Apply Max Price Filter (opening only)
-        if net_inv >= 0 and my_bid > self.max_price:
-            bid_qty = 0
-        if net_inv <= 0 and no_price > self.max_price:
-            ask_qty = 0
+        # 8. Price Extremes Safety Filter (opening conditions)
+        # Avoid getting stuck in dead markets (<5c or >95c).
+        # We check ACTIONS (bid/ask) regardless of current inventory.
+        
+        # Check BUY YES (Bid)
+        if bid_qty > 0:
+            if my_bid > self.max_price or my_bid < self.min_price:
+                bid_qty = 0
+                
+        # Check BUY NO (Ask)
+        # no_price corresponding to Yes=max_price is (100 - max).
+        # If no_price < (100 - max_price), then Yes > max_price. -> Block.
+        # If no_price > (100 - min_price), then Yes < min_price. -> Block.
+        if ask_qty > 0:
+            max_no_price = 100 - self.min_price
+            min_no_price = 100 - self.max_price
+            if no_price > max_no_price or no_price < min_no_price:
+                ask_qty = 0
             
         # 9. Reduce Only Logic (Prevent Accumulation of Losing Positions)
         # If we have Net Long YES, do not buy more YES.
@@ -553,25 +579,45 @@ class SimpleMarketMakerV2:
 
         # Maker-only opens: avoid crossing the current ask (taker). This is only applied when
         # flat (net_inv == 0); closes are allowed to be aggressive.
-        if self.maker_only_opens and net_inv == 0:
-            if bid_qty > 0 and yes_ask and yes_ask < 100:
-                yes_ask_int = int(math.floor(yes_ask))
-                if my_bid >= yes_ask_int:
-                    my_bid = max(1, yes_ask_int - 1)
-            if ask_qty > 0 and no_ask and no_ask < 100:
-                no_ask_int = int(math.floor(no_ask))
-                if no_price >= no_ask_int:
-                    no_price = max(1, no_ask_int - 1)
-                    # Keep the derived YES-ask consistent for any downstream math/logs.
-                    my_ask = 100 - no_price
-                    if my_bid >= my_ask:
-                        my_bid = max(1, my_ask - 1)
+        # Maker-only opens: avoid crossing the current ask (taker).
+        # We enforce this for ALL trades that INCREASE position size (Opening).
+        # We allow Taker (crossing) ONLY for trades that DECREASE position size (Closing).
+        if self.maker_only_opens:
+            # Check if BID (Buy YES) is Opening or Closing
+            is_bid_opening = (net_inv >= 0) # If Long, Buying More = Open. If Short, Buying YES = Close.
+            
+            # Check if ASK (Buy NO) is Opening or Closing
+            # Note: Ask Qty here is Buying NO.
+            is_ask_opening = (net_inv <= 0) # If Short, Buying More NO = Open. If Long, Buying NO = Close.
+
+            if bid_qty > 0 and is_bid_opening:
+                 if yes_ask and yes_ask < 100:
+                    yes_ask_int = int(math.floor(yes_ask))
+                    if my_bid >= yes_ask_int:
+                        my_bid = max(1, yes_ask_int - 1)
+            
+            if ask_qty > 0 and is_ask_opening:
+                 if no_ask and no_ask < 100:
+                    no_ask_int = int(math.floor(no_ask))
+                    if no_price >= no_ask_int:
+                        no_price = max(1, no_ask_int - 1)
+                        # Keep the derived YES-ask consistent for any downstream math/logs.
+                        my_ask = 100 - no_price
+                        if my_bid >= my_ask:
+                            my_bid = max(1, my_ask - 1)
 
         # Quote lifetime economics: only open if expected edge beats fees + slippage + buffer.
+        # We assume we are Maker on both Entry and Exit (ideal case).
+        # Even if we Taker exit, our 'buffer' (5c) usually covers the difference.
         if net_inv == 0 and (bid_qty > 0 or ask_qty > 0):
             implied_yes_ask = float(100 - no_price)
             gross_edge_c = float(implied_yes_ask) - float(my_bid)
-            fee_edge_c = self._fee_cents(my_bid) + self._fee_cents(implied_yes_ask)
+            
+            # Fee: Assuming Maker Entry + Maker Exit (Aggressive/Standard for MM)
+            entry_fee = self._fee_cents(my_bid, is_maker=True)
+            exit_fee = self._fee_cents(implied_yes_ask, is_maker=True)
+            fee_edge_c = entry_fee + exit_fee
+            
             req_bid_slip = 0
             req_ask_slip = 0
             if bid_qty > 0 and yes_bids:
@@ -581,6 +627,17 @@ class SimpleMarketMakerV2:
             slip_c = max(self.open_slip_cents, req_bid_slip, req_ask_slip)
             net_edge_c = gross_edge_c - (fee_edge_c + slip_c + max(0, self.open_edge_buffer_cents))
             if net_edge_c < 0:
+                bid_qty = 0
+                ask_qty = 0
+
+        # Safety: if we would quote both sides, ensure the *pair* is net-positive after fees.
+        # This avoids the pathological case where both fills lock in a guaranteed loss.
+        if net_inv == 0 and bid_qty > 0 and ask_qty > 0:
+            implied_yes_ask = float(100 - no_price)
+            pair_fee_c = self._fee_cents(my_bid, is_maker=True) + self._fee_cents(implied_yes_ask, is_maker=True)
+            pair_net_c = 100.0 - (float(my_bid) + float(no_price)) - (pair_fee_c + max(0, self.open_edge_buffer_cents))
+            if pair_net_c < 0:
+                # Too dangerous to have both sides live; skip opening entirely.
                 bid_qty = 0
                 ask_qty = 0
 
@@ -603,25 +660,64 @@ class SimpleMarketMakerV2:
         edge_tag += f" mid={mid_price:.1f} micro={micro_mid:.1f} sp={open_quote_spread}"
         
         if bid_qty > 0:
+            # [MAKER GUARD - BID]
+            # Check if hitting the ask (Taker).
+            # If so, clamp to Ask-1 (Maker).
+            # LATENCY ADJUSTMENT: User assumes 1-3s delay.
+            # Ask might have dropped 1c in that time.
+            # Clamp to Ask-2 to be safe.
+            final_bid = int(my_bid)
+            if yes_ask > 0:
+                limit_bid = int(yes_ask) - 2
+                if final_bid >= limit_bid + 1: # If we are closer than 2c
+                     # Original was Ask-1. Now Ask-2.
+                     # Example: Ask=50. Limit=48.
+                     # If Bid=49 (Ask-1), clamp to 48.
+                     # If Bid=50 (Ask), clamp to 48.
+                     final_bid = limit_bid
+                if final_bid < 1: final_bid = 1
+            
             is_close = net_inv < 0
             source = ("MM_CLOSE" if is_close else "MM_OPEN") + f"({edge_tag})"
             orders.append(Order(
                 action="BUY_YES",
                 ticker=ticker,
                 qty=bid_qty,
-                price=my_bid,
+                price=final_bid,
                 expiry=None,
                 source=source,
             ))
         
         if ask_qty > 0:
+            # [MAKER GUARD - ASK]
+            # We are placing a BUY_NO order at price = no_price.
+            # Equivalent to Selling YES at (100 - no_price).
+            # Target: Sell YES @ Bid + 2 (Safe Maker).
+            # => Buy NO @ 100 - (Bid + 2) = 98 - Bid.
+            
+            final_no_price = int(no_price)
+            if yes_bid > 0:
+                limit_no_price = 100 - (int(yes_bid) + 2)
+                # If we are pricing lower (more aggressive) than the limit, clamp.
+                # Lower Price on Buy No = Higher Price on Sell Yes = closer to Bid.
+                # Wait:
+                # Sell Yes @ 50. Buy No @ 50.
+                # Bid Yes @ 48. Limit Sell Yes @ 50.
+                # Limit Buy No @ 100 - 50 = 50.
+                # If we tried to Sell Yes @ 49 (Buy No @ 51).
+                # 51 > 50.
+                # So if final_no_price > limit_no_price: clamp.
+                if final_no_price >= limit_no_price + 1:
+                    final_no_price = limit_no_price
+                if final_no_price > 99: final_no_price = 99
+            
             is_close = net_inv > 0
             source = ("MM_CLOSE" if is_close else "MM_OPEN") + f"({edge_tag})"
             orders.append(Order(
                 action="BUY_NO",
                 ticker=ticker,
                 qty=ask_qty,
-                price=no_price,
+                price=final_no_price,
                 expiry=None,
                 source=source,
             ))

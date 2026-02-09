@@ -25,6 +25,8 @@ LOG_DIR = os.environ.get("KALSHI_LOG_DIR", "market_logs") # Directory to store C
 LADDER_DEPTH = 10
 LADDER_INTERVAL_S = 5.0
 LADDER_TRIGGER_SPREAD = 0.0  # cents
+# Optional runtime toggle (no restart needed): create this file to disable ladder logging.
+DISABLE_LADDER_FILE = os.path.join(LOG_DIR, ".disable_ladder")
 
 # ==========================================
 # AUTHENTICATION
@@ -152,6 +154,9 @@ class GranularLogger:
             print(f"Error writing ladder CSV: {e}")
 
     def maybe_log_ladder(self, ticker, spread_cents):
+        # Quick toggle: skip ladder logging when flag file exists or env is set.
+        if os.environ.get("KALSHI_DISABLE_LADDER") == "1" or os.path.exists(DISABLE_LADDER_FILE):
+            return
         if LADDER_DEPTH <= 0:
             return
         if LADDER_TRIGGER_SPREAD > 0 and spread_cents < LADDER_TRIGGER_SPREAD:

@@ -946,12 +946,18 @@
 
             let shadowPoints = [];
             try {
-                const response = await fetch(`/unified_engine_out/unified_trades.csv?t=${Date.now()}`);
+                const response = await fetch(`/unified_engine_out/trade_debug.csv?t=${Date.now()}`);
                 if (response.ok) {
                     const text = await response.text();
                     const lines = text.trim().split('\n');
-                    shadowPoints = lines.slice(1).map(row => new Date(row.split(',')[0]));
-                    shadowPoints = shadowPoints.filter(t => !isNaN(t) && t >= start && t <= now);
+                    shadowPoints = lines.map(row => {
+                        // trade_debug.csv: ID, trade_time, tick_time...
+                        // If header exists, skip it
+                        if (row.startsWith('trade_id')) return null;
+                        const parts = row.split(',');
+                        if (parts.length < 2) return null;
+                        return new Date(parts[1]); // trade_time is col 1
+                    }).filter(t => t && !isNaN(t) && t >= start && t <= now);
                 }
             } catch (e) {
                 shadowPoints = [];

@@ -761,9 +761,9 @@ class UnifiedEngine:
         for existing in active_orders:
             if existing["id"] in kept_ids:
                 continue
-            if close_action and existing.get("action") == close_action:
-                # Keep the exit order alive while inventory remains.
-                continue
+            # REMOVED: Aggressive close protection (lines 764-766) which caused zombie orders.
+            # if close_action and existing.get("action") == close_action:
+            #    continue
             created_at = self._parse_time(existing.get("created_time"))
             if (
                 self.min_quote_lifetime_s > 0
@@ -876,6 +876,87 @@ class UnifiedEngine:
                     client_order_id=order.client_order_id,
                 )
                 continue
+            if not is_close:
+                yes_ask = float(market_state.get("yes_ask") or 0)
+                no_ask = float(market_state.get("no_ask") or 0)
+                if order.action == "BUY_YES":
+                    if yes_ask <= 0:
+                        self._emit_order_event(
+                            event="SKIP",
+                            tick_time=current_time,
+                            ticker=ticker,
+                            action=order.action,
+                            price=order.price,
+                            qty=order.qty,
+                            is_close=is_close,
+                            reason="maker_only_missing_yes_ask",
+                            cash=cash,
+                            pos_yes=pos_yes,
+                            pos_no=pos_no,
+                            pending_yes=pending_yes,
+                            pending_no=pending_no,
+                            market_state=market_state,
+                            client_order_id=order.client_order_id,
+                        )
+                        continue
+                    if order.price >= yes_ask:
+                        self._emit_order_event(
+                            event="SKIP",
+                            tick_time=current_time,
+                            ticker=ticker,
+                            action=order.action,
+                            price=order.price,
+                            qty=order.qty,
+                            is_close=is_close,
+                            reason="maker_only_open_cross_yes",
+                            cash=cash,
+                            pos_yes=pos_yes,
+                            pos_no=pos_no,
+                            pending_yes=pending_yes,
+                            pending_no=pending_no,
+                            market_state=market_state,
+                            client_order_id=order.client_order_id,
+                        )
+                        continue
+                elif order.action == "BUY_NO":
+                    if no_ask <= 0:
+                        self._emit_order_event(
+                            event="SKIP",
+                            tick_time=current_time,
+                            ticker=ticker,
+                            action=order.action,
+                            price=order.price,
+                            qty=order.qty,
+                            is_close=is_close,
+                            reason="maker_only_missing_no_ask",
+                            cash=cash,
+                            pos_yes=pos_yes,
+                            pos_no=pos_no,
+                            pending_yes=pending_yes,
+                            pending_no=pending_no,
+                            market_state=market_state,
+                            client_order_id=order.client_order_id,
+                        )
+                        continue
+                    if order.price >= no_ask:
+                        self._emit_order_event(
+                            event="SKIP",
+                            tick_time=current_time,
+                            ticker=ticker,
+                            action=order.action,
+                            price=order.price,
+                            qty=order.qty,
+                            is_close=is_close,
+                            reason="maker_only_open_cross_no",
+                            cash=cash,
+                            pos_yes=pos_yes,
+                            pos_no=pos_no,
+                            pending_yes=pending_yes,
+                            pending_no=pending_no,
+                            market_state=market_state,
+                            client_order_id=order.client_order_id,
+                        )
+                        continue
             if not is_close and not self._can_afford_open(order, cash):
                 if self.diag_log:
                     self.diag_log(

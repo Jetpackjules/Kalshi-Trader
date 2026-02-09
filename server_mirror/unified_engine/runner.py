@@ -298,6 +298,7 @@ def main() -> int:
     parser.add_argument("--snapshot", default="", help="Optional snapshot JSON for starting state")
     parser.add_argument("--initial-cash", type=float, default=100.0)
     parser.add_argument("--min-requote-interval", type=float, default=2.0)
+    parser.add_argument("--max-actions-per-minute", type=int, default=6)
     parser.add_argument("--amend-price-tolerance", type=float, default=0.0, help="Keep existing order if price diff <= this (cents)")
     parser.add_argument("--amend-qty-tolerance", type=int, default=0, help="Keep existing order if qty diff <= this")
     parser.add_argument("--live-trade-window-s", type=float, default=0.0, help="Only trade if tick is within this many seconds of now (0 disables)")
@@ -325,6 +326,7 @@ def main() -> int:
     parser.add_argument("--fill-latency-seed", type=int, default=0, help="Seed for latency sampling")
     parser.add_argument("--strategy-kwargs", default="{}", help="JSON dict of kwargs for strategy factory")
     parser.add_argument("--file-pattern", default="market_data_*.csv", help="Glob pattern for market logs")
+    parser.add_argument("--fills-poll-interval", type=float, default=10.0, help="Seconds between fills polling")
     args = parser.parse_args()
 
     diag_log = _build_diag_logger(args.diag_log)
@@ -338,8 +340,13 @@ def main() -> int:
     trade_log = _build_trade_logger(trade_log_path)
     order_event_log_path = getattr(args, "order_event_log", "") or os.path.join(args.out_dir, "order_events.csv")
     order_event_log = _build_order_event_logger(order_event_log_path)
-    fills_log_path = getattr(args, "fills_log", "") or os.path.join(args.out_dir, "fills.csv")
-    fills_log = _build_fill_logger(fills_log_path)
+    
+    if args.disable_fills_log:
+        print("Fills log disabled by user request.")
+        fills_log = None
+    else:
+        fills_log_path = getattr(args, "fills_log", "") or os.path.join(args.out_dir, "fills.csv")
+        fills_log = _build_fill_logger(fills_log_path)
     ingest_log_path = args.ingest_log or os.path.join(args.out_dir, "tick_ingest_log.csv")
     ingest_log = _build_ingest_logger(ingest_log_path)
 
@@ -370,7 +377,12 @@ def main() -> int:
     if args.live:
         from unified_engine.adapters import LiveAdapter
         print("!!! WARNING: RUNNING IN LIVE TRADING MODE !!!")
-        adapter = LiveAdapter(key_path=args.key_file, diag_log=diag_log, fills_log=fills_log)
+        adapter = LiveAdapter(
+            key_path=args.key_file,
+            diag_log=diag_log,
+            fills_log=fills_log,
+            fills_poll_interval=args.fills_poll_interval
+        )
         
         # --- SNAPSHOT ON LAUNCH ---
         try:
@@ -399,6 +411,11 @@ def main() -> int:
             with open(snapshot_file, "w") as f:
                 json.dump(snapshot_data, f, indent=2)
             print(f"Saved launch snapshot to: {snapshot_file}")
+            
+            # Startup Sweep: Clean any ghost orders
+            print("Performing Startup Sweep (Cancelling all open orders)...")
+            adapter.cancel_all_orders()
+            print("Startup Sweep Complete.")
         except Exception as e:
             print(f"Failed to save launch snapshot: {e}")
             
@@ -460,6 +477,7 @@ def main() -> int:
         amend_price_tolerance=args.amend_price_tolerance,
         amend_qty_tolerance=args.amend_qty_tolerance,
         trade_live_window_s=args.live_trade_window_s,
+        max_actions_per_minute=args.max_actions_per_minute,
         allow_warmup_old_ticks=args.warmup_old_ticks,
         max_order_age_s=args.max_order_age_s,
         diag_log=diag_log,
