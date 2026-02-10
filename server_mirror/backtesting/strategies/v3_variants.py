@@ -501,3 +501,16 @@ def kelly_v3() -> RegimeSwitcher:
         max_notional_pct=0.15,
         max_loss_pct=0.04,
     )
+
+def forced_entry_v3() -> RegimeSwitcher:
+    return RegimeSwitcher(
+        'v3_forced_entry',
+        risk_pct=0.9,
+        tightness_percentile=100,
+        max_inventory=100,
+        margin_cents=-10.0,
+        scaling_factor=2.0,
+        max_notional_pct=0.10,
+        max_loss_pct=0.10,
+    )
+

@@ -297,18 +297,10 @@ def main() -> int:
     parser.add_argument("--follow", action="store_true", help="Follow live tick log for new rows")
     parser.add_argument("--snapshot", default="", help="Optional snapshot JSON for starting state")
     parser.add_argument("--initial-cash", type=float, default=100.0)
-    parser.add_argument("--min-requote-interval", type=float, default=0.0)
-    parser.add_argument("--max-actions-per-minute", type=int, default=0)
+    parser.add_argument("--min-requote-interval", type=float, default=2.0)
+    parser.add_argument("--max-actions-per-minute", type=int, default=6)
     parser.add_argument("--amend-price-tolerance", type=float, default=0.0, help="Keep existing order if price diff <= this (cents)")
     parser.add_argument("--amend-qty-tolerance", type=int, default=0, help="Keep existing order if qty diff <= this")
-    parser.add_argument("--min-quote-lifetime-s", type=float, default=0.0, help="Minimum order lifetime before amend/cancel (0 disables)")
-    parser.add_argument("--reprice-min-cents", type=int, default=0, help="Minimum price delta to amend (0 disables)")
-    parser.add_argument("--resize-min-abs", type=int, default=0, help="Minimum absolute qty delta to amend (0 disables)")
-    parser.add_argument("--resize-min-rel", type=float, default=0.0, help="Minimum relative qty delta to amend (0 disables)")
-    parser.add_argument("--open-reject-cooldown-s", type=float, default=0.0, help="Cooldown after failed open orders (0 disables)")
-    parser.add_argument("--enforce-cash-preflight", action="store_true", help="Enable preflight cash checks for opens")
-    parser.add_argument("--cash-preflight-buffer-dollars", type=float, default=0.50, help="Cash buffer used when --enforce-cash-preflight is enabled")
-    parser.add_argument("--cancel-stale-unmatched", action="store_true", help="Auto-cancel unmatched active orders")
     parser.add_argument("--live-trade-window-s", type=float, default=0.0, help="Only trade if tick is within this many seconds of now (0 disables)")
     parser.add_argument("--warmup-old-ticks", action="store_true", help="If set, still call strategy on old ticks but do not trade")
     parser.add_argument("--max-order-age-s", type=float, default=0.0, help="Cancel resting orders older than this many seconds (0 disables)")
@@ -335,7 +327,6 @@ def main() -> int:
     parser.add_argument("--strategy-kwargs", default="{}", help="JSON dict of kwargs for strategy factory")
     parser.add_argument("--file-pattern", default="market_data_*.csv", help="Glob pattern for market logs")
     parser.add_argument("--fills-poll-interval", type=float, default=10.0, help="Seconds between fills polling")
-    parser.add_argument("--disable-fills-log", action="store_true", help="Disable outputting fills.csv")
     args = parser.parse_args()
 
     diag_log = _build_diag_logger(args.diag_log)
@@ -485,18 +476,10 @@ def main() -> int:
         min_requote_interval=args.min_requote_interval,
         amend_price_tolerance=args.amend_price_tolerance,
         amend_qty_tolerance=args.amend_qty_tolerance,
-        min_quote_lifetime_s=args.min_quote_lifetime_s,
-        reprice_min_cents=args.reprice_min_cents,
-        resize_min_abs=args.resize_min_abs,
-        resize_min_rel=args.resize_min_rel,
         trade_live_window_s=args.live_trade_window_s,
         max_actions_per_minute=args.max_actions_per_minute,
         allow_warmup_old_ticks=args.warmup_old_ticks,
         max_order_age_s=args.max_order_age_s,
-        open_reject_cooldown_s=args.open_reject_cooldown_s,
-        enforce_cash_preflight=args.enforce_cash_preflight,
-        cash_preflight_buffer_dollars=args.cash_preflight_buffer_dollars,
-        cancel_stale_unmatched=args.cancel_stale_unmatched,
         diag_log=diag_log,
         diag_every=args.diag_every,
         decision_log=decision_log,

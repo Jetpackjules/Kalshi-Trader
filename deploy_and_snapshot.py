@@ -43,21 +43,47 @@ def main():
     run_command(kill_cmd_script, "Killing running Unified Engine (runner.py)")
 
     # 2. Upload Files
-    # Upload unified_engine sources
-    files_to_upload = [
-        ("server_mirror/unified_engine/runner.py", "unified_engine/runner.py"),
-        ("server_mirror/unified_engine/adapters.py", "unified_engine/adapters.py"),
-        ("server_mirror/unified_engine/engine.py", "unified_engine/engine.py"),
-        ("server_mirror/unified_engine/tick_sources.py", "unified_engine/tick_sources.py"),
-        ("server_mirror/backtesting/strategies/v3_variants.py", "backtesting/strategies/v3_variants.py"),
-        ("server_mirror/backtesting/strategies/simple_market_maker.py", "backtesting/strategies/simple_market_maker.py"),
-        ("server_mirror/backtesting/engine.py", "backtesting/engine.py"),
-        ("run_bot.sh", "run_bot.sh"),
-    ]
+    files_to_upload = []
+    
+    # Helper to recursively add files from a directory
+    def add_directory(local_dir, remote_prefix):
+        if not os.path.exists(local_dir):
+            print(f"WARNING: Directory {local_dir} not found. Skipping.")
+            return
+
+        for root, dirs, files in os.walk(local_dir):
+            for file in files:
+                if file.endswith(".py") or file.endswith(".json") or file.endswith(".txt"):
+                    local_path = os.path.join(root, file)
+                    # remote path needs to be relative to the expected structure on server
+                    # local_dir = server_mirror/unified_engine
+                    # remote_prefix = unified_engine
+                    rel_path = os.path.relpath(local_path, start=local_dir)
+                    remote_file_path = os.path.join(remote_prefix, rel_path).replace("\\", "/")
+                    files_to_upload.append((local_path, remote_file_path))
+
+    # Add all files from unified_engine
+    add_directory("server_mirror/unified_engine", "unified_engine")
+    
+    # Add all files from backtesting/strategies
+    add_directory("server_mirror/backtesting/strategies", "backtesting/strategies")
+
+    # Add specific files
+    files_to_upload.append(("server_mirror/backtesting/engine.py", "backtesting/engine.py"))
+    files_to_upload.append(("run_bot.sh", "run_bot.sh"))
     
     # Ensure remote directory exists
-    mkdir_cmd = f'ssh -i {KEY_PATH} -o StrictHostKeyChecking=no {SERVER_ADDR} "mkdir -p unified_engine backtesting/strategies"'
-    run_command(mkdir_cmd, "Creating remote unified_engine directory")
+    # We might need to make subdirectories if the structure is deep
+    # For now, let's just make the base dirs and hope scp handles it or we pre-create
+    # Actually scp fails if dir doesn't exist. We should collect all remote dirs and mkdir them.
+    remote_dirs = set()
+    for _, remote_rel in files_to_upload:
+        remote_dirs.add(os.path.dirname(remote_rel))
+    
+    mkdir_chain = " ".join([f'"{d}"' for d in remote_dirs if d])
+    if mkdir_chain:
+        mkdir_cmd = f'ssh -i {KEY_PATH} -o StrictHostKeyChecking=no {SERVER_ADDR} "mkdir -p {mkdir_chain}"'
+        run_command(mkdir_cmd, "Creating remote directories")
 
     for local_rel, remote_rel in files_to_upload:
         local_path = local_rel # Relative to CWD

@@ -33,7 +33,8 @@ def _parse_timestamp(value: str | None) -> datetime | None:
 def main():
     parser = argparse.ArgumentParser(description="Generate Granular Daily Backtest Charts")
     parser.add_argument("--out-dir", type=str, required=True, help="Backtest output directory.")
-    parser.add_argument("--snapshot", type=str, required=True, help="Path to starting snapshot")
+    parser.add_argument("--initial-cash", type=float, default=100.0, help="Initial cash (default: 100.0)")
+    parser.add_argument("--start-date", type=str, help="Start date (YYYY-MM-DD). If omitted, uses first trade.")
     parser.add_argument("--out", type=str, default="backtest_charts/granular_daily.html", help="Output HTML path")
     args = parser.parse_args()
 
@@ -44,13 +45,10 @@ def main():
         print(f"Error: {trades_path} not found.")
         return
 
-    # Load Snapshot
-    with open(args.snapshot, "r") as f:
-        snapshot = json.load(f)
-    
-    initial_cash = float(snapshot.get("balance") or snapshot.get("cash") or 0.0)
-    initial_positions = snapshot.get("positions", {})
-    start_dt = _parse_timestamp(snapshot.get("timestamp") or snapshot.get("last_update"))
+    # Initialize from Args (No Snapshot)
+    initial_cash = args.initial_cash
+    initial_positions = {}
+    start_dt = _parse_timestamp(args.start_date) if args.start_date else None
 
     # Load Trades
     trades = []
@@ -64,6 +62,11 @@ def main():
             trades.append(row)
     
     trades.sort(key=lambda x: x["time"])
+    
+    # Filter by start date if provided
+    if start_dt:
+        trades = [t for t in trades if t["time"] >= start_dt]
+
     if not trades:
         print("No trades found.")
         return
