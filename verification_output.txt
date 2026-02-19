@@ -1,0 +1,23 @@
+--- Verifying Position Sizing Logic Fix ---
+Using Key: kalshi_prod_private_key.pem
+DEBUG: Sync Cash | Old: 0.00 | New (API): 0.30
+DEBUG: Synced Position | KXHIGHNY-26FEB19-T40 | YES=0 | NO=18
+DEBUG: Canceling all existing orders on startup...
+Fetching Live State...
+
+Live Data:
+  Cash: $0.30
+  Positions Raw: {"yes": 0, "no": 18, "cost": 13.94, "last_price": 0.0}
+
+Constructed Inventory (passed to strategy):
+  {"yes": 0, "no": 18}
+
+--- Running Strategy Logic ---
+[NWS] Using Forecast: 40.0 F (Runtime: 2026-02-19 00:20:31.197899)
+
+--- Result ---
+Last Gate Reason: max_exposure_reached
+Last Gate Detail: target=$6.90 current=$14.58
+
+Interpretation:
+✅ SUCCESS: Strategy correctly identified max exposure was reached.

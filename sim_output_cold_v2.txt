@@ -1,0 +1,14 @@
+
+--- Live Logic Simulation ---
+Using Key: kalshi_prod_private_key.pem
+DEBUG: Sync Cash | Old: 0.00 | New (API): 6.71
+DEBUG: Synced Position | KXHIGHNY-26FEB19-T40 | YES=0 | NO=8
+DEBUG: Canceling all existing orders on startup...
+Initializing Strategy: champion_cold_only
+Traceback (most recent call last):
+  File "C:\Users\jetpa\OneDrive - UW\Google_Grav_Onedrive\kalshi_weather_data\tools\test_live_logic.py", line 321, in <module>
+    main()
+  File "C:\Users\jetpa\OneDrive - UW\Google_Grav_Onedrive\kalshi_weather_data\tools\test_live_logic.py", line 50, in main
+    strategy = champion_cold_only(cash_fraction=0.5) # Matches run_bot.sh args
+               ^^^^^^^^^^^^^^^^^^
+NameError: name 'champion_cold_only' is not defined

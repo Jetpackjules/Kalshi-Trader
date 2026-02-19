@@ -486,12 +486,23 @@ class UnifiedEngine:
             )
 
         positions = self.adapter.get_positions()
-        pos = positions.get(ticker, {"yes": 0, "no": 0})
+        
+        # Build comprehensive inventory for strategy visibility
+        # Start with all positions from adapter
+        portfolios_inventories = {}
+        for tkr, pos in positions.items():
+            portfolios_inventories[tkr] = {
+                "yes": int(pos.get("yes") or 0),
+                "no": int(pos.get("no") or 0),
+            }
+        
+        # Overlay current ticker's pending orders to ensure atomic updates
+        # (Other tickers might have pending too but we only process one stream here)
         mm_inv = {
-            "yes": int(pos.get("yes") or 0) + pending_yes,
-            "no": int(pos.get("no") or 0) + pending_no,
+            "yes": int(positions.get(ticker, {}).get("yes") or 0) + pending_yes,
+            "no": int(positions.get(ticker, {}).get("no") or 0) + pending_no,
         }
-        portfolios_inventories = {ticker: mm_inv}
+        portfolios_inventories[ticker] = mm_inv
 
         if self.min_requote_interval > 0:
             last_req = self.last_requote_time.get(ticker, 0.0)
