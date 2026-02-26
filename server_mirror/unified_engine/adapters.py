@@ -473,6 +473,7 @@ class LiveAdapter(BaseAdapter):
         self._cash = 0.0
         self._portfolio_value = 0.0
         self._positions = {}
+        self._assumed_position_adds = []
         self._last_sync_time = 0.0
         self._sync_interval = 60.0
         
@@ -741,7 +742,30 @@ class LiveAdapter(BaseAdapter):
     def get_positions(self) -> dict[str, dict[str, Any]]:
         if time.time() - self._last_sync_time > self._sync_interval:
             self._sync_state()
-        return self._positions
+        
+        now = time.time()
+        # Clean up assumed positions older than 65s (grace period for API sync)
+        self._assumed_position_adds = [a for a in self._assumed_position_adds if now - a["time"] < 65.0]
+        
+        assumed_totals = {}
+        for a in self._assumed_position_adds:
+            tkr = a["ticker"]
+            if tkr not in assumed_totals:
+                assumed_totals[tkr] = {"yes": 0, "no": 0}
+            assumed_totals[tkr][a["side"]] += a["qty"]
+        
+        # Merge API positions with local assumed positions to prevent lag-induced overbuying
+        merged = {}
+        all_tickers = set(self._positions.keys()).union(assumed_totals.keys())
+        for tkr in all_tickers:
+            api_pos = self._positions.get(tkr, {})
+            assumed = assumed_totals.get(tkr, {})
+            merged[tkr] = {
+                "yes": max(int(api_pos.get("yes", 0)), assumed.get("yes", 0)),
+                "no": max(int(api_pos.get("no", 0)), assumed.get("no", 0)),
+                "cost": api_pos.get("cost", 0.0),
+            }
+        return merged
 
     def get_open_orders(self, ticker: str, market_state: dict, current_time: datetime) -> list[dict]:
         # Improved Caching: Use logic that caches ALL orders once, then filters locally.
@@ -921,7 +945,7 @@ class LiveAdapter(BaseAdapter):
                     if self.get_cash() < cost:
                         can_afford = False
                         opp_side = "yes" if api_side == "no" else "no"
-                        pos = self._positions.get(ticker, {})
+                        pos = self.get_positions().get(ticker, {})
                         opp_qty = pos.get(opp_side, 0)
                         print(f"DEBUG: Netting Check | Ticker: {ticker} | Side: {api_side} | Opp Side: {opp_side} | Opp Qty: {opp_qty} | Order Qty: {order_qty}")
                         if opp_qty >= int(order_qty):
@@ -970,6 +994,15 @@ class LiveAdapter(BaseAdapter):
                         cost = (int(order_qty) * (order_price / 100.0)) + calc_fee
                         self._pending_deductions.append({"time": time.time(), "cost": cost})
                         self._cash -= cost # Speculative local update
+                        
+                        # Fix: Add to assumed positions immediately
+                        self._assumed_position_adds.append({
+                            "time": time.time(),
+                            "ticker": ticker,
+                            "side": api_side,
+                            "qty": int(order_qty),
+                        })
+                        
                         if self._diag_log:
                             self._diag_log("INFO", msg=f"Speculative cash deduction: -{cost:.2f} -> {self._cash:.2f}")
 

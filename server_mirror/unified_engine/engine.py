@@ -552,6 +552,7 @@ class UnifiedEngine:
                 actions_last_60s = len([t for t in times if t >= cutoff])
                 buy_orders = sum(1 for o in open_orders if (o.get("action") or "").lower() == "buy")
                 sell_orders = sum(1 for o in open_orders if (o.get("action") or "").lower() == "sell")
+                pos = portfolios_inventories.get(ticker, {})
                 self.diag_log(
                     "METRIC",
                     tick_ts=current_time,
@@ -571,11 +572,18 @@ class UnifiedEngine:
                 self._last_metric_ts[ticker] = now_ts
 
         if self.diag_log:
+            gate_reason = getattr(self.strategy, "last_gate_reason", None)
+            gate_detail = getattr(self.strategy, "last_gate_detail", None)
             if desired_orders is None:
-                self.diag_log("DECISION", tick_ts=current_time, ticker=ticker, desired="keep")
+                self.diag_log(
+                    "DECISION",
+                    tick_ts=current_time,
+                    ticker=ticker,
+                    desired="keep",
+                    gate=gate_reason,
+                    gate_detail=gate_detail,
+                )
             else:
-                gate_reason = getattr(self.strategy, "last_gate_reason", None)
-                gate_detail = getattr(self.strategy, "last_gate_detail", None)
                 self.diag_log(
                     "DECISION",
                     tick_ts=current_time,
@@ -585,6 +593,7 @@ class UnifiedEngine:
                     gate_detail=gate_detail,
                 )
 
+        pos = portfolios_inventories.get(ticker, {})
         pos_yes = int(pos.get("yes") or 0)
         pos_no = int(pos.get("no") or 0)
         if desired_orders is None:

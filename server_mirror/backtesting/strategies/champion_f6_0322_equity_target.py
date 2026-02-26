@@ -129,16 +129,25 @@ class NWSRegimeSplitF60322EquityTargetTrader(NWSRegimeSplitF60322Trader):
                 self.last_gate_reason = "before_entry_time"
                 return None
             
+            def _trace(msg: str):
+                self._log(f"[TRACE {target_date.isoformat()}] {msg}", throttle=True, throttle_seconds=60)
+            
+            _trace("Waking up for evaluation")
+
             # 2. OVERLAP GUARD: Do we have pending orders?
             if active_orders:
                 self.last_gate_reason = "active_orders_present"
+                _trace("Overlap Guard: FAILED (Active Orders Present)")
                 return None
+            _trace("Overlap Guard: PASS")
 
             # 3. DONE DATE GUARD: Did we already mark this as done?
             if target_date in self._done_target_dates:
                 self.last_gate_reason = "already_traded_target_date"
                 self._log(f"Status: Already traded for {target_date}", throttle=True, throttle_seconds=300)
+                _trace("Done Date Guard: FAILED (Already in Done List)")
                 return None
+            _trace("Done Date Guard: PASS")
 
             # ONE-SHOT GUARD: If we already have ANY position for this target, assume we are done.
             # This prevents "topping up" partial fills or double-dipping after a restart.
@@ -157,7 +166,9 @@ class NWSRegimeSplitF60322EquityTargetTrader(NWSRegimeSplitF60322Trader):
                      self.last_gate_detail = f"ticker={t} yes={y_qty} no={n_qty}"
                      # Restore memory of being done nicely
                      self._done_target_dates.add(target_date)
+                     _trace(f"One-Shot Guard: FAILED (Found User Inventory in {t})")
                      return None
+            _trace("One-Shot Guard: PASS")
 
             # self._log(f"IT'S TIME! Analysis for target={target_date} (Now={now_local.time()})", throttle=True, throttle_seconds=60)
         except Exception as e:
@@ -169,18 +180,44 @@ class NWSRegimeSplitF60322EquityTargetTrader(NWSRegimeSplitF60322Trader):
 
 
         target_tickers = [t for t, d in self._ticker_market_date.items() if d == target_date]
-        if len(target_tickers) < self.min_markets_in_snapshot:
+        
+        # PROACTIVE SNAPSHOT FETCH: If the board is incomplete (maybe we just restarted, or markets are quiet),
+        # don't wait for ticks. Explicitly fetch the current active markets from Kalshi to build the list.
+        if len(target_tickers) < 6:
+            _trace(f"Local board incomplete ({len(target_tickers)} markets). Fetching Kalshi API...")
+            try:
+                payload = self._http_get_json("https://api.elections.kalshi.com/trade-api/v2/markets", {"series_ticker": "KXHIGHNY", "status": "open"})
+                fetched_count = 0
+                for m in payload.get("markets", []):
+                    tkr = m.get("ticker", "")
+                    mdt = parse_market_date_from_ticker(tkr)
+                    if mdt is not None and mdt.date() == target_date:
+                        self._ticker_market_date[tkr] = target_date
+                        if m.get("yes_ask") is not None:
+                            self._latest_yes_ask[tkr] = float(m["yes_ask"])
+                        if m.get("no_ask") is not None:
+                            self._latest_no_ask[tkr] = float(m["no_ask"])
+                        fetched_count += 1
+                
+                # Re-evaluate list after manual fetch insertion
+                target_tickers = [t for t, d in self._ticker_market_date.items() if d == target_date]
+                _trace(f"API Fetch complete. Found {fetched_count} matching tickers.")
+            except Exception as e:
+                _trace(f"API Fetch Failed: {e}")
+
+        if len(target_tickers) == 0:
             self.last_gate_reason = "waiting_full_snapshot"
-            self.last_gate_detail = (
-                f"target_date={target_date.isoformat()} tickers={len(target_tickers)} "
-                f"required={self.min_markets_in_snapshot}"
-            )
+            self.last_gate_detail = f"target_date={target_date.isoformat()} tickers=0"
+            _trace(f"Snapshot Guard: FAILED (Waiting for at least 1 market, have 0)")
             return None
+        _trace(f"Snapshot Guard: PASS ({len(target_tickers)} markets visible)")
 
         defs = self._build_contract_defs(target_tickers)
-        if len(defs) < self.min_markets_in_snapshot:
+        if len(defs) == 0:
             self.last_gate_reason = "contract_parse_incomplete"
+            _trace("Contract Parse Defs Guard: FAILED (0 defs parsed)")
             return None
+        _trace(f"Contract Parse Defs Guard: PASS ({len(defs)} defs parsed)")
 
         decision_anchor_local = self._decision_anchor_for_target(target_date=target_date, now_local=now_local)
         try:
@@ -192,12 +229,15 @@ class NWSRegimeSplitF60322EquityTargetTrader(NWSRegimeSplitF60322Trader):
             self.last_gate_reason = "forecast_fetch_error"
             self.last_gate_detail = str(exc)
             self._log(f"[ERROR] Forecast fetch failed: {exc}")
+            _trace(f"Forecast Fetch Guard: FAILED (Exception: {exc})")
             return None
 
         if forecast_max is None:
             self.last_gate_reason = "no_forecast_found"
             self._log(f"Forecast MISSING for {target_date} (Runtime: {runtime_utc})", throttle=True, throttle_seconds=300)
+            _trace("Forecast Valid Guard: FAILED (Forecast is None)")
             return None
+        _trace(f"Forecast Valid Guard: PASS")
         
         self._log(f"Using Forecast: {forecast_max} F (Runtime: {runtime_utc})")
 
@@ -208,23 +248,29 @@ class NWSRegimeSplitF60322EquityTargetTrader(NWSRegimeSplitF60322Trader):
         if target_ticker is None:
             self.last_gate_reason = "no_contract_for_step"
             self.last_gate_detail = f"forecast={forecast_max:.2f} step={step}"
+            _trace(f"Contract Mapping Guard: FAILED (No strike for step {step})")
             return None
+        _trace(f"Contract Mapping Guard: PASS (Targeting {target_ticker} {side})")
 
         ask = self._latest_yes_ask.get(target_ticker) if side == "YES" else self._latest_no_ask.get(target_ticker)
         if ask is None:
             self.last_gate_reason = "missing_ask"
             self.last_gate_detail = target_ticker
+            _trace("Ask Price Fetch Guard: FAILED (Ask is None)")
             return None
 
         if side == "NO":
             if ask < self.min_no_ask:
                 self.last_gate_reason = "no_ask_too_low"
+                _trace(f"Min Ask Guard: FAILED (Ask {ask:.2f} < {self.min_no_ask:.2f})")
                 return None
             if ask > self.max_no_ask:
                 self.last_gate_reason = "skip_day_no_ask_too_high"
                 self.last_gate_detail = f"ask={ask:.2f} max={self.max_no_ask:.2f}"
                 self._done_target_dates.add(target_date)
+                _trace(f"Max Ask Guard: FAILED (Ask {ask:.2f} > {self.max_no_ask:.2f})")
                 return None
+        _trace(f"Price Cap Guard: PASS (Ask is {ask:.2f}c)")
 
         est_equity = self._estimate_total_equity(float(cash), portfolios_inventories)
         target_exposure = est_equity * self.cash_fraction
@@ -247,17 +293,21 @@ class NWSRegimeSplitF60322EquityTargetTrader(NWSRegimeSplitF60322Trader):
         if budget <= 0:
             self.last_gate_reason = "max_exposure_reached"
             self.last_gate_detail = f"target=${target_exposure:.2f} current=${current_exposure_dollars:.2f}"
+            _trace(f"Budget Guard: FAILED (Budget <= 0. Max Exposure Reached or No Cash)")
             return None
+        _trace(f"Budget Guard: PASS (Budget ${budget:.2f})")
 
         p = float(ask) / 100.0
         fee_cents = 7.0 * p * (1.0 - p)
         est_cost_per_contract = max((float(ask) + fee_cents) / 100.0, 0.01)
         qty = int(math.floor(budget / est_cost_per_contract))
         if qty <= 0:
-            self.last_gate_reason = "budget_too_small"
-            self.last_gate_detail = f"cash={cash:.2f} est_equity={est_equity:.2f} ask={ask:.2f}"
-            self._log(f"Trade Plan REJECTED: Budget too small (Qty=0). Cash={cash:.2f} TargetBudget={target_budget:.2f}")
+            self.last_gate_reason = "qty_zero"
+            self.last_gate_detail = f"budget={budget:.2f} ask={ask:.2f}"
+            self._log(f"Trade Plan REJECTED: Budget too small (Qty=0). Cash={cash:.2f} TargetExposure={target_exposure:.2f} CurrentExposure={current_exposure_dollars:.2f}")
+            _trace("Quantity Guard: FAILED (Calculated Qty is 0)")
             return None
+        _trace(f"Quantity Guard: PASS (Calculated Qty = {qty})")
 
         action = "BUY_YES" if side == "YES" else "BUY_NO"
         self._log(f"Trade Plan: {action} {qty}x {target_ticker} @ {self.market_order_price} (Anchor={self.decision_anchor_mode})")

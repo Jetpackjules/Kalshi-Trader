@@ -60,7 +60,7 @@ class NWSRegimeSplitF60322Trader:
         cash_fraction: float = 0.5,
         market_order_price: int = 99,
         min_no_ask: float = 1.0,
-        max_no_ask: float = 91.32454360553209,
+        max_no_ask: float = 95.0,
         min_markets_in_snapshot: int = 6,
         http_timeout_seconds: int = 20,
     ) -> None:
