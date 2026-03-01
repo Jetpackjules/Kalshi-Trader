@@ -315,7 +315,9 @@ class NWSRegimeSplitF60322Trader:
 
     def _target_date_for_now(self, now_local: datetime) -> date | None:
         if now_local.time() >= self.entry_time:
-            return now_local.date() + timedelta(days=1)
+            # Enforce a strict 1-hour trading window to prevent delayed late-day executions
+            if now_local.time().hour == self.entry_time.hour:
+                return now_local.date() + timedelta(days=1)
         return None
 
     def _regime_params(self, forecast: float) -> tuple[str, int]:
@@ -364,8 +366,12 @@ class NWSRegimeSplitF60322Trader:
             self.last_gate_reason = "date_conversion_error"
             return None
         if target_date is None:
-            self.last_gate_reason = "before_entry_time"
-            self._log(f"Status: Waiting for {self.entry_time} {self.local_tz} (Current: {now_local.strftime('%H:%M')})", throttle=True, throttle_seconds=300)
+            if now_local.time() < self.entry_time:
+                self.last_gate_reason = "before_entry_time"
+                self._log(f"Status: Waiting for {self.entry_time} {self.local_tz} (Current: {now_local.strftime('%H:%M')})", throttle=True, throttle_seconds=300)
+            else:
+                self.last_gate_reason = "after_trading_window"
+                self._log(f"Status: Trading window closed! Only allowed at hour {self.entry_time.hour} {self.local_tz} (Current: {now_local.strftime('%H:%M')})", throttle=True, throttle_seconds=300)
             return None
         if target_date in self._done_target_dates:
             self.last_gate_reason = "already_traded_target_date"

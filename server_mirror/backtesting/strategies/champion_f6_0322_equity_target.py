@@ -126,7 +126,11 @@ class NWSRegimeSplitF60322EquityTargetTrader(NWSRegimeSplitF60322Trader):
             # We normally check this first to avoid noise.
             target_date = self._target_date_for_now(now_local)
             if target_date is None:
-                self.last_gate_reason = "before_entry_time"
+                if now_local.time() < self.entry_time:
+                    self.last_gate_reason = "before_entry_time"
+                else:
+                    self.last_gate_reason = "after_trading_window"
+                    self._log(f"Status: Trading window closed! Only allowed at hour {self.entry_time.hour} {self.local_tz} (Current: {now_local.strftime('%H:%M')})", throttle=True, throttle_seconds=300)
                 return None
             
             def _trace(msg: str):
