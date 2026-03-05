@@ -20,6 +20,7 @@ class NWSRegimeSplitF60322EquityTargetTrader(NWSRegimeSplitF60322Trader):
 
     def __init__(self, **kwargs):
         self.decision_anchor_mode = kwargs.pop("decision_anchor_mode", "rolling_latest")
+        self.sizing_mode = kwargs.pop("sizing_mode", "equity")
         self.forecast_delay_minutes = int(kwargs.get("forecast_delay_minutes", 171)) # Default from base if not provided
         super().__init__(**kwargs)
         self._latest_yes_bid: dict[str, float] = {}
@@ -293,10 +294,14 @@ class NWSRegimeSplitF60322EquityTargetTrader(NWSRegimeSplitF60322Trader):
         else:
              current_exposure_dollars = current_yes * (float(ask) / 100.0)
 
-        budget = min(float(cash), target_exposure - current_exposure_dollars)
+        if self.sizing_mode.lower() == "cash":
+            budget = float(cash) * self.cash_fraction
+        else:
+            budget = min(float(cash), target_exposure - current_exposure_dollars)
+            
         if budget <= 0:
             self.last_gate_reason = "max_exposure_reached"
-            self.last_gate_detail = f"target=${target_exposure:.2f} current=${current_exposure_dollars:.2f}"
+            self.last_gate_detail = f"target=${target_exposure:.2f} current=${current_exposure_dollars:.2f} cash=${cash:.2f}"
             _trace(f"Budget Guard: FAILED (Budget <= 0. Max Exposure Reached or No Cash)")
             return None
         _trace(f"Budget Guard: PASS (Budget ${budget:.2f})")

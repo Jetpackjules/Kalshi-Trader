@@ -355,9 +355,11 @@ class NWSRegimeSplitF60322Trader:
             return None
 
         try:
-            # Fix timezone handling: use astimezone to convert system local time (e.g. PST) to target (NY)
-            # .replace() blindly treats naive PST as NY time (3h lag). .astimezone() converts it.
-            now_local = current_time.astimezone(self.local_tz)
+            # Fix timezone handling: Ticks from the scraper always arrive in naive system time (PST).
+            # We MUST assert PST first, then convert to the local timezone (New York)
+            from zoneinfo import ZoneInfo
+            now_pst = current_time.replace(tzinfo=ZoneInfo("America/Los_Angeles"))
+            now_local = now_pst.astimezone(self.local_tz)
                 
             target_date = self._target_date_for_now(now_local)
         except Exception as e:
