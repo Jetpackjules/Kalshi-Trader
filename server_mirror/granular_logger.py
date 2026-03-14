@@ -270,15 +270,14 @@ class GranularLogger:
         
         self.books[ticker] = {'yes': {}, 'no': {}}
         
-        for p, q in msg.get("yes", []):
-            try:
-                self.books[ticker]['yes'][int(float(p))] = q
-            except: pass
-            
-        for p, q in msg.get("no", []):
-            try:
-                self.books[ticker]['no'][int(float(p))] = q
-            except: pass
+        for side in ['yes', 'no']:
+            for p, q in msg.get(side, []):
+                try:
+                    pf = float(p)
+                    # Support v1 (cents) and v2 (dollars) string payloads
+                    price_cents = int(round(pf * 100)) if pf <= 1.0 else int(pf)
+                    self.books[ticker][side][price_cents] = int(float(q))
+                except: pass
             
         self.log_state(ticker)
 
@@ -286,15 +285,26 @@ class GranularLogger:
         ticker = msg.get("market_ticker")
         if not ticker: return
         
-        price = msg.get("price")
-        delta = msg.get("delta")
         side = msg.get("side")
+        
+        # Support v1 and v2 payload fields
+        if "price_dollars" in msg:
+            price = int(round(float(msg["price_dollars"]) * 100))
+        else:
+            pf = float(msg.get("price", 0))
+            price = int(round(pf * 100)) if pf <= 1.0 and pf > 0 else int(pf)
+            
+        if "delta_fp" in msg:
+            delta = int(float(msg["delta_fp"]))
+        else:
+            delta = int(float(msg.get("delta") or 0))
         
         if ticker not in self.books:
              self.books[ticker] = {'yes': {}, 'no': {}}
         
         current_qty = self.books[ticker][side].get(price, 0)
         new_qty = current_qty + delta
+
         
         self.update_book(ticker, side, price, new_qty)
 
